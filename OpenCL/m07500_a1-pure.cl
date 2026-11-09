@@ -18,10 +18,10 @@
 
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
+  u32 user[128];
+  u32 realm[128];
   u32 salt[64];
-  u32 timestamp[16];
+  u32 enc_timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;
   u32 format;
@@ -183,14 +183,14 @@ KERNEL_FQ KERNEL_FA void m07500_mxx (KERN_ATTR_ESALT (krb5pa_t))
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[7];
 
   md4_ctx_t ctx0;
 
@@ -210,30 +210,46 @@ KERNEL_FQ KERNEL_FA void m07500_mxx (KERN_ATTR_ESALT (krb5pa_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md4_ctx_t ctx = ctx0;
+    md4_ctx_t ctx;
 
-    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
-    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
-    // middle are empty unless the mask carries a ?q.
-    //
-    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
-    // attack modes that do not take them pay nothing but the compare.
+    // -a 1 may choose the larger wordlist as the base word source, which puts the amplifier word in
+    // front of the base word (BASE_RIGHT). The context that already absorbed the base word cannot be
+    // reused for that, so start from the pre-base context, feed the amplifier, then the base word.
 
-    if (COMBS_IS_MIDDLE)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      if (COMBS_PRE (il_pos).pw_len > 0)
-      {
-        ctx = ctx0_pre;
+      ctx = ctx0_pre;
 
-        md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
-        md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+      md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+      md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+      // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+      // middle are empty unless the mask carries a ?q.
+      //
+      // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+      // attack modes that do not take them pay nothing but the compare.
+
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_PRE (il_pos).pw_len > 0)
+        {
+          ctx = ctx0_pre;
+
+          md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+          md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+        }
+
+        if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+        if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
       }
 
-      if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
-      if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
     }
-
-    md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md4_final (&ctx);
 
@@ -277,14 +293,14 @@ KERNEL_FQ KERNEL_FA void m07500_sxx (KERN_ATTR_ESALT (krb5pa_t))
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[7];
 
   md4_ctx_t ctx0;
 
@@ -304,30 +320,46 @@ KERNEL_FQ KERNEL_FA void m07500_sxx (KERN_ATTR_ESALT (krb5pa_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md4_ctx_t ctx = ctx0;
+    md4_ctx_t ctx;
 
-    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
-    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
-    // middle are empty unless the mask carries a ?q.
-    //
-    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
-    // attack modes that do not take them pay nothing but the compare.
+    // -a 1 may choose the larger wordlist as the base word source, which puts the amplifier word in
+    // front of the base word (BASE_RIGHT). The context that already absorbed the base word cannot be
+    // reused for that, so start from the pre-base context, feed the amplifier, then the base word.
 
-    if (COMBS_IS_MIDDLE)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      if (COMBS_PRE (il_pos).pw_len > 0)
-      {
-        ctx = ctx0_pre;
+      ctx = ctx0_pre;
 
-        md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
-        md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+      md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+      md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+      // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+      // middle are empty unless the mask carries a ?q.
+      //
+      // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+      // attack modes that do not take them pay nothing but the compare.
+
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_PRE (il_pos).pw_len > 0)
+        {
+          ctx = ctx0_pre;
+
+          md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+          md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+        }
+
+        if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+        if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
       }
 
-      if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
-      if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
     }
-
-    md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md4_final (&ctx);
 

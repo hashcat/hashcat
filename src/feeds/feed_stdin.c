@@ -64,6 +64,7 @@
 #include "feed.h"
 
 #include <errno.h>
+#include <time.h>
 
 #if defined (_WIN)
 #include <io.h>
@@ -163,6 +164,9 @@ typedef struct stdin_global
 
   u64 selects_returned;
 
+  // --stdin-timeout-flush, 0 when it is off
+
+  u32 flush_sec;
 
 } stdin_global_t;
 
@@ -197,7 +201,11 @@ typedef struct stdin_thread
   bool have;
   bool replay;
 
-  char pad[STDIN_CACHELINE - (((sizeof (int) + sizeof (char *) + (5 * sizeof (size_t)) + sizeof (u64) + 2) % STDIN_CACHELINE))];
+  // Lines were handed out since the last flush, so a flush now gives hashcat something to crack
+
+  bool flushable;
+
+  char pad[STDIN_CACHELINE - (((sizeof (int) + sizeof (char *) + (5 * sizeof (size_t)) + sizeof (u64) + 3) % STDIN_CACHELINE))];
 
 } stdin_thread_t;
 
@@ -287,9 +295,10 @@ static HC_API_CALL void *stdin_reader (void *p)
 
     // Wait for something to arrive, but not so long that a session being stopped goes unnoticed. Once
     // the stream has proved itself this is dropped, because it costs a syscall per read and an
-    // interactive user is long gone by then.
+    // interactive user is long gone by then. Under --stdin-timeout-flush it stays, because the idle
+    // seconds it counts are what --stdin-timeout-abort goes by for the whole session.
 
-    if (stdin_global->selects_returned < STDIN_DISABLE_READ_TIMEOUT_AFTER)
+    if ((stdin_global->selects_returned < STDIN_DISABLE_READ_TIMEOUT_AFTER) || (stdin_global->flush_sec > 0))
     {
       int rc_select = 0;
 
@@ -478,6 +487,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   stdin_global->filled_cnt       = 0;
   stdin_global->free_cnt         = 0;
   stdin_global->selects_returned = 0;
+  stdin_global->flush_sec        = hashcat_ctx->user_options->stdin_timeout_flush;
 
   for (int i = 0; i < STDIN_BLOCK_CNT; i++)
   {
@@ -582,8 +592,9 @@ bool thread_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_
   stdin_thread->len    = 0;
   stdin_thread->off    = 0;
   stdin_thread->pos    = 0;
-  stdin_thread->have   = false;
-  stdin_thread->replay = false;
+  stdin_thread->have      = false;
+  stdin_thread->replay    = false;
+  stdin_thread->flushable = false;
 
   thread_ctx->thrdata = stdin_thread;
 
@@ -619,10 +630,68 @@ void thread_term (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread
   thread_ctx->thrdata = NULL;
 }
 
+// The point in time a wait under --stdin-timeout-flush gives up at. It is fixed when the wait starts,
+// so a wake that finds no block waits only for what is left.
+
+#if defined (_WIN)
+typedef ULONGLONG stdin_deadline_t;
+#else
+typedef struct timespec stdin_deadline_t;
+#endif
+
+static void stdin_deadline_set (stdin_deadline_t *deadline, const u32 sec)
+{
+  #if defined (_WIN)
+  deadline[0] = GetTickCount64 () + ((ULONGLONG) sec * 1000);
+  #else
+  clock_gettime (CLOCK_REALTIME, deadline);
+
+  deadline->tv_sec += sec;
+  #endif
+}
+
+// Waits for a filled block until the deadline, with the mutex held as hc_thread_cond_wait () does.
+// Returns false once the deadline has passed. A wake for any other reason returns true, and the
+// caller looks at the queue again.
+
+static bool stdin_wait_until (stdin_global_t *stdin_global, const stdin_deadline_t *deadline)
+{
+  #if defined (_WIN)
+  const ULONGLONG now = GetTickCount64 ();
+
+  if (now >= deadline[0]) return false;
+
+  const ULONGLONG left = deadline[0] - now;
+
+  const DWORD msec = (left >= INFINITE) ? (INFINITE - 1) : (DWORD) left;
+
+  SleepConditionVariableCS (&stdin_global->cond_filled, &stdin_global->mux, msec);
+  #else
+  const int rc = pthread_cond_timedwait (&stdin_global->cond_filled, &stdin_global->mux, deadline);
+
+  if (rc == ETIMEDOUT) return false;
+  #endif
+
+  return true;
+}
+
+typedef enum stdin_next
+{
+  STDIN_NEXT_BLOCK,
+  STDIN_NEXT_END,
+  STDIN_NEXT_FLUSH,
+
+} stdin_next_t;
+
 // Give back the block this thread has finished with and take the next one that has arrived. This is
 // the only part of reading a candidate that touches anything shared.
+//
+// Under --stdin-timeout-flush a thread that has handed out lines since its last flush waits only that
+// long for more. Running out of time is then a flush rather than the end, so hashcat cracks the lines
+// it holds without waiting for a batch's worth. A thread with nothing handed out has nothing to flush,
+// and it waits as long as it takes.
 
-static bool stdin_block_next (stdin_global_t *stdin_global, stdin_thread_t *stdin_thread)
+static stdin_next_t stdin_block_next (stdin_global_t *stdin_global, stdin_thread_t *stdin_thread)
 {
   hc_thread_mutex_lock (stdin_global->mux);
 
@@ -637,16 +706,43 @@ static bool stdin_block_next (stdin_global_t *stdin_global, stdin_thread_t *stdi
     stdin_thread->blk = -1;
   }
 
+  const bool timed = (stdin_global->flush_sec > 0) && (stdin_thread->flushable == true);
+
+  stdin_deadline_t deadline;
+
+  if (timed == true) stdin_deadline_set (&deadline, stdin_global->flush_sec);
+
   while ((stdin_global->filled_cnt == 0) && (stdin_global->eof == false))
   {
-    hc_thread_cond_wait (stdin_global->cond_filled, stdin_global->mux);
+    if (timed == false)
+    {
+      hc_thread_cond_wait (stdin_global->cond_filled, stdin_global->mux);
+
+      continue;
+    }
+
+    if (stdin_wait_until (stdin_global, &deadline) == true) continue;
+
+    // A wait that timed out can still have taken the signal for a block that arrived at that moment,
+    // and that block is then taken rather than left to another thread that was not woken
+
+    if ((stdin_global->filled_cnt > 0) || (stdin_global->eof == true)) break;
+
+    // The block this thread held is given back already, so there is no line left to re-read
+
+    stdin_thread->flushable = false;
+    stdin_thread->have      = false;
+
+    hc_thread_mutex_unlock (stdin_global->mux);
+
+    return STDIN_NEXT_FLUSH;
   }
 
   if (stdin_global->filled_cnt == 0)
   {
     hc_thread_mutex_unlock (stdin_global->mux);
 
-    return false;
+    return STDIN_NEXT_END;
   }
 
   const int blk = stdin_global->filled_q[stdin_global->filled_tail];
@@ -662,7 +758,7 @@ static bool stdin_block_next (stdin_global_t *stdin_global, stdin_thread_t *stdi
   stdin_thread->len = stdin_global->blocks[blk].len;
   stdin_thread->off = 0;
 
-  return true;
+  return STDIN_NEXT_BLOCK;
 }
 
 int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size)
@@ -675,7 +771,8 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
 
   if (stdin_thread->replay == true)
   {
-    stdin_thread->replay = false;
+    stdin_thread->replay    = false;
+    stdin_thread->flushable = true;
 
     stdin_thread->pos++;
 
@@ -690,7 +787,11 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
 
   while (stdin_thread->off >= stdin_thread->len)
   {
-    if (stdin_block_next (stdin_global, stdin_thread) == true) continue;
+    const stdin_next_t rc_next = stdin_block_next (stdin_global, stdin_thread);
+
+    if (rc_next == STDIN_NEXT_BLOCK) continue;
+
+    if (rc_next == STDIN_NEXT_FLUSH) return GENERIC_RC_FLUSH;
 
     if (stdin_global->read_error == true) return GENERIC_RC_ERROR;
 
@@ -713,7 +814,8 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
   stdin_thread->last_off = (size_t) (line - stdin_thread->buf);
   stdin_thread->last_len = line_len;
 
-  stdin_thread->have = true;
+  stdin_thread->have      = true;
+  stdin_thread->flushable = true;
 
   stdin_thread->pos++;
 

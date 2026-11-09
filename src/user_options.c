@@ -82,6 +82,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->brain_server               = BRAIN_SERVER;
   user_options->brain_server_timer         = BRAIN_SERVER_TIMER;
   user_options->brain_session              = BRAIN_SESSION;
+  user_options->brain_server_dump_dir      = NULL;
   user_options->brain_session_whitelist    = NULL;
   #endif
   user_options->color_cracked              = COLOR_CRACKED;
@@ -187,6 +188,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->status_timer               = STATUS_TIMER;
   user_options->stdin_count                = STDIN_COUNT;
   user_options->stdin_timeout_abort        = STDIN_TIMEOUT_ABORT;
+  user_options->stdin_timeout_flush        = STDIN_TIMEOUT_FLUSH;
   user_options->stdout_flag                = STDOUT_FLAG;
   user_options->usage                      = USAGE;
   user_options->username                   = USERNAME;
@@ -391,6 +393,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->stdin_count_chgd          = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
+      case IDX_STDIN_TIMEOUT_FLUSH:       user_options->stdin_timeout_flush       = hc_strtoul (optarg, NULL, 10);
+                                          user_options->stdin_timeout_flush_chgd  = true;                            break;
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
       case IDX_LENGTH_SORT_DISABLE:       user_options->length_sort_disable       = true;                            break;
@@ -472,6 +476,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_BYPASS_DELAY:              user_options->bypass_delay              = hc_strtoul (optarg, NULL, 10);
                                           user_options->bypass_delay_chgd         = true;                            break;
+      case IDX_BYPASS_ETA:                user_options->bypass_eta                = hc_strtoul (optarg, NULL, 10);
+                                          user_options->bypass_eta_chgd           = true;                            break;
       case IDX_BYPASS_THRESHOLD:          user_options->bypass_threshold          = hc_strtoul (optarg, NULL, 10);
                                           user_options->bypass_threshold_chgd     = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
@@ -524,6 +530,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->brain_port_chgd           = true;                            break;
       case IDX_BRAIN_SESSION:             user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
       case IDX_BRAIN_SESSION_WHITELIST:   user_options->brain_session_whitelist   = optarg;                          break;
+      case IDX_BRAIN_SERVER_DUMP_DIR:     user_options->brain_server_dump_dir     = optarg;                          break;
       #endif
       case IDX_COLOR_CRACKED:             user_options->color_cracked             = true;                            break;
       case IDX_HASH_COPY:                 user_options->hash_copy                 = true;                            break;
@@ -3427,6 +3434,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
 
   #ifdef WITH_BRAIN
+  logfile_top_string (user_options->brain_server_dump_dir);
   logfile_top_string (user_options->brain_session_whitelist);
   #endif
   logfile_top_string (user_options->encrypt_with_pubkey);

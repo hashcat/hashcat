@@ -34,13 +34,17 @@
 ## than passes in one. The kernel kinds share the on-disk mode pool; container
 ## has its own and runs once. A pull request is optimized only, for latency.
 ##
+## The per-mode timings ci_matrix.py balances the shards with live in the Actions
+## cache and nowhere else. .github/workflows/keepalive.yml reads them on Thursdays
+## so they survive the seven days between two runs here.
+##
 ## test.py exits non-zero when a mode fails, so a job here reads its exit code:
 ## the per-mode runs are OR'd into one status and a nonzero one fails the job.
 
 name: test
 
 # Name a manual run after the kinds it was dispatched with, so the run list shows "test: opt pure
-# (all)" rather than a column of identical "test". A schedule or pull request keeps the event name.
+# (all)" rather than a column of identical "test".
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
       && format('test: {0}{1}{2}{3}{4}({5})',
@@ -83,7 +87,7 @@ on:
       artificially_low_iterations:
         description: 'Artificially low iteration counts'
         type: boolean
-        default: false
+        default: true
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -115,6 +119,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Restore saved timings
+        id: timing-cache
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ci-timings-v2-${{ runner.os }}-
+
       - name: Plan
         id: plan
         env:
@@ -126,6 +139,7 @@ jobs:
           BRIDGE: ${{ inputs.bridge }}
           CONTAINER: ${{ inputs.container }}
           EDGE: ${{ inputs.edge }}
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
         run: |
           # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
           # An empty manual selection keeps the four ordinary kinds.
@@ -200,13 +214,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2-blowfish
 
       - name: Fetch the luks1 test containers
         if: (contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks_tests
-          cd tools/luks_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z
           7z x -y hashcat_luks_testfiles.7z >/dev/null
           rm -f hashcat_luks_testfiles.7z
@@ -216,7 +229,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2-blowfish
 
       - name: Restore the luks2 test containers
         id: luks2
@@ -258,7 +271,7 @@ jobs:
 
       - name: test.py
         env:
-          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations) && 'true' || 'false' }}
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
           KIND: ${{ matrix.kind }}
@@ -299,7 +312,33 @@ jobs:
             # summary below. bash -e does not abort on a command that is an if condition, so the
             # loop still runs every mode.
             # shellcheck disable=SC2086
-            if python3 tools/test.py -m "${mode}" ${OPTS} -D 1 -f > "${log}" 2>&1; then
+            if python3 - "${mode}" ${OPTS} > "${log}" 2>&1 <<'PYTHON'
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import time
+
+          sys.path.insert(0, "tools")
+          from test_iterations import iteration_reduction_enabled
+
+          # Measure this mode's test duration for the timing records used to balance CI shards.
+          started = time.monotonic()
+          result = subprocess.run([sys.executable, "tools/test.py", "-m", *sys.argv[1:], "-D", "1", "-f"])
+          seconds = max(1, math.ceil(time.monotonic() - started))
+          kind = os.environ["KIND"]
+          if result.returncode == 0 and os.environ["EVENT"] != "pull_request" and kind != "container":
+            mode = int(sys.argv[1])
+            section = "reduced" if iteration_reduction_enabled(mode) else "normal"
+            record = dict(mode=mode, kind=kind, section=section, seconds=seconds)
+            directory = Path("ci-timing-records")
+            directory.mkdir(exist_ok=True)
+            (directory / f"{mode}-{kind}.json").write_text(json.dumps(record) + "\n")
+          sys.exit(result.returncode if result.returncode >= 0 else 128 - result.returncode)
+          PYTHON
+            then
               rc=0
             else
               rc=$?
@@ -339,6 +378,15 @@ jobs:
 
           exit $fail
 
+      - name: Upload mode timings
+        if: always() && github.event_name != 'pull_request' && matrix.kind != 'container'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-timing-records-${{ matrix.name }}
+          path: ci-timing-records/*.json
+          if-no-files-found: ignore
+          overwrite: true
+
       - name: Upload the test logs
         if: failure()
         uses: actions/upload-artifact@v7
@@ -348,3 +396,59 @@ jobs:
             test_*/
             testpy_*.log
           if-no-files-found: ignore
+
+  timings:
+    needs: [plan, test]
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' && needs.plan.outputs.run == 'true'
+      && (contains(needs.plan.outputs.matrix, 'opt') || contains(needs.plan.outputs.matrix, 'pure')
+          || contains(needs.plan.outputs.matrix, 'bridge') || contains(needs.plan.outputs.matrix, 'edge'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Restore saved timings
+        id: timing-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ci-timings-v2-${{ runner.os }}-
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: ci-timing-records-*
+          path: ci-timing-records
+          merge-multiple: true
+
+      - name: Update saved timings
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+
+          path = Path(".github/workflows/ci_timings.json")
+          data = json.loads(path.read_text()) if path.exists() else {"normal": {}, "reduced": {}}
+          measurements = {}
+          for record in Path("ci-timing-records").glob("*.json"):
+            row = json.loads(record.read_text())
+            key = (row["section"], str(row["mode"]), row["kind"])
+            measurements[key] = max(measurements.get(key, 0), row["seconds"])
+          for (section, mode, kind), seconds in measurements.items():
+            data[section].setdefault(mode, {})[kind] = seconds
+          path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+          print("Updated %d mode/kind measurements" % len(measurements))
+          PYTHON
+
+      - name: Save updated timings
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/cache/save@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ${{ steps.timing-cache.outputs.cache-primary-key }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ci-timings
+          path: .github/workflows/ci_timings.json
+          overwrite: true

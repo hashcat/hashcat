@@ -29,7 +29,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_NOT_SALTED
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE; // OPTS_TYPE_PT_ADD80 and OPTS_TYPE_PT_ADDBITS15 added within kernel
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE // OPTS_TYPE_PT_ADD80 and OPTS_TYPE_PT_ADDBITS15 added within kernel
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "S:\"Config Passphrase\"=02:ded7137400e0a1004a12f1708453968ccc270908ba02ab0345c83690d1de3d9937587be66ad2a7fe8cc6cb16ecff02e61ac05e09d4f49f284efd24f6b16d6ae3";

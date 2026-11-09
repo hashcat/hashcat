@@ -26,7 +26,8 @@ static const u64   KERN_TYPE         = 30901;
 static const u32   OPTI_TYPE         = OPTI_TYPE_NOT_SALTED;
 static const u64   OPTS_TYPE         = OPTS_TYPE_STOCK_MODULE
                                      | OPTS_TYPE_PT_BASE58
-                                     | OPTS_TYPE_PT_GENERATE_LE;
+                                     | OPTS_TYPE_PT_GENERATE_LE
+                                     | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE         = SALT_TYPE_NONE;
 static const char *ST_PASS           = "59887ec9920239bd45b6a9f82b7c4e024f80beaf887e5ee6aac5de0a899d3068";
 static const char *ST_HASH           = "14Fqy5AGRehazZ4NLzxFWy2E4BiNFdH9Ut";

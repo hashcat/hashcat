@@ -215,6 +215,7 @@ typedef enum recipe_algo
   RECIPE_ALGO_XXH64        = 124,
   RECIPE_ALGO_XXH32        = 125,
   RECIPE_ALGO_TIGER192_4   = 126,
+  RECIPE_ALGO_LOOKUP8      = 127,
 
 } recipe_algo_t;
 

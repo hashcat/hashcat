@@ -206,6 +206,7 @@ The brain is most useful when the client produces candidates slowly enough for l
 * The server saves long-term memory to disk every five minutes by default. Option `--brain-server-timer` changes the interval.
 * The interval has a minimum of 60 seconds. Setting `--brain-server-timer 0` disables periodic saves, leaving shutdown as the only write. If the server is terminated without a clean shutdown, all work since startup is then lost.
 * The server also saves long-term memory when stopped with Ctrl+C.
+* The dump files are named `brain.<session>.ldmp` and `brain.<attack>.admp`. The server reads them at startup and writes them to the directory it was started in, or to the directory named by `--brain-server-dump-dir`. That directory must exist.
 * Each client declares its maximum batch size. The server rejects values above `BRAIN_LINK_CANDIDATES_MAX`, preventing a connection from requesting an arbitrarily large buffer. An authenticated client can still poison the database with false candidates, so use a strong server password and allow only trusted clients.
 * Option `--brain-feed` seeds the brain directly from candidates instead of requiring a cracking run. See the section below.
 * Option `--brain-session-whitelist` restricts clients to explicitly allowed session identifiers.
@@ -405,4 +406,5 @@ The brain-related command-line options are:
 - Option `--brain-password` specifies the server authentication password.
 - Option `--brain-client-features` selects brain client features. The default is `3`, enabling both hashes and attacks.
 - Option `--brain-server-timer` controls how often the server writes long-term memory to disk. The minimum is 60 seconds, while `0` disables periodic writes. This option requires `--brain-server`.
+- Option `--brain-server-dump-dir` names the directory the server reads its dumps from and writes them to. The default is the current directory. This option requires `--brain-server`.
 - Option `--brain-feed` supplies candidates from standard input to a running brain server.

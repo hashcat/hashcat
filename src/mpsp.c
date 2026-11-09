@@ -37,6 +37,10 @@ static int sp_comp_val (const void *p1, const void *p2)
   return 0;
 }
 
+// the base side a run kernel session has to keep when it takes a fourth right position
+
+#define RUN_KERNEL_BASE_WORDS (1024 * 1024)
+
 static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig, u32 css_cnt_lr[2])
 {
   const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
@@ -77,7 +81,22 @@ static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig
         }
         else
         {
-          if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
+          // The run kernels of an 8 bit mode fix the low three bytes of w0 across a run of right
+          // words, which needs byte 3 on the right side, so a session that loads them gets all
+          // four bytes of w0 on the right. Only while the base side keeps a million words, since
+          // a fourth right position divides it by a charset and a device wants its base words.
+          // Every other session keeps the split below, and with it the base word count its restore
+          // files and --skip values count in. A UTF-16 mode has taken the branch above.
+
+          u64 base_words = 1;
+
+          for (u32 i = 4; i < css_cnt_orig; i++) base_words = MIN (base_words * mask_ctx->css_buf[i].cs_len, RUN_KERNEL_BASE_WORDS);
+
+          if ((css_cnt_orig >= 8) && (base_words >= RUN_KERNEL_BASE_WORDS) && (run_kernels_wanted (hashcat_ctx) == true))
+          {
+            css_cnt_r = 4;
+          }
+          else if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
           {
             css_cnt_r = 3;
           }
@@ -883,29 +902,12 @@ static void mp_reset_usr (cs_t *mp_usr, const u32 userindex)
   memset (mp_usr[userindex].cs_buf, 0, sizeof (mp_usr[userindex].cs_buf));
 }
 
-// The characters a mask allows at each of its positions. A feed that filters what it produces by a
-// mask, or tests a candidate against one, wants the charsets rather than the candidate generator, and
-// this is the second and last part of the mask processor a plugin may reach.
-//
-// It is the same parser -a 3 uses, so ?a, a custom charset given with -1 through -8, a charset read
-// from a file and an uppercase only hash mode all mean here what they mean there. Writing a second
-// parser instead is how the two come to disagree about what a mask says.
+// One mask through the parser a round of the attack uses, on charsets of its own, leaving the mask
+// context as it found it. mask_css_parse () below is one caller and mask_ctx_check_arg () the other.
 
-HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, const u32 css_max, u32 *css_cnt)
+static int mp_css_parse_detached (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, u32 *css_cnt, const bool markers_allowed)
 {
-  if (hashcat_ctx == NULL) return -1;
-
-  // The parser clears and fills a fixed 256 entries whatever the mask holds, so a caller that sized its
-  // buffer for the mask it wrote rather than for the parser would be written past. Asked for rather than
-  // assumed, because this is an entry point a feed outside this tree also calls.
-
-  if (css_max < 256) return -1;
-
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-  if (mask_ctx == NULL) return -1;
-
-  if (hashcat_ctx->hashconfig == NULL) return -1;
 
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -961,10 +963,10 @@ HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, 
     rc = -1;
   }
 
-  // A ?w or a ?q says where a word goes, which is a question a hybrid attack asks. Nothing is being
-  // placed here, so a marker would quietly stand for no position at all.
+  // A ?w or a ?q says where a word goes, which is a question a hybrid attack asks. A caller that places
+  // no word asks for them to be refused, because a marker would quietly stand for no position at all.
 
-  if ((rc == 0) && ((mask_ctx->has_w == true) || (mask_ctx->has_q == true)))
+  if ((rc == 0) && (markers_allowed == false) && ((mask_ctx->has_w == true) || (mask_ctx->has_q == true)))
   {
     event_log_error (hashcat_ctx, "This mask cannot carry a ?w or a ?q, because it selects candidates rather than placing a word.");
 
@@ -978,6 +980,33 @@ HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, 
 
   hcfree (mp_sys);
   hcfree (mp_usr);
+
+  return rc;
+}
+
+// The characters a mask allows at each of its positions. A feed that filters what it produces by a
+// mask, or tests a candidate against one, wants the charsets rather than the candidate generator, and
+// this is the second and last part of the mask processor a plugin may reach.
+//
+// It is the same parser -a 3 uses, so ?a, a custom charset given with -1 through -8, a charset read
+// from a file and an uppercase only hash mode all mean here what they mean there. Writing a second
+// parser instead is how the two come to disagree about what a mask says.
+
+HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, const u32 css_max, u32 *css_cnt)
+{
+  if (hashcat_ctx == NULL) return -1;
+
+  // The parser clears and fills a fixed 256 entries whatever the mask holds, so a caller that sized its
+  // buffer for the mask it wrote rather than for the parser would be written past. Asked for rather than
+  // assumed, because this is an entry point a feed outside this tree also calls.
+
+  if (css_max < 256) return -1;
+
+  if (hashcat_ctx->mask_ctx == NULL) return -1;
+
+  if (hashcat_ctx->hashconfig == NULL) return -1;
+
+  const int rc = mp_css_parse_detached (hashcat_ctx, mask, css_buf, css_cnt, false);
 
   return rc;
 }
@@ -1483,6 +1512,52 @@ void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u
   }
 }
 
+// The right side of a split mask, the amplifier the device walks in its inner loop, is walked with
+// its highest position as its lowest digit, so that consecutive right words share their low bytes.
+// The run kernels of MD4 and NTLM hoist work out of their loop on that. sp_exec () and the markov
+// kernel's generate_pw () take the lowest position as the lowest digit, and every position has a
+// fixed radix, so the two offsets of one candidate convert into each other by taking the digits in
+// one order and assembling them in the other. r_markov does the same conversion on the device.
+
+static u64 sp_right_to_left (u64 right, const cs_t *root_css_buf, const u32 start, const u32 stop)
+{
+  u64 left = 0;
+
+  for (u32 i = stop; i > start; i--)
+  {
+    const u64 len = root_css_buf[i - 1].cs_len;
+
+    left = (left * len) + (right % len);
+
+    right /= len;
+  }
+
+  return left;
+}
+
+static u64 sp_left_to_right (u64 left, const cs_t *root_css_buf, const u32 start, const u32 stop)
+{
+  u64 right = 0;
+
+  for (u32 i = start; i < stop; i++)
+  {
+    const u64 len = root_css_buf[i].cs_len;
+
+    right = (right * len) + (left % len);
+
+    left /= len;
+  }
+
+  return right;
+}
+
+void sp_exec_r (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
+{
+  const u64 left = sp_right_to_left (ctx, root_css_buf, start, stop);
+
+  sp_exec (left, pw_buf, root_css_buf, markov_css_buf, start, stop);
+}
+
 // sp_exec () read backwards: the offset that produces a given stretch of a candidate.
 //
 // Going forward, each position takes one digit off the offset, lowest position first, writes the
@@ -1529,6 +1604,19 @@ static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const
   }
 
   *result = off;
+
+  return true;
+}
+
+// sp_rank () for the right side, whose offset counts the other way.
+
+static bool sp_rank_r (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u64 *result, u32 *fail_pos)
+{
+  u64 left = 0;
+
+  if (sp_rank (root_css_buf, markov_css_buf, pw_buf, start, stop, &left, fail_pos) == false) return false;
+
+  *result = sp_left_to_right (left, root_css_buf, start, stop);
 
   return true;
 }
@@ -1697,7 +1785,7 @@ static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig,
 
   u32 fail_pos = 0;
 
-  const bool got = sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt_r, &amp, &fail_pos)
+  const bool got = sp_rank_r (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt_r, &amp, &fail_pos)
                 && sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, css_cnt_r, css_cnt_orig, &word, &fail_pos);
 
   if (got == false)
@@ -2720,6 +2808,36 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_split_cnt (hashcat_ctx, css_cnt_orig, css_cnt_lr);
 
+      // The right side varies its highest position fastest, so consecutive right words share the
+      // low bytes of w0 for as many words as the positions above those bytes can spell. A run
+      // kernel fixes three bytes, or two for UTF-16, where the second character starts at byte 2.
+      // A mode without run kernels gets no run at all.
+
+      mask_ctx->bfs_run      = 0;
+      mask_ctx->bfs_run_mask = 0;
+
+      if (hashconfig->opts_type & OPTS_TYPE_RUN_KERNEL)
+      {
+        const u32 run_fixed = (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) ? 2 : 3;
+
+        u64 bfs_run = 1;
+
+        if (run_fixed < css_cnt_lr[1])
+        {
+          if (sp_get_sum (run_fixed, css_cnt_lr[1], mask_ctx->root_css_buf, &bfs_run) == -1)
+          {
+            event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+            status_set_rc_error (hashcat_ctx, mask_error);
+
+            return -1;
+          }
+        }
+
+        mask_ctx->bfs_run      = (u32) MIN (bfs_run, 0xffffffff);
+        mask_ctx->bfs_run_mask = (1u << (run_fixed * 8)) - 1;
+      }
+
       if (sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
@@ -3350,6 +3468,99 @@ void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
     }
   }
+}
+
+// A mask typed on the command line is otherwise parsed only when its first round starts, which is after
+// the hashes are loaded, the bitmaps are built, every device is set up and the self-test has run. On a
+// big hash list or a box with many devices that is a long wait before a typo in the mask is reported.
+// This parses it at session start instead, the same way a round will, and changes nothing a round sees.
+
+int mask_ctx_check_arg (hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+  if (user_options->hash_info     > 0)    return 0;
+
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->benchmark    == true) return 0;
+
+  // --hex-charset reads every literal of the mask as hex, and the flag that says so is set when the
+  // hash-mode is loaded, which has not happened yet. Such a mask is checked when its round starts.
+
+  if (user_options->hex_charset == true) return 0;
+
+  // The mask is found where mask_ctx_init () finds it.
+
+  const mask_feed_kind_t feed_kind = mask_feed_kind (user_options);
+
+  const bool is_mask   = (user_options->attack_mode == ATTACK_MODE_BF)     || (feed_kind == MASK_FEED_MASK);
+  const bool is_hybrid = (user_options->attack_mode == ATTACK_MODE_HYBRID) || (feed_kind == MASK_FEED_HYBRID);
+
+  if ((is_mask == false) && (is_hybrid == false)) return 0;
+
+  const int mask_at = (feed_kind == MASK_FEED_NONE) ? 0 : 1;
+
+  if (mask_at >= user_options_extra->hc_workc) return 0;
+
+  const char *arg = user_options_extra->hc_workv[mask_at];
+
+  // A mask file is read when the queue is built, and each of its lines can carry charsets of its own,
+  // so its masks are left to the check each one gets when its round starts.
+
+  if (hc_path_exist (arg) == true) return 0;
+
+  // -a 6 and -a 7 have their ?w put on when the mask joins the queue, in mask_append_final (), and it
+  // is put on here in the same way. Without it -a 12 would refuse each of them for having no ?w.
+
+  char *mask = NULL;
+
+  if (user_options->marker_policy == MARKER_POLICY_NONE)
+  {
+    mask = hcstrdup (arg);
+  }
+  else
+  {
+    const int mask_len = (user_options->marker_policy == MARKER_POLICY_PREFIX_W) ? hc_asprintf (&mask, "?w%s", arg) : hc_asprintf (&mask, "%s?w", arg);
+
+    if (mask_len == -1) return -1;
+
+    if (mask_len >= 256)
+    {
+      event_log_error (hashcat_ctx, "%s: mask is too long.", arg);
+
+      hcfree (mask);
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+      return -1;
+    }
+  }
+
+  if (mask == NULL) return -1;
+
+  cs_t *css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+
+  u32 css_cnt = 0;
+
+  const int rc = (css_buf == NULL) ? -1 : mp_css_parse_detached (hashcat_ctx, mask, css_buf, &css_cnt, true);
+
+  hcfree (css_buf);
+  hcfree (mask);
+
+  if (rc == 0) return 0;
+
+  // A custom charset that failed to load has already said which kind of failure it was. What is left
+  // is the mask, and a mask on the command line is part of the command.
+
+  if (status_ctx->rc_error == RC_FINAL_OK) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+  return -1;
 }
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)

@@ -107,7 +107,16 @@ KERNEL_FQ KERNEL_FA void m34201_mxx (KERN_ATTR_BASIC ())
 
     u32 comb_len = pws[gid].pw_len + combs_buf[il_pos].pw_len;
 
-    if (COMBS_IS_MIDDLE)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      // -a 1 may choose the larger wordlist as the base word source, which puts the amplifier in
+      // front of the base word copied in above, so reassemble with the amplifier first and the base
+      // word after.
+
+      comb_len = combs_copy_bytes (combined_buf, 0,        COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, pws[gid].i,            pws[gid].pw_len);
+    }
+    else if (COMBS_IS_MIDDLE)
     {
       comb_len = combs_copy_bytes (combined_buf, 0,        COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len);
       comb_len = combs_copy_bytes (combined_buf, comb_len, pws[gid].i,            pws[gid].pw_len);
@@ -185,7 +194,16 @@ KERNEL_FQ KERNEL_FA void m34201_sxx (KERN_ATTR_BASIC ())
 
     u32 comb_len = pws[gid].pw_len + combs_buf[il_pos].pw_len;
 
-    if (COMBS_IS_MIDDLE)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      // -a 1 may choose the larger wordlist as the base word source, which puts the amplifier in
+      // front of the base word copied in above, so reassemble with the amplifier first and the base
+      // word after.
+
+      comb_len = combs_copy_bytes (combined_buf, 0,        COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, pws[gid].i,            pws[gid].pw_len);
+    }
+    else if (COMBS_IS_MIDDLE)
     {
       comb_len = combs_copy_bytes (combined_buf, 0,        COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len);
       comb_len = combs_copy_bytes (combined_buf, comb_len, pws[gid].i,            pws[gid].pw_len);

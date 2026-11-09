@@ -265,20 +265,20 @@ static u32 scrypt_tune_variants (const hashconfig_t *hashconfig, const user_opti
 
   const u64 size_host = (2 * 128ULL * scrypt_r * scrypt_p) + sizeof (pw_t);
 
-  const u64 available_mem = scrypt_available_mem (scrypt_r, device_param);
-
   const u32 threads = scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param);
 
   const bool is_gpu = (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0;
 
-  u32 accel_cap = hashconfig->kernel_accel_max;
-
-  if ((clamp_to_device == true) && (device_param->kernel_accel_max > 0)) accel_cap = MIN (accel_cap, device_param->kernel_accel_max);
-
   // A CPU runs one work item per core, and an APU shares its memory with the host, so neither gets
   // more candidates than a work group per processor, as before.
 
-  if ((is_gpu == false) || (device_param->device_host_unified_memory == true)) accel_cap = MIN (accel_cap, device_param->device_processors * threads);
+  u32 host_cap = hashconfig->kernel_accel_max;
+
+  if ((is_gpu == false) || (device_param->device_host_unified_memory == true)) host_cap = MIN (host_cap, device_param->device_processors * threads);
+
+  u32 accel_cap = host_cap;
+
+  if ((clamp_to_device == true) && (device_param->kernel_accel_max > 0)) accel_cap = MIN (accel_cap, device_param->kernel_accel_max);
 
   // the kernel stores N >> tmto elements, so the TMTO stops short of log2 (N)
 
@@ -294,6 +294,25 @@ static u32 scrypt_tune_variants (const hashconfig_t *hashconfig, const user_opti
   const u32 tmto_hi = (tmto_user == true) ? tmto_lo : tmto_max;
 
   const u32 accel_user = (user_options->kernel_accel_chgd == true) ? user_options->kernel_accel : 0;
+
+  // The backend sizes the tmps and pws for the most candidates the device may run, whichever variant
+  // runs, so their memory comes off before any V buffer is fitted, and no variant may go past that
+  // count. It is what -n asks for, or what the memory holds at the highest TMTO. It does not depend
+  // on kernel_accel_max, which the backend lowers after the buffers are sized, so autotune sees the
+  // variants the buffers were sized for. At r=8 p=8 the tmps of 65536 candidates take 1 GiB, more
+  // than the reserve for the runtime holds.
+
+  const u64 device_mem = scrypt_available_mem (scrypt_r, device_param);
+
+  const u64 host_fit = device_mem / (scrypt_candidate_v_size (scrypt_N, scrypt_r, tmto_hi) + size_host);
+
+  const u64 host_cnt = (accel_user > 0) ? accel_user : MIN ((u64) host_cap, host_fit);
+
+  const u64 host_mem = host_cnt * size_host;
+
+  const u64 available_mem = (device_mem > host_mem) ? device_mem - host_mem : 0;
+
+  if (accel_user == 0) accel_cap = (u32) MIN ((u64) accel_cap, host_cnt);
 
   // On a CPU the kernel is one work item per candidate and TMTO only costs time, so only the lowest
   // TMTO that fits is tried, as before. The same holds where -n fixes the candidate count.
@@ -333,7 +352,7 @@ static u32 scrypt_tune_variants (const hashconfig_t *hashconfig, const user_opti
     {
       if ((fits == true) && (search == false)) break;
 
-      const u64 fit = available_mem / (scrypt_candidate_v_size (scrypt_N, scrypt_r, t) + size_host);
+      const u64 fit = available_mem / scrypt_candidate_v_size (scrypt_N, scrypt_r, t);
 
       u32 accel = (u32) MIN (fit, (u64) accel_cap);
 

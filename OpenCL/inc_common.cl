@@ -4839,6 +4839,24 @@ DECLSPEC u32 combs_assemble_1x64_le_S (GLOBAL_AS const pw_t *combs_buf, const u3
   }
   #endif
 
+  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+  {
+    // -a 1 may pick the larger wordlist as the base word, which puts the amplifier in front of the
+    // base word instead of behind it. Lay down the amplifier first, then append the base word.
+
+    const u32 amp_len = combs_buf[il_pos].pw_len;
+
+    for (int i = 0; i < 64; i++) out[i] = combs_buf[il_pos].i[i];
+
+    combs_base_copy (tmp, base, base_len);
+
+    combs_append_1x64_le_S (out, amp_len, tmp);
+
+    const u32 len = amp_len + base_len;
+
+    return len;
+  }
+
   // the base word and one piece behind it, which is what every attack mode other than -a 12 has
   // and what -a 12 itself has whenever the mask puts nothing in front of the word
 
@@ -4911,6 +4929,24 @@ DECLSPEC u32 combs_assemble_1x64_be_S (GLOBAL_AS const pw_t *combs_buf, const u3
     return out_len;
   }
   #endif
+
+  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+  {
+    // -a 1 may pick the larger wordlist as the base word, which puts the amplifier in front of the
+    // base word instead of behind it. Lay down the amplifier first, then append the base word.
+
+    const u32 amp_len = combs_buf[il_pos].pw_len;
+
+    for (int i = 0; i < 64; i++) out[i] = hc_swap32_S (combs_buf[il_pos].i[i]);
+
+    combs_base_copy (tmp, base, base_len);
+
+    combs_append_1x64_be_S (out, amp_len, tmp);
+
+    const u32 len = amp_len + base_len;
+
+    return len;
+  }
 
   // the base word and one piece behind it, which is what every attack mode other than -a 12 has
   // and what -a 12 itself has whenever the mask puts nothing in front of the word

@@ -84,7 +84,7 @@ DKMS_NAME    := litepcie-hashcat
 DKMS_VERSION := $(LITEPCIE_VERSION)
 DKMS_SRC     := /usr/src/$(DKMS_NAME)-$(DKMS_VERSION)
 
-MOK_UBUNTU := $(shell . /etc/os-release 2>/dev/null; case "$$ID:$$ID_LIKE" in ubuntu:*|*:*ubuntu*) echo 1;; esac)
+MOK_UBUNTU := $(shell . /etc/os-release 2>/dev/null; case "$$ID:$$ID_LIKE" in (ubuntu:*|*:*ubuntu*) echo 1;; esac)
 MOK_CONF   := $(shell sed -n 's/^[[:space:]]*mok_certificate=//p' /etc/dkms/framework.conf /etc/dkms/framework.conf.d/*.conf 2>/dev/null | tr -d '"' | tail -n 1)
 MOK_CERT   := $(if $(MOK_CONF),$(MOK_CONF),$(if $(MOK_UBUNTU),/var/lib/shim-signed/mok/MOK.der,/var/lib/dkms/mok.pub))
 

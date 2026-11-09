@@ -23,7 +23,8 @@ static const char *HASH_NAME      = "OpenSSL enc (AES-CBC, EVP_BytesToKey)";
 static const u64   KERN_TYPE      = 2300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$openssl$0$2$8$104b209a894f6f85$b0fd3c6fa26babf573a66d28d887c3763d8486dc95789d108e681e8c1943d5ef$0$64$b02c988ebdb3ab5fd68a946d97e5e13bc451abfcc9af6a383398c499ca894175b0fd3c6fa26babf573a66d28d887c3763d8486dc95789d108e681e8c1943d5ef$1$hashcat";

@@ -782,6 +782,13 @@ typedef struct generic_fill_state
   bool seek_known;
   u64  seek_pos;
 
+  // What a flush left unread of the range get_work () gave this device. The next batch carries on in
+  // it rather than taking a new range, because get_work () cannot hand the rest out again, and the
+  // positions skipped over would count as words read for --limit and for the restore point.
+
+  u64 flush_off;
+  u64 flush_cnt;
+
 } generic_fill_state_t;
 
 static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *batch, void *state)
@@ -804,13 +811,28 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
   bool feed_dry = false;
 
+  bool feed_flush = false;
+
   while (words_extra)
   {
     // a refill can start a run of its own, and the batch has room for only so many
 
     if (batch->runs_cnt >= PW_RUNS_MAX) break;
 
-    u64 work_cnt = get_work (hashcat_ctx, device_param, words_extra);
+    u64 work_cnt = 0;
+
+    if (gf->flush_cnt > 0)
+    {
+      device_param->words_off = gf->flush_off;
+
+      work_cnt = gf->flush_cnt;
+
+      gf->flush_cnt = 0;
+    }
+    else
+    {
+      work_cnt = get_work (hashcat_ctx, device_param, words_extra);
+    }
 
     if (work_cnt == 0) break;
 
@@ -891,6 +913,12 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     for (work_cur = 0; work_cur < work_cnt; work_cur++)
     {
+      // A feed can be slow to answer, a word read twice from a compressed wordlist for one, and q and
+      // --runtime are only seen between chunks otherwise. Leaving now is safe: the launch loop stops
+      // too and never launches this batch, so its words do not reach the restore point.
+
+      if (status_ctx->run_thread_level1 == false) break;
+
       pw_idx_t *pw_idx = batch->pws_idx + batch->pws_cnt;
 
       u8 *pw_buf = (u8 *) (batch->pws_comp + pw_idx->off);
@@ -921,6 +949,25 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       else
       {
         pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX);
+
+        // A batch that holds nothing yet would be taken for the end of the feed if it were launched,
+        // so it waits on for the next word instead. The feed waits before it returns a flush, so this
+        // does not spin.
+
+        while ((pw_len == GENERIC_RC_FLUSH) && (batch->pws_cnt == 0) && (work_cur == 0))
+        {
+          pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX);
+        }
+      }
+
+      // Nothing new arrived in time. What the batch holds is cracked now, and the next batch carries
+      // on reading where this one stopped.
+
+      if (pw_len == GENERIC_RC_FLUSH)
+      {
+        feed_flush = true;
+
+        break;
       }
 
       // the feed is dry. Whatever it produced before this call still has to be launched, so the
@@ -1049,6 +1096,14 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     if (work_cur > 0) batch->words_fin = words_off + work_cur;
 
     if (feed_dry == true) break;
+
+    if (feed_flush == true)
+    {
+      gf->flush_off = words_off + work_cur;
+      gf->flush_cnt = work_cnt  - work_cur;
+
+      break;
+    }
 
     if (status_ctx->run_thread_level1 == false) break;
   }
@@ -1625,6 +1680,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       gf.seek_known = false;
       gf.seek_pos   = 0;
+
+      gf.flush_off = 0;
+      gf.flush_cnt = 0;
 
       pw_pipe_t pipe;
 

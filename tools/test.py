@@ -598,8 +598,8 @@ MFULC_MODES = {37000}
 # leaves their -a 4 list alone (test.sh); 40023 takes its hash from another field and is excluded
 # there too.
 
-LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
-              34100}
+LUKS_MODES = {29511, 29512, 29513, 29514, 29521, 29522, 29523, 29524,
+              29531, 29532, 29533, 29534, 29541, 29542, 29543, 29544, 34100}
 
 # The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
 # no .pm and no .py oracle, so the ground truth is the module's own example hash read from
@@ -3138,18 +3138,23 @@ def selftest_write_hash(mode, vhash, vfmt, path):
 
 
 def container_mask_from_password(pw, where):
-  # test.sh container_mask_from_password (test.sh): the password with one digit given up as a
-  # '?d', so the run has ten candidates rather than being handed the answer, every other byte staying
-  # literal. 'first' or 'last' picks which digit; no digit means nothing to search, so hand the
-  # password back as a literal mask.
+  # Replace the first or last digit with '?d', falling back to a lowercase letter
+  # with '?l' when password contains no ASCII digit. This searches multiple candidates
+  # and keeps 'hashcat' from being interpreted as a mask filename.
 
   n = len(pw)
 
   order = range(0, n) if where == "first" else range(n - 1, -1, -1)
 
+  # Prefer a digit to keep the search to ten candidates.
   for i in order:
     if b"0" <= pw[i:i + 1] <= b"9":
       return pw[:i] + b"?d" + pw[i + 1:]
+
+  # With no digit available, use a lowercase letter for 26 candidates.
+  for i in order:
+    if b"a" <= pw[i:i + 1] <= b"z":
+      return pw[:i] + b"?l" + pw[i + 1:]
 
   return pw
 
@@ -3310,17 +3315,21 @@ def container_luks2(args, mode, attack, width, tmp):
 # test.sh luks_test's per-mode hash+cipher (test.sh): 29511+ each map to one hash+cipher and vary
 # only the cipher mode and key size.
 LUKS1_HASH_CIPHER = {
-  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"),
-  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"),
-  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"),
-  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"),
+  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"), 29514: ("sha1", "blowfish"),
+  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"), 29524: ("sha256", "blowfish"),
+  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"), 29534: ("sha512", "blowfish"),
+  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"), 29544: ("ripemd160", "blowfish"),
 }
 
 
-def luks_variants():
+def luks_variants(cipher=None):
   # test.sh's luksMode x luksKeySize double loop with the keysize->mode validity filter (test.sh):
   # 128 is cbc only, 512 is xts only, 256 is any.
   for lmode in ("cbc-essiv", "cbc-plain64", "xts-plain64"):
+    # XTS requires 128-bit blocks, but Blowfish has 64-bit blocks.
+    if cipher == "blowfish" and lmode == "xts-plain64":
+      continue
+
     for ksize in ("128", "256", "512"):
       if ksize == "128" and lmode == "xts-plain64":
         continue
@@ -3337,7 +3346,9 @@ def container_luks1(args, mode, attack, width, tmp):
   luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
   opts = base_opts(args)
 
-  for lmode, ksize in luks_variants():
+  found = False
+
+  for lmode, ksize in luks_variants(luks_cipher):
     name      = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
     container = os.path.join(LUKS_TESTS_DIR, name + ".luks")
     label     = "Luks-Mode %s-%s-%s-%s" % (luks_hash, luks_cipher, lmode, ksize)
@@ -3345,6 +3356,7 @@ def container_luks1(args, mode, attack, width, tmp):
     if not os.path.isfile(container):
       continue
 
+    found = True
     hash_file = os.path.join(tmp, name + ".hash")
 
     if not container_extract("luks2hashcat.py", container, hash_file):
@@ -3354,12 +3366,16 @@ def container_luks1(args, mode, attack, width, tmp):
     extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
     container_crack(args, opts, mode, attack, hash_file, width, label, extra)
 
+  if not found:
+    die("! no LUKS1 containers for mode %d. Run with -g to generate them." % mode)
+
 
 def container_luks_legacy(args, mode, attack, width, tmp):
   # test.sh luks_legacy_test (test.sh): 14600 accepts every hash+cipher, and takes the .luks file
   # directly, with no luks2hashcat.py extraction. That direct-file handling is the 14600-vs-29511+
   # difference.
   opts = base_opts(args)
+  found = False
 
   for luks_hash in ("sha1", "sha256", "sha512", "ripemd160"):
     for luks_cipher in ("aes", "serpent", "twofish"):
@@ -3371,8 +3387,12 @@ def container_luks_legacy(args, mode, attack, width, tmp):
         if not os.path.isfile(container):
           continue
 
+        found = True
         extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
         container_crack(args, opts, mode, attack, container, width, label, extra)
+
+  if not found:
+    die("! no LUKS1 containers for mode %d. Download the LUKS1 test fixtures." % mode)
 
 
 # TrueCrypt (62xx and 293xx). Like VeraCrypt below, the family ports as data rather than a case
@@ -4016,7 +4036,7 @@ def generate_containers(args, mode, tmp):
     os.makedirs(LUKS_TESTS_DIR, exist_ok=True)
     luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
 
-    for lmode, ksize in luks_variants():
+    for lmode, ksize in luks_variants(luks_cipher):
       name = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
       out  = os.path.join(LUKS_TESTS_DIR, name + ".luks")
 
@@ -5142,7 +5162,10 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 14300, 22000, 22001, 31500, 31600}
 # characters derives the same key and opens the same container. A mask or a hybrid attack finds one
 # of those rather than the one the oracle generated, which is a correct password either way, so the
 # outfile goes through the module's verify instead of a literal compare.
-EDGE_VERIFY_OUT = {1500, 36901, 37902, 37903}
+
+# 35900 reads only as many characters of the Hashids salt as its shuffles take, one fewer than the
+# alphabet holds, so the noise words that differ only past those all produce the same hashid.
+EDGE_VERIFY_OUT = {1500, 35900, 36901, 37902, 37903}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
@@ -5543,7 +5566,12 @@ def edge_single_cmd(ctx, word, word_len, i, tmp):
     f2  = pfx + ".2.word"
 
     _w(f1, word[:off] + b"\n")
-    _w(f2, word[off:] + b"\n")
+
+    # dict2 gets the tail twice so it is longer than dict1 (one head): a swap-capable mode then takes
+    # dict2 as the base and assembles the candidate in BASE_RIGHT order, which the equal-length split
+    # never reaches. Both lines are the same tail, so the only candidate is still the whole word and
+    # the expected crack is unchanged; a mode that cannot swap is unaffected.
+    _w(f2, word[off:] + b"\n" + word[off:] + b"\n")
 
     return [f1, f2], None
 
@@ -6612,8 +6640,11 @@ def main():
                   help="crack each mode's own test oracle through the Python bridge (-m 73000), no mode kernel")
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
-  ap.add_argument("--artificially-low-iteration-count", action="store_true",
-                  help="generate supported test hashes with reduced encoded or runtime iteration counts")
+  iterations = ap.add_mutually_exclusive_group()
+  iterations.add_argument("--artificially-low-iteration-count", action="store_true", default=None,
+                          help="generate supported test hashes with 2 iterations (default)")
+  iterations.add_argument("--full-iteration-count", dest="artificially_low_iteration_count", action="store_false",
+                          help="use original iteration counts instead of reduced counts")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack selftest hash of each mode")
   ap.add_argument("-M", dest="minimal", action="store_true",
@@ -6709,8 +6740,10 @@ def main():
   if args.attack is None:
     args.attack = "all" if args.edge else "0"
 
-  if args.artificially_low_iteration_count:
-    os.environ[test_iterations.ITERATION_ENV] = "true"
+  if args.artificially_low_iteration_count is not None:
+    os.environ[test_iterations.ITERATION_ENV] = "true" if args.artificially_low_iteration_count else "false"
+  else:
+    os.environ.setdefault(test_iterations.ITERATION_ENV, "true")
 
   try:
     test_iterations.iteration_reduction_requested()

@@ -18,10 +18,10 @@
 
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
+  u32 user[128];
+  u32 realm[128];
   u32 salt[64];
-  u32 timestamp[16];
+  u32 enc_timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;
   u32 format;
@@ -192,14 +192,14 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED GLOBA
   hc->checksum[2] = esalt_bufs[digest_pos].checksum[2];
   hc->checksum[3] = esalt_bufs[digest_pos].checksum[3];
 
-  hc->timestamp_ct[0] = esalt_bufs[digest_pos].timestamp[0];
-  hc->timestamp_ct[1] = esalt_bufs[digest_pos].timestamp[1];
-  hc->timestamp_ct[2] = esalt_bufs[digest_pos].timestamp[2];
-  hc->timestamp_ct[3] = esalt_bufs[digest_pos].timestamp[3];
-  hc->timestamp_ct[4] = esalt_bufs[digest_pos].timestamp[4];
-  hc->timestamp_ct[5] = esalt_bufs[digest_pos].timestamp[5];
-  hc->timestamp_ct[6] = esalt_bufs[digest_pos].timestamp[6];
-  hc->timestamp_ct[7] = esalt_bufs[digest_pos].timestamp[7];
+  hc->timestamp_ct[0] = esalt_bufs[digest_pos].enc_timestamp[0];
+  hc->timestamp_ct[1] = esalt_bufs[digest_pos].enc_timestamp[1];
+  hc->timestamp_ct[2] = esalt_bufs[digest_pos].enc_timestamp[2];
+  hc->timestamp_ct[3] = esalt_bufs[digest_pos].enc_timestamp[3];
+  hc->timestamp_ct[4] = esalt_bufs[digest_pos].enc_timestamp[4];
+  hc->timestamp_ct[5] = esalt_bufs[digest_pos].enc_timestamp[5];
+  hc->timestamp_ct[6] = esalt_bufs[digest_pos].enc_timestamp[6];
+  hc->timestamp_ct[7] = esalt_bufs[digest_pos].enc_timestamp[7];
 }
 
 DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED PRIVATE_AS u32 *w, MAYBE_UNUSED const u32 pw_len)

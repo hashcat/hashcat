@@ -15,6 +15,8 @@
 #include "folder.h"
 #include "restore.h"
 
+#include <time.h>
+
 static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -596,9 +598,65 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// A new session takes the restore file name of an earlier one of the same name, and its first
+// update would replace what that session left. The earlier file is moved aside instead, named after
+// the time it was last written, so a run started again by mistake costs nothing. Answers false when
+// it could not be moved, and then this run writes no restore file at all rather than replace it.
+
+static bool restore_keep_earlier (hashcat_ctx_t *hashcat_ctx)
+{
+  const restore_ctx_t  *restore_ctx  = hashcat_ctx->restore_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const char *eff_restore_file = restore_ctx->eff_restore_file;
+
+  struct stat st;
+
+  if (stat (eff_restore_file, &st) == -1) return true;
+
+  struct tm tm;
+
+  char stamp[32];
+
+  if ((localtime_r (&st.st_mtime, &tm) == NULL) || (strftime (stamp, sizeof (stamp), "%Y-%m-%d_%H-%M-%S", &tm) == 0))
+  {
+    strncpy (stamp, "old", sizeof (stamp));
+  }
+
+  char *kept = NULL;
+
+  hc_asprintf (&kept, "%s.%s", eff_restore_file, stamp);
+
+  for (u32 i = 2; hc_path_exist (kept) == true; i++)
+  {
+    hcfree (kept);
+
+    hc_asprintf (&kept, "%s.%s-%u", eff_restore_file, stamp, i);
+  }
+
+  if (rename (eff_restore_file, kept) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", eff_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "This is the restore file of an earlier session, and it could not be moved aside. This run writes no restore file.");
+
+    hcfree (kept);
+
+    return false;
+  }
+
+  event_log_warning (hashcat_ctx, "Moved the restore file of an earlier session %s to %s.", user_options->session, kept);
+  event_log_warning (hashcat_ctx, "To continue that session, run hashcat with --restore-file-path %s --restore.", kept);
+  event_log_warning (hashcat_ctx, NULL);
+
+  hcfree (kept);
+
+  return true;
+}
+
 int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 {
-  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+  restore_ctx_t        *restore_ctx  = hashcat_ctx->restore_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (restore_ctx->enabled == false) return 0;
 
@@ -631,6 +689,20 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
   restore_ctx->words_cur_prev = status_ctx->words_cur;
 
+  // A run under --restore-position continues the file it read, so that is the one it replaces.
+
+  if ((restore_ctx->written == false) && (user_options->restore_position == false) && (hc_path_exist (eff_restore_file) == true))
+  {
+    if (restore_keep_earlier (hashcat_ctx) == false)
+    {
+      unlink (new_restore_file);
+
+      restore_ctx->enabled = false;
+
+      return -1;
+    }
+  }
+
   if (hc_path_exist (eff_restore_file) == true)
   {
     if (unlink (eff_restore_file) == -1)
@@ -642,7 +714,11 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   if (rename (new_restore_file, eff_restore_file) == -1)
   {
     event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+
+    return 0;
   }
+
+  restore_ctx->written = true;
 
   return 0;
 }
@@ -965,6 +1041,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   restore_ctx->words_cur_prev = -1;
 
   restore_ctx->write_failed = false;
+
+  restore_ctx->written = false;
 
   return 0;
 }

@@ -188,7 +188,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   token.attr[6]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
-  // "10" - String2Key parameters
+  // "8" - String2Key parameters
   token.sep[7]      = '*';
   token.len[7]      = 1;
   token.attr[7]     = TOKEN_ATTR_FIXED_LENGTH

@@ -206,6 +206,93 @@ DECLSPEC void sm3_init (PRIVATE_AS sm3_ctx_t *ctx)
   ctx->len = 0;
 }
 
+#if defined IS_CUDA || defined IS_HIP
+
+DECLSPEC void sm3_update_64 (PRIVATE_AS sm3_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
+{
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
+
+  ctx->len += len;
+
+  u32 c0[4] = { 0 };
+  u32 c1[4] = { 0 };
+  u32 c2[4] = { 0 };
+  u32 c3[4] = { 0 };
+
+  if (pos == 0)
+  {
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
+  }
+  else
+  {
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
+    }
+    else
+    {
+      switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+    }
+
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
+  }
+
+  if ((pos + len) < 64) return;
+
+  sm3_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+  ctx->w0[0] = c0[0];
+  ctx->w0[1] = c0[1];
+  ctx->w0[2] = c0[2];
+  ctx->w0[3] = c0[3];
+  ctx->w1[0] = c1[0];
+  ctx->w1[1] = c1[1];
+  ctx->w1[2] = c1[2];
+  ctx->w1[3] = c1[3];
+  ctx->w2[0] = c2[0];
+  ctx->w2[1] = c2[1];
+  ctx->w2[2] = c2[2];
+  ctx->w2[3] = c2[3];
+  ctx->w3[0] = c3[0];
+  ctx->w3[1] = c3[1];
+  ctx->w3[2] = c3[2];
+  ctx->w3[3] = c3[3];
+}
+
+#else
+
 DECLSPEC void sm3_update_64 (PRIVATE_AS sm3_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   if (len == 0) return;
@@ -325,6 +412,8 @@ DECLSPEC void sm3_update_64 (PRIVATE_AS sm3_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIV
     }
   }
 }
+
+#endif
 
 DECLSPEC void sm3_update (PRIVATE_AS sm3_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {

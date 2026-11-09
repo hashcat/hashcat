@@ -24,7 +24,8 @@ static const u64   KERN_TYPE      = 39100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5tgs$1$user$realm$0a47b86e58028355b853b493fde21c3b$71dc52f58d538ed229fb3b0ce43e9a0e4801773037e956cff5547b558e295dbc0a89a48c7efb1b5c6fd856a37db0adea1a76fefcf8a922d4d5c288cc69e542b5de3eb02876e0e018783b3fcd5b9fe8f0b8b208928c8912a5039812078d5b100e4914875c8d8178ff41756945496d507b1a062f52c28b79f9668171a8cf3d2a3ebb97d5d6ba5a136f0d9845b14058455e681f7b067177a96c5cfc20fb78a04b8838f6b86dd52fb316e74ab1c884bdae20";
@@ -33,7 +34,9 @@ static const char *ST_HASH        = "$krb5tgs$1$user$realm$0a47b86e58028355b853b
 
 static const char *SIGNATURE_KRB5TGS = "$krb5tgs$1$";
 
-#define MAX_SALT_LEN 128
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
 
@@ -42,11 +45,11 @@ static const char *SIGNATURE_KRB5TGS = "$krb5tgs$1$";
 typedef struct krb5tgs_1
 {
   u32 account_info[512];
-  u32 user[MAX_SALT_LEN / 4];
-  u32 realm[MAX_SALT_LEN / 4];
+  u32 user[128];
+  u32 realm[128];
   u32 format;
 
-  u32 salt_buf[MAX_SALT_LEN / 4];
+  u32 salt_buf[MAX_DES_SALT_LEN / 4];
   u32 salt_len;
 
   u32 checksum[4];
@@ -183,12 +186,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -217,7 +220,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if ((user_len < 1) || (realm_len < 1)) return (PARSER_SALT_LENGTH);
 
-  if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
+  if ((user_len + realm_len) > MAX_DES_SALT_LEN) return (PARSER_SALT_LENGTH);
 
   memcpy (krb5tgs->user,  user_pos,  user_len);
   memcpy (krb5tgs->realm, realm_pos, realm_len);

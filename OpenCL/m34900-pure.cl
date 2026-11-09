@@ -3,6 +3,8 @@
  * License.....: MIT
  */
 
+#define NEW_SIMD_CODE
+
 // The decrypted data is already private and needs no decryption as it is read, so the decoder can
 // keep its one byte dictionary. See the comment on M_DICT_SIZE in inc_zip_inflate.cl.
 

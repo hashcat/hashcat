@@ -24,8 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -33,10 +33,13 @@ static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$1c41586d6c060071
 
 #include "hooks_common.c"
 
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+
 typedef struct krb5db_17
 {
   u32 user[128];
-  u32 domain[128];
+  u32 realm[128];
   u32 account_info[512];
   u32 account_info_len;
 
@@ -90,8 +93,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   /**
-   * $krb5db$17$user$realm$hash
-   * $krb5db$17$user$realm$*spn*$hash
+   * format 1: $krb5db$17$user$realm$key
+   * format 2: $krb5db$17$user$realm$*spn*$key  (with optional SPN)
    */
 
   // assume no signature found
@@ -105,19 +108,19 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int is_spn_provided = 0;
 
-  // assume $krb5db$17$user$realm$hash
+  // format 1: $krb5db$17$user$realm$key
   if (spn_info_start == NULL)
   {
     token.token_cnt  = 4;
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 512;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = 512;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -125,7 +128,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  // assume $krb5db$17$user$realm$*spn*$hash
+  // format 1: $krb5db$17$user$realm$*spn*$key
   else
   {
     // bounded for the same reason as the search above: the field ends where the line ends
@@ -145,12 +148,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 512;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = 512;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.len[3]     = spn_info_len;
@@ -169,11 +172,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *user_pos;
-  const u8 *domain_pos;
+  const u8 *realm_pos;
   const u8 *checksum_pos;
 
   int user_len;
-  int domain_len;
+  int realm_len;
   int account_info_len;
 
   user_pos = token.buf[1];
@@ -181,10 +184,10 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memcpy (krb5db->user, user_pos, user_len);
 
-  domain_pos = token.buf[2];
-  domain_len = token.len[2];
+  realm_pos = token.buf[2];
+  realm_len = token.len[2];
 
-  memcpy (krb5db->domain, domain_pos, domain_len);
+  memcpy (krb5db->realm, realm_pos, realm_len);
 
   checksum_pos = token.buf[3 + is_spn_provided];
 
@@ -194,28 +197,15 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   // domain must be uppercase
 
-  u8 domain[512];
+  u8 realm[512];
 
-  memcpy (domain, domain_pos, domain_len);
-  uppercase (domain, domain_len);
+  memcpy (realm, realm_pos, realm_len);
+  uppercase (realm, realm_len);
 
-  memcpy (account_info_ptr, domain, domain_len);
-  memcpy (account_info_ptr + domain_len, user_pos, user_len);
+  memcpy (account_info_ptr, realm, realm_len);
+  memcpy (account_info_ptr + realm_len, user_pos, user_len);
 
   krb5db->account_info_len = account_info_len;
-
-  // salt - copy enough of account_info for dedup (realm + user can exceed 16 bytes)
-
-  const int ai_words = (account_info_len + 3) / 4;
-
-  for (int i = 0; i < ai_words && i < 64; i++)
-  {
-    salt->salt_buf[i] = krb5db->account_info[i];
-  }
-
-  salt->salt_len = account_info_len;
-
-  salt->salt_iter = 4096 - 1;
 
   // digest
 
@@ -223,6 +213,29 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   digest[1] = byte_swap_32 (hex_to_u32 (checksum_pos +  8));
   digest[2] = byte_swap_32 (hex_to_u32 (checksum_pos + 16));
   digest[3] = byte_swap_32 (hex_to_u32 (checksum_pos + 24));
+
+  // salt
+
+  if (account_info_len > 256)
+  {
+    salt->salt_buf[0] = digest[0];
+    salt->salt_buf[1] = digest[1];
+    salt->salt_buf[2] = digest[2];
+    salt->salt_buf[3] = digest[3];
+
+    salt->salt_len = 16;
+  }
+  else
+  {
+    const int ai_words = (account_info_len + 3) / 4;
+
+    for (int i = 0; i < ai_words; i++)
+      salt->salt_buf[i] = krb5db->account_info[i];
+
+    salt->salt_len = account_info_len;
+  }
+
+  salt->salt_iter = 4096 - 1;
 
   return (PARSER_OK);
 }
@@ -236,7 +249,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x%08x",
     SIGNATURE_KRB5DB,
     (const char *) krb5db->user,
-    (const char *) krb5db->domain,
+    (const char *) krb5db->realm,
     digest[0],
     digest[1],
     digest[2],

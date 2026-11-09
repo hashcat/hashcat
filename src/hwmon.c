@@ -1334,6 +1334,60 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
   return -1;
 }
 
+// Only NVML and the amdgpu sysfs report the link generation. ADL and a bridge report the lanes
+// alone, and the status line then shows the lanes as before.
+
+int hm_get_busgen_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  if (hm_bridge_owns_device (hashcat_ctx, backend_device_idx) == true) return -1;
+
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_device[backend_device_idx].busgen_get_supported == false) return -1;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_device_idx];
+
+  const bool is_nv  = (device_param->is_cuda == true) || (device_param->opencl_device_vendor_id == VENDOR_ID_NV);
+  const bool is_amd = (device_param->opencl_device_vendor_id == VENDOR_ID_AMD) || (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP);
+
+  if ((is_nv == true) && (hwmon_ctx->hm_nvml))
+  {
+    unsigned int currLinkGen;
+
+    if (hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &currLinkGen) == -1)
+    {
+      hwmon_ctx->hm_device[backend_device_idx].busgen_get_supported = false;
+
+      return -1;
+    }
+
+    const int gen = (int) currLinkGen;
+
+    return gen;
+  }
+
+  if ((is_amd == true) && (hwmon_ctx->hm_sysfs_amdgpu))
+  {
+    int gen;
+
+    if (hm_SYSFS_AMDGPU_get_pcie_gen (hashcat_ctx, backend_device_idx, &gen) == -1)
+    {
+      hwmon_ctx->hm_device[backend_device_idx].busgen_get_supported = false;
+
+      return -1;
+    }
+
+    return gen;
+  }
+
+  hwmon_ctx->hm_device[backend_device_idx].busgen_get_supported = false;
+
+  return -1;
+}
+
 int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
   const int bridge_unit_utilization = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_utilization);
@@ -1950,6 +2004,7 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
               hm_adapters_nvml[device_id].nvml = nvmlGPUHandle[i];
 
               hm_adapters_nvml[device_id].buslanes_get_supported            = true;
+              hm_adapters_nvml[device_id].busgen_get_supported              = true;
               hm_adapters_nvml[device_id].corespeed_get_supported           = true;
               hm_adapters_nvml[device_id].fanspeed_get_supported            = true;
               hm_adapters_nvml[device_id].memoryspeed_get_supported         = true;
@@ -1985,6 +2040,7 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
               hm_adapters_nvml[device_id].nvml = nvmlGPUHandle[i];
 
               hm_adapters_nvml[device_id].buslanes_get_supported            = true;
+              hm_adapters_nvml[device_id].busgen_get_supported              = true;
               hm_adapters_nvml[device_id].corespeed_get_supported           = true;
               hm_adapters_nvml[device_id].fanspeed_get_supported            = true;
               hm_adapters_nvml[device_id].memoryspeed_get_supported         = true;
@@ -2197,6 +2253,7 @@ static void hwmon_ctx_init_sysfs_amdgpu_iokit (hashcat_ctx_t *hashcat_ctx, hm_at
         if (hwmon_ctx->hm_sysfs_amdgpu)
         {
           hm_adapters_sysfs_amdgpu[device_id].buslanes_get_supported    = true;
+          hm_adapters_sysfs_amdgpu[device_id].busgen_get_supported      = true;
           hm_adapters_sysfs_amdgpu[device_id].corespeed_get_supported   = true;
           hm_adapters_sysfs_amdgpu[device_id].fanspeed_get_supported    = true;
           hm_adapters_sysfs_amdgpu[device_id].fanpolicy_get_supported   = true;
@@ -2444,6 +2501,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (hwmon_ctx->hm_nvml)
       {
         hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_nvml[device_id].buslanes_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].busgen_get_supported              |= hm_adapters_nvml[device_id].busgen_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_nvml[device_id].corespeed_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_nvml[device_id].fanspeed_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_nvml[device_id].fanpolicy_get_supported;
@@ -2581,6 +2639,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           if (hwmon_ctx->hm_sysfs_amdgpu)
           {
             hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_sysfs_amdgpu[device_id].buslanes_get_supported;
+            hwmon_ctx->hm_device[backend_devices_idx].busgen_get_supported              |= hm_adapters_sysfs_amdgpu[device_id].busgen_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_sysfs_amdgpu[device_id].corespeed_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_sysfs_amdgpu[device_id].fanspeed_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_sysfs_amdgpu[device_id].fanpolicy_get_supported;
@@ -2601,6 +2660,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           if (hwmon_ctx->hm_nvml)
           {
             hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_nvml[device_id].buslanes_get_supported;
+            hwmon_ctx->hm_device[backend_devices_idx].busgen_get_supported              |= hm_adapters_nvml[device_id].busgen_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_nvml[device_id].corespeed_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_nvml[device_id].fanspeed_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_nvml[device_id].fanpolicy_get_supported;
@@ -2622,6 +2682,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     // this will also reduce the error itself printed to the user to a single print on startup
 
     hm_get_buslanes_with_devices_idx           (hashcat_ctx, backend_devices_idx);
+    hm_get_busgen_with_devices_idx             (hashcat_ctx, backend_devices_idx);
     hm_get_corespeed_with_devices_idx          (hashcat_ctx, backend_devices_idx);
     hm_get_fanpolicy_with_devices_idx          (hashcat_ctx, backend_devices_idx);
     hm_get_fanspeed_with_devices_idx           (hashcat_ctx, backend_devices_idx);

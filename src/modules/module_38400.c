@@ -10,7 +10,6 @@
 #include "convert.h"
 #include "shared.h"
 #include "parser.h"
-#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -24,7 +23,8 @@ static const u64   KERN_TYPE      = 38400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5db$1$test$TEST.LOCAL$7f153708497ae385";
@@ -47,7 +47,9 @@ static const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashcon
 // the kernel assembles the password and the salt in a 256 byte buffer, so the two limits have to
 // stay within it together
 
-#define MAX_SALT_LEN 128
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
 
@@ -58,8 +60,8 @@ static const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashcon
 
 typedef struct krb5db_des
 {
-  u32 user[MAX_SALT_LEN / 4];
-  u32 realm[MAX_SALT_LEN / 4];
+  u32 user[128];
+  u32 realm[128];
 
   u32 etype;
 
@@ -89,12 +91,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  /**
-   * $krb5db$1$user$realm$hash
-   * $krb5db$1$user$realm$*spn*$hash
-   *
-   * with 2 and 3 in place of the 1 for the other two DES encryption types
-   */
+  // format 1: $krb5db$<1|2|3>$user$realm$key
+  // format 2: $krb5db$<1|2|3>$user$realm$*spn*$key    (with optional SPN)
+
 
   token.signatures_cnt    = 3;
   token.signatures_buf[0] = SIGNATURE_KRB5DB_1;
@@ -119,12 +118,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[1]     = '$';
   token.len_min[1] = 1;
-  token.len_max[1] = MAX_SALT_LEN - 1;
+  token.len_max[1] = MAX_USER_LEN;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
   token.len_min[2] = 1;
-  token.len_max[2] = MAX_SALT_LEN - 1;
+  token.len_max[2] = MAX_REALM_LEN;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   if (spn_info_start == NULL)
@@ -173,7 +172,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const int user_len  = token.len[1];
   const int realm_len = token.len[2];
 
-  if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
+  if ((user_len + realm_len) > MAX_DES_SALT_LEN) return (PARSER_SALT_LENGTH);
 
   memcpy (krb5db->user,  user_pos,  user_len);
   memcpy (krb5db->realm, realm_pos, realm_len);
