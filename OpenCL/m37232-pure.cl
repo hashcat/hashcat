@@ -37,10 +37,7 @@ typedef struct blockio
   u32 cipher;
 
   u32 iv_buf[4];
-  u32 tag_buf[4];
   u32 ct_buf[4];
-
-  u32 pubkey[9];
 
 } blockio_t;
 

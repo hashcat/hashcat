@@ -28,13 +28,13 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$blockio$1*0*2048*-*-*-*43c003fa3c4d44a5837d4130bedff2fc*02cc3ec886b6639f0c6f2d92002842c98d249ae2a724bd1860d0bc2c20bf35ec91";
+static const char *ST_HASH        = "$blockio$1*0*2048*-*-*43c003fa3c4d44a5837d4130bedff2fc";
 
 #include "hooks_common.c"
 
 static const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "This mode cracks the Secret PIN of a Block.io backup wallet, the encrypted_passphrase of a user_key. The line carries the cipher (0 = AES-256-ECB, 1 = AES-256-CBC, 2 = AES-256-GCM), the iteration count, the salt, the iv, the GCM tag, the first 16 bytes of the ciphertext and the public key, with - for empty fields. The key is PBKDF2-HMAC-SHA256 run twice over half the iterations each, where the key of the second phase is the hex encoding of the 16 bytes the first phase produced. The PIN is verified against the first plaintext block, which is hex encoded and so holds only 0-9a-f";
+  return "This mode cracks the Secret PIN of a Block.io backup wallet, the encrypted_passphrase of a user_key. tools/blockio2hashcat.py writes the line. It carries the cipher (0 = AES-256-ECB, 1 = AES-256-CBC, 2 = AES-256-GCM), the iteration count, the salt, the iv and the first 16 bytes of the ciphertext, with - for empty fields. The key is PBKDF2-HMAC-SHA256 run twice over half the iterations each, where the key of the second phase is the hex encoding of the 16 bytes the first phase produced. The PIN is verified against the first plaintext block, which is hex encoded and so holds only 0-9a-f";
 }
 
 typedef struct pbkdf2_sha256_tmp
@@ -56,12 +56,7 @@ typedef struct blockio
   u32 cipher;
 
   u32 iv_buf[4];
-  u32 tag_buf[4];
   u32 ct_buf[4];
-
-  // never read by the kernel, kept for the hash encode
-
-  u32 pubkey[9];
 
 } blockio_t;
 
@@ -125,7 +120,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 9;
+  token.token_cnt  = 7;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_BLOCKIO;
@@ -162,18 +157,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[6]     = '*';
-  token.len_min[6] = 1;
-  token.len_max[6] = 32;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[7]     = '*';
-  token.len[7]     = 32;
-  token.attr[7]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[8]     = '*';
-  token.len[8]     = 66;
-  token.attr[8]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len[6]     = 32;
+  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -223,7 +208,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     salt->salt_len = salt_len;
   }
 
-  // iv
+  // iv. The token cannot take TOKEN_ATTR_VERIFY_HEX, because a legacy ECB line writes - here,
+  // which is not hex, so the hex check is done by hand, as the salt above does
 
   const u8 *iv_pos = token.buf[5];
   const int iv_len = token.len[5];
@@ -236,54 +222,27 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    const int iv_len_want = (cipher == BLOCKIO_CIPHER_GCM) ? 24 : 32;
+    const int iv_len_want = (cipher == BLOCKIO_CIPHER_CBC) ? 32 : 24;
 
     if (cipher == BLOCKIO_CIPHER_ECB) return (PARSER_SALT_VALUE);
 
     if (iv_len != iv_len_want) return (PARSER_SALT_VALUE);
+
+    if (is_valid_hex_string (iv_pos, iv_len) == false) return (PARSER_SALT_VALUE);
 
     hex_decode (iv_pos, iv_len, (u8 *) blockio->iv_buf);
 
     for (int i = 0; i < 4; i++) blockio->iv_buf[i] = byte_swap_32 (blockio->iv_buf[i]);
   }
 
-  // gcm tag
-
-  const u8 *tag_pos = token.buf[6];
-  const int tag_len = token.len[6];
-
-  memset (blockio->tag_buf, 0, sizeof (blockio->tag_buf));
-
-  if ((tag_len == 1) && (tag_pos[0] == '-'))
-  {
-    if (cipher == BLOCKIO_CIPHER_GCM) return (PARSER_SALT_VALUE);
-  }
-  else
-  {
-    if (cipher != BLOCKIO_CIPHER_GCM) return (PARSER_SALT_VALUE);
-
-    if (tag_len != 32) return (PARSER_SALT_VALUE);
-
-    hex_decode (tag_pos, tag_len, (u8 *) blockio->tag_buf);
-  }
-
   // the first block of the ciphertext. The AES helpers read big endian words.
 
-  const u8 *ct_pos = token.buf[7];
-  const int ct_len = token.len[7];
+  const u8 *ct_pos = token.buf[6];
+  const int ct_len = token.len[6];
 
   hex_decode (ct_pos, ct_len, (u8 *) blockio->ct_buf);
 
   for (int i = 0; i < 4; i++) blockio->ct_buf[i] = byte_swap_32 (blockio->ct_buf[i]);
-
-  // the compressed public key of the wallet
-
-  const u8 *pubkey_pos = token.buf[8];
-  const int pubkey_len = token.len[8];
-
-  memset (blockio->pubkey, 0, sizeof (blockio->pubkey));
-
-  hex_decode (pubkey_pos, pubkey_len, (u8 *) blockio->pubkey);
 
   // the verifier is a known plaintext rather than a stored digest, so the ciphertext block stands
   // in for one, as hash-mode 37231 does
@@ -334,20 +293,6 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     hex_encode ((const u8 *) tmp_iv_buf, iv_len, (u8 *) iv_enc);
   }
 
-  char tag_enc[32 + 1];
-
-  if (blockio->cipher == BLOCKIO_CIPHER_GCM)
-  {
-    memset (tag_enc, 0, sizeof (tag_enc));
-
-    hex_encode ((const u8 *) blockio->tag_buf, 16, (u8 *) tag_enc);
-  }
-  else
-  {
-    tag_enc[0] = '-';
-    tag_enc[1] = 0;
-  }
-
   u32 tmp_ct_buf[4];
 
   for (int i = 0; i < 4; i++) tmp_ct_buf[i] = byte_swap_32 (blockio->ct_buf[i]);
@@ -356,19 +301,13 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   hex_encode ((const u8 *) tmp_ct_buf, 16, (u8 *) ct_hex);
 
-  char pubkey_hex[(33 * 2) + 1] = { 0 };
-
-  hex_encode ((const u8 *) blockio->pubkey, 33, (u8 *) pubkey_hex);
-
-  const int line_len = snprintf (line_buf, line_size, "%s1*%u*%u*%s*%s*%s*%s*%s",
+  const int line_len = snprintf (line_buf, line_size, "%s1*%u*%u*%s*%s*%s",
     SIGNATURE_BLOCKIO,
     blockio->cipher,
     salt->salt_iter + 1,
     salt_enc,
     iv_enc,
-    tag_enc,
-    ct_hex,
-    pubkey_hex);
+    ct_hex);
 
   return line_len;
 }
