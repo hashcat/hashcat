@@ -80,7 +80,7 @@ def module_test_properties():
   }
 
 
-def module_generate_hash(word, salt, email=None):
+def module_generate_hash(word, salt, iterations=None, email=None):
   mnemonic = salt.decode("utf-8") if isinstance(salt, bytes) else salt
 
   if email is None:
@@ -121,4 +121,4 @@ def module_verify_hash(line):
   except ValueError:
     return None
 
-  return (module_generate_hash(word, mnemonic, email), word)
+  return (module_generate_hash(word, mnemonic, email=email), word)

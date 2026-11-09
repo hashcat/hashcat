@@ -34,8 +34,8 @@ typedef struct tezos
   u32 mnemonic_len;
   u32 email_len;
 
-  char mnemonic[129];
-  char email[129];
+  char mnemonic[132];
+  char email[256];
   char address[37];
 
 } tezos_t;
@@ -104,11 +104,11 @@ KERNEL_FQ KERNEL_FA void m44500_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
 
   if (gid >= GID_CNT) return;
 
-  // HMAC key is the mnemonic, stored in the first half of salt_buf
+  // HMAC key is the mnemonic
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-  sha512_hmac_init_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic_len);
+  sha512_hmac_init_global_swap (&sha512_hmac_ctx, (GLOBAL_AS const u32 *) esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic, esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic_len);
 
   tmps[gid].ipad[0] = sha512_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha512_hmac_ctx.ipad.h[1];
@@ -137,7 +137,7 @@ KERNEL_FQ KERNEL_FA void m44500_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
 
   sha512_hmac_update (&sha512_hmac_ctx, pre, 8);
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf + 32, esalt_bufs[DIGESTS_OFFSET_HOST].email_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, (GLOBAL_AS const u32 *) esalt_bufs[DIGESTS_OFFSET_HOST].email, esalt_bufs[DIGESTS_OFFSET_HOST].email_len);
 
   sha512_hmac_update_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 

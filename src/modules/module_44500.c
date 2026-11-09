@@ -13,6 +13,7 @@
 #include "memory.h"
 
 #include "emu_inc_hash_base58.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -53,16 +54,19 @@ typedef struct tezos
   u32 mnemonic_len;
   u32 email_len;
 
-  char mnemonic[129];
-  char email[129];
+  char mnemonic[132];
+  char email[256];
   char address[37];
 
 } tezos_t;
 
 // Hashes that share a mnemonic and an email share a salt, and the address is deliberately left
-// out of the salt so one run covers several addresses of the same wallet. The lengths of these
-// two are also the only esalt fields the kernels read, which is what makes
-// OPTS_TYPE_MULTIHASH_DESPITE_ESALT safe here. The per-address target lives in the digest.
+// out of the salt so one run covers several addresses of the same wallet. The salt is an MD5 over
+// the two fields and their lengths, as module_36000.c does: the fields no longer fit salt_buf at
+// fixed offsets once the email reaches 255 bytes, and two lines now agree on a salt only when
+// their kernel input is identical. Those fields are the esalt values the kernels read, which is
+// what makes OPTS_TYPE_MULTIHASH_DESPITE_ESALT safe here. The per-address target lives in the
+// digest.
 
 static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -76,6 +80,24 @@ static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   const u64 tmp_size = (const u64) sizeof (pbkdf2_sha512_tmp_t);
 
   return tmp_size;
+}
+
+static void tezos_set_salt_key (const tezos_t *tezos, salt_t *salt)
+{
+  md5_ctx_t md5_ctx;
+
+  md5_init (&md5_ctx);
+  md5_update (&md5_ctx, &tezos->mnemonic_len, sizeof (tezos->mnemonic_len));
+  md5_update (&md5_ctx, (const u32 *) tezos->mnemonic, tezos->mnemonic_len);
+  md5_update (&md5_ctx, &tezos->email_len, sizeof (tezos->email_len));
+  md5_update (&md5_ctx, (const u32 *) tezos->email, tezos->email_len);
+  md5_final (&md5_ctx);
+
+  salt->salt_buf[0] = md5_ctx.h[0];
+  salt->salt_buf[1] = md5_ctx.h[1];
+  salt->salt_buf[2] = md5_ctx.h[2];
+  salt->salt_buf[3] = md5_ctx.h[3];
+  salt->salt_len = 16;
 }
 
 static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -115,7 +137,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   // email
   token.sep[3]     = '*';
   token.len_min[3] = 1;
-  token.len_max[3] = 128;
+  token.len_max[3] = 255;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // tz1 address
@@ -142,7 +164,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   salt->salt_iter = iter - 1;
 
-  // mnemonic (HMAC key), stored in the first half of salt_buf
+  // mnemonic (HMAC key)
 
   const u8 *mnemonic_pos = token.buf[2];
   const int mnemonic_len = token.len[2];
@@ -151,9 +173,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   tezos->mnemonic_len = mnemonic_len;
 
-  memcpy (salt->salt_buf, mnemonic_pos, mnemonic_len);
-
-  // email, stored in the second half of salt_buf
+  // email
 
   const u8 *email_pos = token.buf[3];
   const int email_len = token.len[3];
@@ -162,9 +182,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   tezos->email_len = email_len;
 
-  memcpy (salt->salt_buf + 32, email_pos, email_len);
-
-  salt->salt_len = 256;
+  tezos_set_salt_key (tezos, salt);
 
   // tz1 address
 
