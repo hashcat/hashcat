@@ -94,6 +94,11 @@ static const char grp_op_pos_pos1[] =
   RULE_OP_MANGLE_OMIT
 };
 
+static const char grp_op_pos_chr_chr[] =
+{
+  RULE_OP_MANGLE_REPLACE_NTH
+};
+
 static const char grp_pos[] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B'
@@ -173,6 +178,7 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
     u32 r  = 0;
     u32 p1 = 0;
     u32 p2 = 0;
+    u32 p3 = 0;
 
     const int group_num = get_random_num (0, rp_gen_ops->grp_op_alias_cnt - 1);
 
@@ -247,6 +253,19 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
         p2 = get_random_num (1, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p2];
         break;
+
+      case 8:
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_chr_chr_cnt - 1);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_chr_chr_selection[r];
+        p1 = get_random_num (0, sizeof (grp_pos) - 1);
+        rule_buf[rule_pos++] = grp_pos[p1];
+        p2 = get_random_num (0x20, 0x7e);
+        rule_buf[rule_pos++] = (char) p2;
+        p3 = get_random_num (0x20, 0x7e);
+        while (p2 == p3)
+        p3 = get_random_num (0x20, 0x7e);
+        rule_buf[rule_pos++] = (char) p3;
+        break;
     }
   }
 
@@ -258,9 +277,11 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
 #define SET_NAME(rule,val) (rule)->cmds[rule_cnt]  = ((val) & 0xff) <<  0
 #define SET_P0(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= (hex_convert (rule_buf[rule_pos + 3] & 0xff) <<  8) | (hex_convert (rule_buf[rule_pos + 2] & 0xff) << 12); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  8; } } while(0)
 #define SET_P1(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= (hex_convert (rule_buf[rule_pos + 3] & 0xff) << 16) | (hex_convert (rule_buf[rule_pos + 2] & 0xff) << 20); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  16; } } while(0)
+#define SET_P2(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= ((u32) hex_convert (rule_buf[rule_pos + 3] & 0xff) << 24) | ((u32) hex_convert (rule_buf[rule_pos + 2] & 0xff) << 28); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((u32) ((val) & 0xff)) << 24; } } while(0)
 #define GET_NAME(rule)     rule_cmd = (((rule)->cmds[rule_cnt] >>  0) & 0xff)
 #define GET_P0(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 16) & 0xff)
+#define GET_P2(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 24) & 0xff)
 
 #define SET_P0_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) <<  8
 #define SET_P1_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) << 16
@@ -683,6 +704,13 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_P1   (rule, rule_buf[rule_pos]);
         break;
 
+      case RULE_OP_MANGLE_REPLACE_NTH:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1      (rule, rule_buf[rule_pos]);
+        SET_P2      (rule, rule_buf[rule_pos]);
+        break;
+
       case RULE_OP_MANGLE_PURGECHAR:
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
@@ -1041,6 +1069,13 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         rule_buf[rule_pos] = rule_cmd;
         GET_P0 (rule);
         GET_P1 (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NTH:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1      (rule);
+        GET_P2      (rule);
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
@@ -1654,6 +1689,7 @@ static void rp_gen_ops_term (rp_gen_ops_t *rp_gen_ops)
   hcfree (rp_gen_ops->grp_op_pos_chr_selection);
   hcfree (rp_gen_ops->grp_op_pos_pos0_selection);
   hcfree (rp_gen_ops->grp_op_pos_pos1_selection);
+  hcfree (rp_gen_ops->grp_op_pos_chr_chr_selection);
 }
 
 int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt, const char *rp_gen_func_selection)
@@ -1676,6 +1712,8 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   rp_gen_ops.grp_op_pos_pos0_selection = hcmalloc (sizeof (grp_op_pos_pos0));
   rp_gen_ops.grp_op_pos_pos1_selection = hcmalloc (sizeof (grp_op_pos_pos1));
 
+  rp_gen_ops.grp_op_pos_chr_chr_selection = hcmalloc (sizeof (grp_op_pos_chr_chr));
+
   rp_gen_ops.grp_op_nop_cnt      = 0;
   rp_gen_ops.grp_op_pos_p0_cnt   = 0;
   rp_gen_ops.grp_op_pos_p1_cnt   = 0;
@@ -1684,6 +1722,8 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   rp_gen_ops.grp_op_pos_chr_cnt  = 0;
   rp_gen_ops.grp_op_pos_pos0_cnt = 0;
   rp_gen_ops.grp_op_pos_pos1_cnt = 0;
+
+  rp_gen_ops.grp_op_pos_chr_chr_cnt = 0;
 
   rp_gen_ops.grp_op_alias_cnt = 0;
 
@@ -1831,6 +1871,24 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
   }
 
+  for (size_t i = 0; i < sizeof (grp_op_pos_chr_chr); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_chr_chr_selection[rp_gen_ops.grp_op_pos_chr_chr_cnt] = grp_op_pos_chr_chr[i];
+
+      rp_gen_ops.grp_op_pos_chr_chr_cnt++;
+    }
+    else
+    {
+      if (strchr (rp_gen_func_selection, grp_op_pos_chr_chr[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_chr_chr_selection[rp_gen_ops.grp_op_pos_chr_chr_cnt] = grp_op_pos_chr_chr[i];
+
+      rp_gen_ops.grp_op_pos_chr_chr_cnt++;
+    }
+  }
+
   if (rp_gen_ops.grp_op_nop_cnt)      { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 0; };
   if (rp_gen_ops.grp_op_pos_p0_cnt)   { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 1; };
   if (rp_gen_ops.grp_op_pos_p1_cnt)   { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 2; };
@@ -1839,6 +1897,8 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   if (rp_gen_ops.grp_op_pos_chr_cnt)  { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 5; };
   if (rp_gen_ops.grp_op_pos_pos0_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 6; };
   if (rp_gen_ops.grp_op_pos_pos1_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 7; };
+
+  if (rp_gen_ops.grp_op_pos_chr_chr_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 8; };
 
   // A selection that names no rule function at all leaves every group empty, and an empty alias list
   // has no index to draw. Refusing here is what lets every draw in generate_random_rule () subtract

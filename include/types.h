@@ -706,6 +706,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_TO_HEX_LOWER      = 'h',
   RULE_OP_MANGLE_TO_HEX_UPPER      = 'H',
   RULE_OP_MANGLE_INSERT_EVERY      = 'v',
+  RULE_OP_MANGLE_REPLACE_NTH       = 'N',
 
 
   /* using character classes */
