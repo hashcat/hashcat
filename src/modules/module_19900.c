@@ -304,9 +304,6 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     salt->salt_len = krb5pa->kdc_salt_len;
   }
 
-    salt->salt_len = krb5pa->account_info_len;
-  }
-
   salt->salt_iter = 4096 - 1;
 
   digest[0] = krb5pa->checksum[0];
