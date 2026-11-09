@@ -3240,6 +3240,12 @@ typedef struct user_options_extra
 
   bool hybrid_q;
 
+  // Whether the base word source is stdin, which is what a -a 1, -a 6 or -a 7 with one wordlist
+  // argument short is asking for. Settled in user_options_extra_init () from the typed mode and the
+  // argument count, the same way hybrid_q is.
+
+  bool stdin_base;
+
   char   separator;
 
   char  *hc_hash;   // can be filename or string

@@ -839,7 +839,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      if (user_options->hc_argc == 3)
+      // Three is the hash file and the two wordlists. Two is the hash file and one wordlist, with
+      // the base wordlist read from stdin.
+
+      if ((user_options->hc_argc == 2) || (user_options->hc_argc == 3))
       {
         show_error = false;
       }
@@ -872,9 +875,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
-      // the hash file, at least one wordlist, and the mask
+      // the hash file, at least one wordlist, and the mask. The wordlist may be left out, and then
+      // it is read from stdin.
 
-      if (user_options->hc_argc >= 3)
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -891,9 +895,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
-      // the hash file, the mask, and at least one wordlist
+      // the hash file, the mask, and at least one wordlist. The wordlist may be left out, and then
+      // it is read from stdin.
 
-      if (user_options->hc_argc >= 3)
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -1093,13 +1098,25 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   if (attack_mode == ATTACK_MODE_COMBI)
   {
-    if (work_cnt != 2) { hcfree (hc_argv); return; }
+    // One wordlist argument is the second wordlist, and the first is stdin: the ?w wordlist is the
+    // base word source, and the base is the side of the attack that is read once, so it is the side
+    // a pipe can be.
+
+    const bool stdin_base = (work_cnt == 1) && (has_hash_file == true);
+
+    if ((work_cnt != 2) && (stdin_base == false)) { hcfree (hc_argv); return; }
 
     hc_argv[hc_argc_new + 0] = "?w?q";
     hc_argv[hc_argc_new + 1] = user_options->hc_argv[work_from + 0];
-    hc_argv[hc_argc_new + 2] = user_options->hc_argv[work_from + 1];
 
-    hc_argc_new += 3;
+    hc_argc_new += 2;
+
+    if (stdin_base == false)
+    {
+      hc_argv[hc_argc_new] = user_options->hc_argv[work_from + 1];
+
+      hc_argc_new++;
+    }
 
     user_options->marker_policy = MARKER_POLICY_NONE;
 
@@ -1107,7 +1124,11 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
   }
   else if (attack_mode == ATTACK_MODE_HYBRID1)
   {
-    if (work_cnt < 2) { hcfree (hc_argv); return; }
+    // One work argument is the mask alone, and the wordlist is stdin.
+
+    if (work_cnt < 1) { hcfree (hc_argv); return; }
+
+    if ((work_cnt == 1) && (has_hash_file == false)) { hcfree (hc_argv); return; }
 
     hc_argv[hc_argc_new] = user_options->hc_argv[hc_argc - 1];
 
@@ -1126,7 +1147,11 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
   }
   else if (attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (work_cnt < 2) { hcfree (hc_argv); return; }
+    // One work argument is the mask alone, and the wordlist is stdin.
+
+    if (work_cnt < 1) { hcfree (hc_argv); return; }
+
+    if ((work_cnt == 1) && (has_hash_file == false)) { hcfree (hc_argv); return; }
 
     for (int i = work_from; i < hc_argc; i++)
     {
@@ -1881,9 +1906,10 @@ static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
 // hashconfig_init and by nothing after it, so this is the earliest the question can be answered.
 //
 // Every reader of base_source runs later than this. induct_ctx_init only ever looks at -a 0 and -a 9,
-// user_options_check_files works from the attack mode alone, the one early reader of wordlist_mode
-// tests for stdin which neither of these can be, and straight_ctx_init, combinator_ctx_init,
-// mask_ctx_init and generic_ctx_init are all further down outer_loop.
+// user_options_check_files works from the attack mode alone, and the one early reader of wordlist_mode
+// tests for stdin, which a -a 7 on a pipe already is: user_options_extra_init () marked it, and the
+// optimized branch below only confirms it. straight_ctx_init, combinator_ctx_init, mask_ctx_init and
+// generic_ctx_init are all further down outer_loop.
 
 void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
 {
@@ -1923,7 +1949,7 @@ void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
     if (optimized_kernel == false) return;
 
     user_options_extra->base_source   = BASE_SOURCE_FEED;
-    user_options_extra->wordlist_mode = WL_MODE_GENERIC;
+    user_options_extra->wordlist_mode = (user_options_extra->stdin_base == true) ? WL_MODE_STDIN : WL_MODE_GENERIC;
 
     return;
   }
@@ -2167,6 +2193,30 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) && (user_options_extra->hc_workc == 0))
   {
     user_options_extra->wordlist_mode = WL_MODE_STDIN;
+  }
+
+  // -a 1, -a 6 and -a 7 given one wordlist short read the base wordlist from stdin, the way -a 0
+  // given no wordlist does. The one left out is always the base word source: the amplifier is
+  // rewound for every chunk of base words, which a pipe cannot be.
+  //
+  // -a 7 is the one mode whose base is not settled here: the optimized kernel takes its base words
+  // from the wordlist and the pure kernel from the mask. stdin is still marked here, because the
+  // run is a stdin run whichever side the kernel puts it on: a pure kernel refuses it in
+  // generic_ctx_init (), an optimized one reads it as the base. The early readers of
+  // wordlist_mode, the automatic status and the terminal check, want their answer now.
+
+  user_options_extra->stdin_base = false;
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+  {
+    const bool hybrid_one_short = ((user_options->attack_mode_typed == ATTACK_MODE_HYBRID1) || (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2)) && (user_options_extra->hc_workc == 1);
+    const bool combi_one_short  = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && (user_options_extra->hc_workc == 2);
+
+    if ((hybrid_one_short == true) || (combi_one_short == true))
+    {
+      user_options_extra->stdin_base    = true;
+      user_options_extra->wordlist_mode = WL_MODE_STDIN;
+    }
   }
 }
 
@@ -2452,8 +2502,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "No wordlist was given, and stdin is a terminal.");
 
     event_log_warning (hashcat_ctx, "'%s' was taken as the hash or hash file.", user_options_extra->hc_hash);
-    event_log_warning (hashcat_ctx, "Attack mode 0 without a wordlist reads its candidates from stdin. Name the hash");
-    event_log_warning (hashcat_ctx, "file first and the wordlist after it, or pipe the candidates in.");
+    event_log_warning (hashcat_ctx, "With no wordlist named, candidates are read from stdin. Check the argument");
+    event_log_warning (hashcat_ctx, "order, or pipe the candidates in.");
     event_log_warning (hashcat_ctx, NULL);
 
     status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);

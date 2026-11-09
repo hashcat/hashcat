@@ -19,7 +19,7 @@
 // What to do with the two numbers is the only thing the call sites disagree about: one always takes
 // the left as base, one takes the bigger.
 
-static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictfile1, const char *dictfile2, u64 *words1_cnt, u64 *words2_cnt)
+static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictfile1, const char *dictfile2, const bool base_is_stdin, u64 *words1_cnt, u64 *words2_cnt)
 {
   const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
 
@@ -27,15 +27,26 @@ static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictf
   words2_cnt[0] = generic_ctx[GENERIC_ROLE_AMP].keyspace;
 
   // A feed that cannot count itself has no place here, because -a 1 divides one of these counts into
-  // the other to build its keyspace
+  // the other to build its keyspace. The one exception is a base that is stdin: a pipe cannot say
+  // how much it holds, so the run goes without a denominator, the way -a 0 on a pipe does.
 
-  if (words1_cnt[0] == GENERIC_KEYSPACE_UNKNOWN)
+  if (base_is_stdin == false)
   {
-    event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile1);
+    if (words1_cnt[0] == GENERIC_KEYSPACE_UNKNOWN)
+    {
+      event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile1);
 
-    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
-    return -1;
+      return -1;
+    }
+
+    if (words1_cnt[0] == 0)
+    {
+      event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
+
+      return -1;
+    }
   }
 
   if (words2_cnt[0] == GENERIC_KEYSPACE_UNKNOWN)
@@ -43,13 +54,6 @@ static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictf
     event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile2);
 
     status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
-
-    return -1;
-  }
-
-  if (words1_cnt[0] == 0)
-  {
-    event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
 
     return -1;
   }
@@ -100,25 +104,33 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options_extra->hybrid_q == true)
   {
-    char *dictfile1 = user_options_extra->hc_workv[1];
-    char *dictfile2 = user_options_extra->hc_workv[2];
+    // A -a 1 with its first wordlist on stdin has no first file to name, and its second wordlist is
+    // the last argument either way.
+
+    const bool stdin_base = user_options_extra->stdin_base;
+
+    char *dictfile1 = (stdin_base == true) ? "stdin" : user_options_extra->hc_workv[1];
+    char *dictfile2 = user_options_extra->hc_workv[user_options_extra->hc_workc - 1];
 
     u64 words1_cnt = 0;
     u64 words2_cnt = 0;
 
-    if (combinator_count_dicts (hashcat_ctx, dictfile1, dictfile2, &words1_cnt, &words2_cnt) == -1) return -1;
+    if (combinator_count_dicts (hashcat_ctx, dictfile1, dictfile2, stdin_base, &words1_cnt, &words2_cnt) == -1) return -1;
 
     combinator_ctx->combs_cnt = words2_cnt;
 
     // The swap is safe only when the running kernel assembles the candidate in the swapped order.
     // An optimized kernel does, a slow (OUTSIDE_KERNEL) hash does through the shared amp_a1.cl, and
     // a fast pure kernel does once its _a1-pure.cl is converted and the module sets the opt-in flag.
+    //
+    // A pipe stays the base whatever its size would be: it cannot say the size, and it cannot be
+    // rewound for every chunk of base words either, which is what being the amplifier costs.
 
     const bool kernel_can_swap = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
                               || (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
                               || (hashconfig->opts_type & OPTS_TYPE_COMBI_PURE_SWAP);
 
-    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && kernel_can_swap && (words1_cnt < words2_cnt);
+    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && (stdin_base == false) && kernel_can_swap && (words1_cnt < words2_cnt);
 
     if (swap == true)
     {

@@ -3107,19 +3107,27 @@ static void table_phase_static (option_table_t *table, option_verdict_t *v)
 }
 
 // Whether the candidates come from stdin, which user_options_extra_init () settles later from the
-// same three things: -a 0, the action, and no wordlist among the arguments. Only -a 0 reads stdin, and
-// the actions that take a hash file have it as their first argument.
+// same things: the attack mode, the action, and a wordlist missing among the arguments. -a 0 reads
+// stdin when no wordlist is named, and -a 1, -a 6 and -a 7 read it when the one wordlist they can
+// drop is dropped, which is one argument short of the full form. The actions that take a hash file
+// have it as their first argument.
 
 static bool table_stdin (const option_table_t *table)
 {
-  if (table->attack_mode != ATTACK_MODE_STRAIGHT) return false;
-
   const bool no_hash_file = (table->action == ACTION_KEYSPACE) || (table->action == ACTION_STDOUT);
   const bool hash_file    = (table->action == ACTION_CRACK) || (table->action == ACTION_SPEED_ONLY) || (table->action == ACTION_IDENTIFY);
 
-  const bool is_stdin = ((no_hash_file == true) && (table->argc == 0)) || ((hash_file == true) && (table->argc == 1));
+  if (table->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    return ((no_hash_file == true) && (table->argc == 0)) || ((hash_file == true) && (table->argc == 1));
+  }
 
-  return is_stdin;
+  if ((table->attack_mode == ATTACK_MODE_COMBI) || (table->attack_mode == ATTACK_MODE_HYBRID1) || (table->attack_mode == ATTACK_MODE_HYBRID2))
+  {
+    return ((hash_file == true) && (table->argc == 2));
+  }
+
+  return false;
 }
 
 static void table_phase_input (option_table_t *table, option_verdict_t *v)

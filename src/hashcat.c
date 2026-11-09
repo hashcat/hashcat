@@ -1628,6 +1628,18 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_CANDIDATE_SOURCE_POST);
 
+  // stdin cannot be re-read, so it cannot be the wordlist for a queue of masks: every mask is one
+  // round over the whole wordlist, and the second round would find the pipe at its end.
+
+  if ((user_options_extra->stdin_base == true) && (mask_ctx->masks_cnt > 1))
+  {
+    event_log_error (hashcat_ctx, "A wordlist on stdin cannot be re-read, so it cannot be combined with more than one mask.");
+
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
   /**
    * prevent the user from using --skip/--limit together with multiple word lists
    */

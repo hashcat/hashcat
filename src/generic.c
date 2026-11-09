@@ -23,6 +23,7 @@
 #include "terminal.h"
 #include "timer.h"
 #include "status.h"
+#include "status_rc.h"
 
 #include <inttypes.h>
 
@@ -1654,6 +1655,19 @@ int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->show         == true) return 0;
   if (user_options->version      == true) return 0;
 
+  // A wordlist on stdin is the base word source or it is nothing: the amplifier is rewound for every
+  // chunk of base words, and a pipe cannot be rewound. The one way to arrive here with the two crossed
+  // is -a 7 under a pure kernel, where the mask is the base and the wordlist amplifies it.
+
+  if ((user_options_extra->stdin_base == true) && (user_options_extra->base_source == BASE_SOURCE_MASK))
+  {
+    event_log_error (hashcat_ctx, "A wordlist on stdin cannot be the amplifier, and attack mode 7 with a pure kernel reads it as one. This run needs an optimized kernel (-O).");
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    return -1;
+  }
+
   // -a 1 is the mode whose amplifier is a wordlist too, so both of its dictionaries are counted by a
   // feed. Which of the two is the base is not decided yet: combinator_ctx_init makes that choice from
   // the two counts and runs after this. So the instances are created in the order the dictionaries
@@ -1691,9 +1705,27 @@ int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     generic_ctx->workv_owned = true;
 
-    const int rc = generic_instance_init (hashcat_ctx, generic_ctx, true);
+    if (generic_instance_init (hashcat_ctx, generic_ctx, true) == -1) return -1;
 
-    return rc;
+    // -a 1 with its first wordlist on stdin still names a second one, and the second one is the
+    // amplifier. It is read by one instance from start to end, so unlike the base it cannot be a
+    // folder.
+
+    if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->hybrid_q == true))
+    {
+      const int to = user_options_extra->hc_workc - 1;
+
+      if (hc_path_is_file (user_options_extra->hc_workv[to]) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: Not a regular file.", user_options_extra->hc_workv[to]);
+
+        return -1;
+      }
+
+      if (generic_instance_open (hashcat_ctx, GENERIC_ROLE_AMP, to, to + 1) == -1) return -1;
+    }
+
+    return 0;
   }
 
   if (user_options_extra->base_source != BASE_SOURCE_FEED) return 0;
