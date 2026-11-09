@@ -11,10 +11,11 @@ import hashlib
 import hmac
 import re
 
-from lib.test_helpers import split_hash_salt_word
-
 # TOTP (HMAC-SHA1): six digits out of HMAC-SHA1 of the 30 second time step, keyed with the password.
-# The salt is the time; the token is zero padded, the time is not.
+# The salt is the time; the token is zero padded, the time is not. A hash may carry the time step
+# in seconds as a third field, default 30. The generator uses a 60 second step for even times and
+# the default for odd ones, and hashcat prints the step only when it is not 30, so the parity of
+# the time says which form a line is in.
 
 
 def perl_int(text):
@@ -41,26 +42,45 @@ def module_test_properties():
 def module_generate_hash(word, salt, iterations=None):
   time = perl_int(salt)
 
-  step = (time // 30).to_bytes(8, "big")
+  step = 60 if time % 2 == 0 else 30
 
-  digest = hmac.new(word, step, hashlib.sha1).digest()
+  counter = (time // step).to_bytes(8, "big")
+
+  digest = hmac.new(word, counter, hashlib.sha1).digest()
 
   offset = digest[-1] & 0xf
 
   token = (int.from_bytes(digest[offset:offset + 4], "big") & 0x7fffffff) % 1000000
 
-  return "%06d:%d" % (token, time)
+  if step == 30:
+    return "%06d:%d" % (token, time)
+
+  return "%06d:%d:%d" % (token, time, step)
 
 
 def module_verify_hash(line):
-  parts = split_hash_salt_word(line)
+  parts = line.split(b":")
 
-  if parts is None:
+  if len(parts) < 3:
     return None
 
-  token, salt, word = parts
+  token = parts[0].decode(errors="replace")
+  salt = parts[1].decode(errors="replace")
 
-  target = "%s:%s" % (token, salt)
+  time = perl_int(salt)
+
+  if time % 2 == 0:
+    if len(parts) < 4 or parts[2].isdigit() is False:
+      return None
+
+    step = parts[2].decode(errors="replace")
+    word = b":".join(parts[3:])
+
+    target = "%s:%s:%s" % (token, salt, step)
+  else:
+    word = b":".join(parts[2:])
+
+    target = "%s:%s" % (token, salt)
 
   # The token is '% 1000000', so many secrets map to the same six digits: hashcat reports whichever
   # it reaches first, not necessarily the generated one. It also prints the recovered secret base32
