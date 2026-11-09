@@ -487,7 +487,12 @@ static int bip39s_parse_skeleton (const u8 *skeleton_pos, const u32 skeleton_len
 
     word_cnt++;
 
-    if (p < end) p++;
+    if (p < end)
+    {
+      p++;
+
+      if (p == end) return PARSER_HASH_VALUE;
+    }
   }
 
   if ((word_cnt < 12) || (word_cnt > BIP39S_MAX_WORDS)) return PARSER_HASH_VALUE;
