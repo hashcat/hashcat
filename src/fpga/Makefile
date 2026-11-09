@@ -198,7 +198,7 @@ BITSTREAM_URL_BASE ?= https://hashcat.net/bitstreams
 
 check-published:
 	@echo "  checking $(RELEASES_DEF) against $(BITSTREAM_URL_BASE)"
-	@curl -sS -o /tmp/hcfpga-manifest.json $(BITSTREAM_URL_BASE)/manifest.json || { echo "  cannot reach the manifest"; exit 1; }
+	@curl -sS -o /tmp/hcfpga-manifest.json $(BITSTREAM_URL_BASE)/v$(SET)/manifest.json || { echo "  cannot reach the manifest of set $(SET)"; exit 1; }
 	@rm -f /tmp/hcfpga-missing.txt
 	@awk -F'[(,)]' '/^FPGA_RELEASE/ { gsub(/[" ]/,""); \
 	   if ($$7 == "FPGA_DIST_REDISTRIBUTED") next; \
@@ -374,7 +374,7 @@ dist: $(BITSTREAM)
 	  "$(BOARD)" "$(ALGO)" "$(CORES)" "$(CLK)" "$(IDENT_PARAMS)" > $(DIST_DIR)/$(DIST_NAME).json
 	@echo
 	@echo "  $(DIST_DIR)/$(DIST_NAME).$(BITSTREAM_EXT).xz"
-	@echo "  Upload with its .json entry merged into manifest.json. Do NOT publish a bitstream"
+	@echo "  Upload with its .json entry merged into v$(SET)/manifest.json. Do NOT publish a bitstream"
 	@echo "  that has not passed 'make verify' on real hardware, or for a USB or Ethernet board"
 	@echo "  a hashcat run on the board with HCFPGA_TEST=1 tools/test.py."
 

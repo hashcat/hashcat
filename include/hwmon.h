@@ -36,6 +36,7 @@ int hm_get_fanspeed_with_devices_idx           (hashcat_ctx_t *hashcat_ctx, cons
 int hm_get_fanspeed_apple                      (hashcat_ctx_t *hashcat_ctx, char *fan_speed_buf);
 #endif
 int hm_get_buslanes_with_devices_idx           (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+int hm_get_busgen_with_devices_idx             (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_utilization_with_devices_idx        (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_memoryspeed_with_devices_idx        (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_corespeed_with_devices_idx          (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);

@@ -1798,6 +1798,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace (MAYBE_UNUSED const u32 p0, MAY
   return in_len;
 }
 
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_nth (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED const u32 p2, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+{
+  u32 buf_in[8];
+
+  buf_in[0] = buf0[0];
+  buf_in[1] = buf0[1];
+  buf_in[2] = buf0[2];
+  buf_in[3] = buf0[3];
+  buf_in[4] = buf1[0];
+  buf_in[5] = buf1[1];
+  buf_in[6] = buf1[2];
+  buf_in[7] = buf1[3];
+
+  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+
+  u32 occurrence = 0;
+
+  u32 done = 0;
+
+  for (u32 pos = 0; pos < in_len; pos++)
+  {
+    if (in[pos] != (u8) p1) continue;
+
+    if (occurrence == p0)
+    {
+      in[pos] = (u8) p2;
+
+      done = 1;
+
+      break;
+    }
+
+    occurrence++;
+  }
+
+  if (done == 0) return in_len;
+
+  buf0[0] = buf_in[0];
+  buf0[1] = buf_in[1];
+  buf0[2] = buf_in[2];
+  buf0[3] = buf_in[3];
+  buf1[0] = buf_in[4];
+  buf1[1] = buf_in[5];
+  buf1[2] = buf_in[6];
+  buf1[3] = buf_in[7];
+
+  return in_len;
+}
+
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_l (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 buf_in[8];
@@ -3241,7 +3290,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class (MAYBE_UNUSED const u32
   return in_len;
 }
 
-DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, const u32 p2, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = in_len;
 
@@ -3275,6 +3324,7 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, P
     case RULE_OP_MANGLE_OVERSTRIKE:       out_len = rule_op_mangle_overstrike       (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = rule_op_mangle_truncate_at      (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = rule_op_mangle_replace          (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_REPLACE_NTH:      out_len = rule_op_mangle_replace_nth      (p0, p1, p2, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REPLACE_CLASS:    out_len = rule_op_mangle_replace_class    (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = rule_op_mangle_purgechar        (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR_CLASS:  out_len = rule_op_mangle_purgechar_class  (p0, p1, buf0, buf1, out_len); break;
@@ -3317,9 +3367,10 @@ DECLSPEC u32 apply_rules_optimized (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 
     const u32 name = (cmd >>  0) & 0xff;
     const u32 p0   = (cmd >>  8) & 0xff;
     const u32 p1   = (cmd >> 16) & 0xff;
+    const u32 p2   = (cmd >> 24) & 0xff;
 
     // we need to guarantee input length < 32 otherwise functions like rule_op_mangle_switch_last() and others will read out of boundary
-    out_len = apply_rule_optimized (name, p0, p1, buf0, buf1, out_len);
+    out_len = apply_rule_optimized (name, p0, p1, p2, buf0, buf1, out_len);
   }
 
   return out_len;

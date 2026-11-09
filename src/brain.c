@@ -1968,7 +1968,13 @@ bool brain_server_read_hash_dumps (brain_server_dbs_t *brain_server_dbs, const c
 
     brain_server_db_hash_init (brain_server_db_hash, brain_session);
 
-    if (brain_server_read_hash_dump (brain_server_db_hash, file) == false) continue;
+    // readdir () gives the name alone, and the directory is not necessarily the current one
+
+    char file_path[HCBUFSIZ_TINY];
+
+    snprintf (file_path, sizeof (file_path), "%s/%s", path, file);
+
+    if (brain_server_read_hash_dump (brain_server_db_hash, file_path) == false) continue;
 
     brain_server_dbs->hash_cnt++;
   }
@@ -1984,7 +1990,7 @@ bool brain_server_write_hash_dumps (brain_server_dbs_t *brain_server_dbs, const 
   {
     brain_server_db_hash_t *brain_server_db_hash = &brain_server_dbs->hash_buf[idx];
 
-    char file[100];
+    char file[HCBUFSIZ_TINY];
 
     memset (file, 0, sizeof (file));
 
@@ -2267,7 +2273,11 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
 
     brain_server_db_attack_init (brain_server_db_attack, brain_attack);
 
-    if (brain_server_read_attack_dump (brain_server_db_attack, file) == false) continue;
+    char file_path[HCBUFSIZ_TINY];
+
+    snprintf (file_path, sizeof (file_path), "%s/%s", path, file);
+
+    if (brain_server_read_attack_dump (brain_server_db_attack, file_path) == false) continue;
 
     brain_server_dbs->attack_cnt++;
   }
@@ -2285,7 +2295,7 @@ bool brain_server_write_attack_dumps (brain_server_dbs_t *brain_server_dbs, cons
 
     hc_thread_mutex_lock (brain_server_db_attack->mux_ag);
 
-    char file[100];
+    char file[HCBUFSIZ_TINY];
 
     memset (file, 0, sizeof (file));
 
@@ -2475,6 +2485,8 @@ HC_THREAD_FUNC brain_server_handle_dumps (void *p)
 
   u32 brain_server_timer = brain_server_dumper_options->brain_server_timer;
 
+  const char *dump_dir = brain_server_dumper_options->dump_dir;
+
   if (brain_server_timer == 0) return 0;
 
   u32 i = 0;
@@ -2483,8 +2495,8 @@ HC_THREAD_FUNC brain_server_handle_dumps (void *p)
   {
     if (i == brain_server_timer)
     {
-      brain_server_write_hash_dumps   (brain_server_dbs, ".");
-      brain_server_write_attack_dumps (brain_server_dbs, ".");
+      brain_server_write_hash_dumps   (brain_server_dbs, dump_dir);
+      brain_server_write_attack_dumps (brain_server_dbs, dump_dir);
 
       i = 0;
     }
@@ -3660,13 +3672,36 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// brain_server () is part of the library interface, and its signature stays as released.
+// brain_server_dump_folder () takes the dump folder as well, with NULL for the current directory.
+
 int brain_server (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer)
+{
+  const int rc = brain_server_dump_folder (listen_host, listen_port, brain_password, brain_session_whitelist, brain_server_timer, NULL);
+
+  return rc;
+}
+
+int brain_server_dump_folder (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer, const char *dump_folder)
 {
   if (brain_sockets_boot () == -1) return -1;
 
   hc_timer_set (&timer_logging);
 
   hc_thread_mutex_init (mux_display);
+
+  // The dumps are read from and written to the current directory unless --brain-server-dump-dir
+  // names another one. It is checked here, because the first write comes only after the first
+  // --brain-server-timer interval and would fail with the server long since running.
+
+  const char *dump_dir = (dump_folder == NULL) ? "." : dump_folder;
+
+  if (hc_path_is_directory (dump_dir) == false)
+  {
+    brain_logging (stderr, 0, "%s: Not a directory\n", dump_dir);
+
+    return -1;
+  }
 
   // generate random brain password if not specified by user
 
@@ -3818,7 +3853,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     return -1;
   }
 
-  if (brain_server_read_hash_dumps (brain_server_dbs, ".") == false)
+  if (brain_server_read_hash_dumps (brain_server_dbs, dump_dir) == false)
   {
     if (brain_password == NULL) hcfree (auth_password);
 
@@ -3837,7 +3872,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     return -1;
   }
 
-  if (brain_server_read_attack_dumps (brain_server_dbs, ".") == false)
+  if (brain_server_read_attack_dumps (brain_server_dbs, dump_dir) == false)
   {
     if (brain_password == NULL) hcfree (auth_password);
 
@@ -3957,6 +3992,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   brain_server_dumper_options.brain_server_dbs   = brain_server_dbs;
   brain_server_dumper_options.brain_server_timer = brain_server_timer;
+  brain_server_dumper_options.dump_dir           = dump_dir;
 
   hc_thread_t dump_thr;
 
@@ -4030,14 +4066,14 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   hc_thread_wait (1, &dump_thr);
 
-  if (brain_server_write_hash_dumps (brain_server_dbs, ".") == false)
+  if (brain_server_write_hash_dumps (brain_server_dbs, dump_dir) == false)
   {
     if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
   }
 
-  if (brain_server_write_attack_dumps (brain_server_dbs, ".") == false)
+  if (brain_server_write_attack_dumps (brain_server_dbs, dump_dir) == false)
   {
     if (brain_password == NULL) hcfree (auth_password);
 

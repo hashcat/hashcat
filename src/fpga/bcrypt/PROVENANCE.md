@@ -123,4 +123,4 @@ The ZTEX 1.15y bitstream and firmware are John the Ripper's own files, redistrib
 
 ## Toolchain
 
-LiteX, litex-boards and LitePCIe, openFPGALoader to program boards, Vivado to synthesise and iverilog to simulate. The tools are used unmodified. The LitePCIe kernel driver is built with the patches named above.
+LiteX, litex-boards and LitePCIe 2026.08, openFPGALoader to program boards, Vivado to synthesise and iverilog to simulate. The tools are used unmodified. The LitePCIe kernel driver is built with the patches named above.

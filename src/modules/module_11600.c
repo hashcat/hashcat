@@ -678,7 +678,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   // 0x80 marks data that 7z2hashcat truncated for a padding attack, which hashcat does not do
 
-  if (data_type == 0x80) return (PARSER_SALT_VALUE);
+  if (data_type == 0x80) return (PARSER_SEVEN_ZIP_TRUNCATED);
 
   // the lower 4 bits name the compressor, the upper 4 bits a filter that ran before it
 

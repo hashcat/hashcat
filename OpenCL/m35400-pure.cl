@@ -19,6 +19,10 @@
 #undef RC4_FOLD_ON_POCL
 #endif
 
+#ifndef FIXED_LOCAL_SIZE
+#define FIXED_LOCAL_SIZE 32
+#endif
+
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
@@ -163,8 +167,10 @@ KERNEL_FQ KERNEL_FA void m35400_comp (KERN_ATTR_TMPS_ESALT (asrep_tmp_t, krb5asr
   }
 
   if (((out0[2] & 0x00ff80ff) != 0x00300079) &&
+      ((out0[2] & 0x00ff80ff) != 0x0030007a) &&
       ((out0[2] & 0xFF00FFFF) != 0x30008179) &&
-      ((out0[2] & 0x0000FFFF) != 0x00008279 || (out0[3] & 0x000000FF) != 0x00000030))
+      ((out0[2] & 0xFF00FFFF) != 0x3000817a) &&
+      (((out0[2] & 0x0000FFFF) != 0x00008279 && (out0[2] & 0x0000FFFF) != 0x0000827a) || (out0[3] & 0x000000FF) != 0x00000030))
   {
     return;
   }

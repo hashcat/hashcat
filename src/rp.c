@@ -14,6 +14,7 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "status_rc.h"
+#include "paw64.h"
 
 static const char grp_op_nop[] =
 {
@@ -91,6 +92,11 @@ static const char grp_op_pos_pos1[] =
 {
   RULE_OP_MANGLE_EXTRACT,
   RULE_OP_MANGLE_OMIT
+};
+
+static const char grp_op_pos_chr_chr[] =
+{
+  RULE_OP_MANGLE_REPLACE_NTH
 };
 
 static const char grp_pos[] =
@@ -172,6 +178,7 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
     u32 r  = 0;
     u32 p1 = 0;
     u32 p2 = 0;
+    u32 p3 = 0;
 
     const int group_num = get_random_num (0, rp_gen_ops->grp_op_alias_cnt - 1);
 
@@ -246,6 +253,19 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
         p2 = get_random_num (1, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p2];
         break;
+
+      case 8:
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_chr_chr_cnt - 1);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_chr_chr_selection[r];
+        p1 = get_random_num (0, sizeof (grp_pos) - 1);
+        rule_buf[rule_pos++] = grp_pos[p1];
+        p2 = get_random_num (0x20, 0x7e);
+        rule_buf[rule_pos++] = (char) p2;
+        p3 = get_random_num (0x20, 0x7e);
+        while (p2 == p3)
+        p3 = get_random_num (0x20, 0x7e);
+        rule_buf[rule_pos++] = (char) p3;
+        break;
     }
   }
 
@@ -257,9 +277,11 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
 #define SET_NAME(rule,val) (rule)->cmds[rule_cnt]  = ((val) & 0xff) <<  0
 #define SET_P0(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= (hex_convert (rule_buf[rule_pos + 3] & 0xff) <<  8) | (hex_convert (rule_buf[rule_pos + 2] & 0xff) << 12); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  8; } } while(0)
 #define SET_P1(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= (hex_convert (rule_buf[rule_pos + 3] & 0xff) << 16) | (hex_convert (rule_buf[rule_pos + 2] & 0xff) << 20); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  16; } } while(0)
+#define SET_P2(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= ((u32) hex_convert (rule_buf[rule_pos + 3] & 0xff) << 24) | ((u32) hex_convert (rule_buf[rule_pos + 2] & 0xff) << 28); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((u32) ((val) & 0xff)) << 24; } } while(0)
 #define GET_NAME(rule)     rule_cmd = (((rule)->cmds[rule_cnt] >>  0) & 0xff)
 #define GET_P0(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 16) & 0xff)
+#define GET_P2(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 24) & 0xff)
 
 #define SET_P0_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) <<  8
 #define SET_P1_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) << 16
@@ -312,6 +334,27 @@ u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
   }
 
   return need + 1;
+}
+
+// One byte of a rule, decoded the way _old_apply_rule () decodes the whole rule before reading it:
+// a \xHH is the byte it names. Answers where the next byte starts.
+
+static u32 rule_text_byte (const char *rule_buf, const u32 rule_len, const u32 rule_pos, u8 *out)
+{
+  if (is_hex_notation (rule_buf, rule_len, rule_pos) == true)
+  {
+    *out = hex_to_u8 ((const u8 *) &rule_buf[rule_pos + 2]);
+
+    const u32 next = rule_pos + 4;
+
+    return next;
+  }
+
+  *out = (u8) rule_buf[rule_pos];
+
+  const u32 next = rule_pos + 1;
+
+  return next;
 }
 
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
@@ -461,6 +504,96 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_P1_CONV (rule, rule_buf[rule_pos]);
         break;
 
+      case RULE_OP_MANGLE_INSERT_STRING:
+      {
+        // AN"STR" becomes one command per byte of STR: appends for N = z, prepends in reverse for
+        // N = 0, and inserts at N, N + 1 and on for the rest. _old_apply_rule () runs the same
+        // sequence on the host.
+
+        u32 pos = rule_pos + 1;
+
+        if (pos >= rule_len) return -1;
+
+        u8 at = 0;
+
+        pos = rule_text_byte (rule_buf, rule_len, pos, &at);
+
+        const bool at_end = (at == 'z');
+
+        const int p0 = (at_end == true) ? 0 : conv_ctoi (at);
+
+        if (p0 == -1) return -1;
+
+        if (pos >= rule_len) return -1;
+
+        u8 quote = 0;
+
+        pos = rule_text_byte (rule_buf, rule_len, pos, &quote);
+
+        u8  str[RP_RULE_SIZE];
+        u32 str_len = 0;
+
+        bool closed = false;
+
+        while (pos < rule_len)
+        {
+          u8 b = 0;
+
+          pos = rule_text_byte (rule_buf, rule_len, pos, &b);
+
+          if (b == quote)
+          {
+            closed = true;
+
+            break;
+          }
+
+          if (str_len == sizeof (str)) return -1;
+
+          str[str_len] = b;
+
+          str_len++;
+        }
+
+        if (closed == false) return -1;
+
+        if ((at_end == false) && (str_len > 0) && ((p0 + (int) str_len - 1) > 35)) return -1;
+
+        if ((rule_cnt + str_len) > MAX_KERNEL_RULES) return -1;
+
+        for (u32 i = 0; i < str_len; i++)
+        {
+          if (at_end == true)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_APPEND & 0xff) | (str[i] << 8);
+          }
+          else if (p0 == 0)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_PREPEND & 0xff) | (str[str_len - 1 - i] << 8);
+          }
+          else
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_INSERT & 0xff) | (((p0 + (int) i) & 0xff) << 8) | (str[i] << 16);
+          }
+        }
+
+        // the loop moves one past rule_pos, which is the closing quote. An empty string takes no
+        // command, and one byte or more take that many.
+
+        rule_pos = pos - 1;
+
+        if (str_len == 0)
+        {
+          rule_cnt--;
+        }
+        else
+        {
+          rule_cnt += str_len - 1;
+        }
+
+        break;
+      }
+
       case RULE_OP_MANGLE_INSERT:
       {
         const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
@@ -569,6 +702,13 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         SET_P1   (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NTH:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1      (rule, rule_buf[rule_pos]);
+        SET_P2      (rule, rule_buf[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
@@ -929,6 +1069,13 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         rule_buf[rule_pos] = rule_cmd;
         GET_P0 (rule);
         GET_P1 (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NTH:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1      (rule);
+        GET_P2      (rule);
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
@@ -1457,8 +1604,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
 
-      for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
+      for (in_pos = 0; in->cmds[in_pos]; in_pos++)
       {
+        // A passthrough does nothing, so in a chain it only takes one of the RULES_MAX - 1 slots
+        // and shows up in --debug-mode output. It is left out, and a chain made of nothing else
+        // gets a single one back below.
+
+        if ((in->cmds[in_pos] & 0xff) == RULE_OP_MANGLE_NOOP) continue;
+
         if (out_pos == RULES_MAX - 1)
         {
           overflow = true;
@@ -1467,10 +1620,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
         }
 
         out->cmds[out_pos] = in->cmds[in_pos];
+
+        out_pos++;
       }
 
       if (overflow == true) break;
     }
+
+    if ((overflow == false) && (out_pos == 0)) out->cmds[0] = RULE_OP_MANGLE_NOOP;
 
     if (overflow == true)
     {
@@ -1532,6 +1689,7 @@ static void rp_gen_ops_term (rp_gen_ops_t *rp_gen_ops)
   hcfree (rp_gen_ops->grp_op_pos_chr_selection);
   hcfree (rp_gen_ops->grp_op_pos_pos0_selection);
   hcfree (rp_gen_ops->grp_op_pos_pos1_selection);
+  hcfree (rp_gen_ops->grp_op_pos_chr_chr_selection);
 }
 
 int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt, const char *rp_gen_func_selection)
@@ -1554,6 +1712,8 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   rp_gen_ops.grp_op_pos_pos0_selection = hcmalloc (sizeof (grp_op_pos_pos0));
   rp_gen_ops.grp_op_pos_pos1_selection = hcmalloc (sizeof (grp_op_pos_pos1));
 
+  rp_gen_ops.grp_op_pos_chr_chr_selection = hcmalloc (sizeof (grp_op_pos_chr_chr));
+
   rp_gen_ops.grp_op_nop_cnt      = 0;
   rp_gen_ops.grp_op_pos_p0_cnt   = 0;
   rp_gen_ops.grp_op_pos_p1_cnt   = 0;
@@ -1562,6 +1722,8 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   rp_gen_ops.grp_op_pos_chr_cnt  = 0;
   rp_gen_ops.grp_op_pos_pos0_cnt = 0;
   rp_gen_ops.grp_op_pos_pos1_cnt = 0;
+
+  rp_gen_ops.grp_op_pos_chr_chr_cnt = 0;
 
   rp_gen_ops.grp_op_alias_cnt = 0;
 
@@ -1709,6 +1871,24 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
   }
 
+  for (size_t i = 0; i < sizeof (grp_op_pos_chr_chr); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_chr_chr_selection[rp_gen_ops.grp_op_pos_chr_chr_cnt] = grp_op_pos_chr_chr[i];
+
+      rp_gen_ops.grp_op_pos_chr_chr_cnt++;
+    }
+    else
+    {
+      if (strchr (rp_gen_func_selection, grp_op_pos_chr_chr[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_chr_chr_selection[rp_gen_ops.grp_op_pos_chr_chr_cnt] = grp_op_pos_chr_chr[i];
+
+      rp_gen_ops.grp_op_pos_chr_chr_cnt++;
+    }
+  }
+
   if (rp_gen_ops.grp_op_nop_cnt)      { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 0; };
   if (rp_gen_ops.grp_op_pos_p0_cnt)   { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 1; };
   if (rp_gen_ops.grp_op_pos_p1_cnt)   { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 2; };
@@ -1717,6 +1897,8 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   if (rp_gen_ops.grp_op_pos_chr_cnt)  { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 5; };
   if (rp_gen_ops.grp_op_pos_pos0_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 6; };
   if (rp_gen_ops.grp_op_pos_pos1_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 7; };
+
+  if (rp_gen_ops.grp_op_pos_chr_chr_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 8; };
 
   // A selection that names no rule function at all leaves every group empty, and an empty alias list
   // has no index to draw. Refusing here is what lets every draw in generate_random_rule () subtract
@@ -1735,13 +1917,110 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
 
   char *rule_buf = (char *) hcmalloc (RP_RULE_SIZE);
 
-  for (kernel_rules_cnt = 0; kernel_rules_cnt < user_options->rp_gen; kernel_rules_cnt++)
+  // Every rule drawn is checked against the ones already kept, so -g N gives N different rules
+  // where the selected functions allow that many. A repeat is drawn again. A long run of repeats
+  // means the space is all but used up, and drawing stops with fewer rules than were asked for.
+  //
+  // Only a rule that converts takes a slot, so no slot is left holding what a failed conversion
+  // wrote.
+
+  const u32 rules_want = user_options->rp_gen;
+
+  u64 set_size = 1;
+
+  while (set_size < ((u64) rules_want * 2)) set_size <<= 1;
+
+  const u64 set_mask = set_size - 1;
+
+  // a slot holds the index of a kept rule plus one, so 0 is empty
+
+  u32 *set = (u32 *) hccalloc (set_size, sizeof (u32));
+
+  if (set == NULL)
   {
+    event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for %u generated rules.", rules_want);
+
+    hcfree (rule_buf);
+
+    rp_gen_ops_term (&rp_gen_ops);
+
+    hcfree (kernel_rules_buf);
+
+    return -1;
+  }
+
+  u32 repeats_in_a_row = 0;
+
+  kernel_rules_cnt = 0;
+
+  while (kernel_rules_cnt < rules_want)
+  {
+    if (repeats_in_a_row == RP_GEN_REPEATS_MAX) break;
+
     memset (rule_buf, 0, RP_RULE_SIZE);
 
     const int rule_len = generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max, &rp_gen_ops);
 
-    if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
+    kernel_rule_t *rule = &kernel_rules_buf[kernel_rules_cnt];
+
+    memset (rule, 0, sizeof (kernel_rule_t));
+
+    if (cpu_rule_to_kernel_rule (rule_buf, rule_len, rule) == -1)
+    {
+      repeats_in_a_row++;
+
+      continue;
+    }
+
+    u64 slot = paw64 (rule, sizeof (kernel_rule_t), 0) & set_mask;
+
+    bool repeat = false;
+
+    while (set[slot] != 0)
+    {
+      if (memcmp (&kernel_rules_buf[set[slot] - 1], rule, sizeof (kernel_rule_t)) == 0)
+      {
+        repeat = true;
+
+        break;
+      }
+
+      slot = (slot + 1) & set_mask;
+    }
+
+    if (repeat == true)
+    {
+      repeats_in_a_row++;
+
+      continue;
+    }
+
+    set[slot] = kernel_rules_cnt + 1;
+
+    kernel_rules_cnt++;
+
+    repeats_in_a_row = 0;
+  }
+
+  hcfree (set);
+
+  if (kernel_rules_cnt == 0)
+  {
+    event_log_error (hashcat_ctx, "No valid rules left.");
+
+    hcfree (rule_buf);
+
+    rp_gen_ops_term (&rp_gen_ops);
+
+    hcfree (kernel_rules_buf);
+
+    return -1;
+  }
+
+  if (kernel_rules_cnt < rules_want)
+  {
+    event_log_warning (hashcat_ctx, "Distinct rules generated: %u of the %u requested. The selected rule functions repeat too often to find more.", kernel_rules_cnt, rules_want);
+    event_log_warning (hashcat_ctx, NULL);
   }
 
   hcfree (rule_buf);

@@ -1060,6 +1060,18 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   return NULL;
 }
 
+u32 status_get_guess_rules_count (const hashcat_ctx_t *hashcat_ctx)
+{
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (straight_ctx == NULL) return 0;
+
+  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0)) return 0;
+
+  return straight_ctx->kernel_rules_cnt;
+}
+
 int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -1244,6 +1256,19 @@ u32 status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
   return hashes->digests_done_new;
 }
 
+// The cracks of the current queue item, a mask or a wordlist out of several. They are counted from
+// the new cracks, so a hash removed by the outfile check directory belongs to no attack.
+
+u32 status_get_digests_done_attack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const u32 digests_done_attack = hashes->digests_done_new - status_ctx->attack_digests_done_new;
+
+  return digests_done_attack;
+}
+
 u32 status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
@@ -1267,6 +1292,17 @@ double status_get_digests_percent_new (const hashcat_ctx_t *hashcat_ctx)
   if (hashes->digests_cnt == 0) return 0;
 
   return ((double) hashes->digests_done_new / (double) hashes->digests_cnt) * 100;
+}
+
+double status_get_digests_percent_attack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashes->digests_cnt == 0) return 0;
+
+  const double digests_percent_attack = ((double) status_get_digests_done_attack (hashcat_ctx) / (double) hashes->digests_cnt) * 100;
+
+  return digests_percent_attack;
 }
 
 u32 status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
@@ -2643,6 +2679,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   const int num_corespeed   = hm_get_corespeed_with_devices_idx   ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
   const int num_memoryspeed = hm_get_memoryspeed_with_devices_idx ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
   const int num_buslanes    = hm_get_buslanes_with_devices_idx    ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
+  const int num_busgen      = hm_get_busgen_with_devices_idx      ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
   const int64_t num_power   = hm_get_power_with_devices_idx       ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
 
   int output_len = 0;
@@ -2792,7 +2829,14 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4dMHz ", num_memoryspeed);
   }
 
-  if (num_buslanes >= 0)
+  // The generation goes beside the lanes as Bus:16x4. A field of its own would cost 6 columns on a
+  // line that is already one of the longest in the status block, this costs 2.
+
+  if ((num_buslanes >= 0) && (num_busgen > 0))
+  {
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%ux%u ", num_buslanes, num_busgen);
+  }
+  else if (num_buslanes >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%u ", num_buslanes);
   }
@@ -2900,6 +2944,89 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
   if (device_param->skipped_warning == true) return 0;
 
   return device_param->outerloop_msec;
+}
+
+// --progress-only measures each device on a slice of the attack. The base words per millisecond add
+// up across the devices, and the base words of the whole attack divided by that sum is how long it
+// would run. A bridge reports one total over its units, measured over the slowest of them.
+
+double status_get_progress_only_msec (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const bridge_ctx_t  *bridge_ctx  = hashcat_ctx->bridge_ctx;
+  const status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
+  u64    progress_all         = 0;
+  double runtime_msec_highest = 0;
+  double words_per_msec       = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const u64    progress_dev     = status_get_progress_dev     (hashcat_ctx, backend_devices_idx);
+    const double runtime_msec_dev = status_get_runtime_msec_dev (hashcat_ctx, backend_devices_idx);
+
+    progress_all += progress_dev;
+
+    runtime_msec_highest = MAX (runtime_msec_highest, runtime_msec_dev);
+
+    if (runtime_msec_dev > 0) words_per_msec += (double) progress_dev / runtime_msec_dev;
+  }
+
+  if (bridge_ctx->enabled == true)
+  {
+    words_per_msec = (runtime_msec_highest > 0) ? (double) progress_all / runtime_msec_highest : 0;
+  }
+
+  if (words_per_msec > 0)
+  {
+    const u64 words_end  = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
+    const u64 words_todo = (words_end >= status_ctx->words_skip) ? words_end - status_ctx->words_skip : 0;
+
+    const double msec_total = (double) words_todo / words_per_msec;
+
+    return msec_total;
+  }
+
+  return -1;
+}
+
+char *status_get_progress_only_estimate (const hashcat_ctx_t *hashcat_ctx)
+{
+  const double msec_total = status_get_progress_only_msec (hashcat_ctx);
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  snprintf (display, HCBUFSIZ_TINY, "N/A");
+
+  if (msec_total < 0) return display;
+
+  // gmtime_r takes a time_t, and an estimate past what it can hold is shown the way Time.Estimated
+  // shows one
+
+  const double sec_total = msec_total / 1000;
+
+  if (sec_total >= (double) INT32_MAX)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_MAX_EXCEEDED);
+
+    return display;
+  }
+
+  const time_t sec_run = (time_t) sec_total;
+
+  struct tm  tm;
+  struct tm *tmp = gmtime_r (&sec_run, &tm);
+
+  if (tmp == NULL)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_MAX_EXCEEDED);
+
+    return display;
+  }
+
+  format_timer_display (tmp, display, HCBUFSIZ_TINY);
+
+  return display;
 }
 
 int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)

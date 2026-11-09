@@ -1287,13 +1287,13 @@ static bool autotune_bridge_fixed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 #define AUTOTUNE3_THREADS_NOQUERY 64
 #define AUTOTUNE3_WAVES            4
 
-static u32 autotune3_slot (hashcat_ctx_t *hashcat_ctx)
+static u32 autotune3_slot (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) return HC_DEV_KERN_2;
 
-  if (is_opti_kernel_no_pcfg (hashcat_ctx) == true) return HC_DEV_KERN_1;
+  if (is_opti_kernel_no_pcfg (hashcat_ctx) == true) return run_kernel_slot (hashcat_ctx, device_param, KERN_RUN_1);
 
   return HC_DEV_KERN_4;
 }
@@ -1506,7 +1506,7 @@ static void autotune3 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 {
   const bool verbose = (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL);
 
-  const u32 slot = autotune3_slot (hashcat_ctx);
+  const u32 slot = autotune3_slot (hashcat_ctx, device_param);
 
   u32 wave_accel = 0;
 
@@ -1736,7 +1736,7 @@ static int autotune_variants (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   const u32 kernel_threads_sav = device_param->kernel_threads;
 
-  device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_1], kernel_threads_max);
+  device_param->kernel_threads = MIN (device_param->kernel_wgs[run_kernel_slot (hashcat_ctx, device_param, KERN_RUN_1)], kernel_threads_max);
 
   int rc_init = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0, true);
 
@@ -2126,7 +2126,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       const u32 kernel_threads_sav = device_param->kernel_threads;
 
-      device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_1], kernel_threads_max);
+      device_param->kernel_threads = MIN (device_param->kernel_wgs[run_kernel_slot (hashcat_ctx, device_param, KERN_RUN_1)], kernel_threads_max);
 
       run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0, true);
 

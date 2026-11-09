@@ -1198,7 +1198,7 @@ void fpga_bitstream_report_missing (hashcat_ctx_t *hashcat_ctx, const fpga_relea
   }
   event_log_info (hashcat_ctx, NULL);
 
-  event_log_info (hashcat_ctx, "%s/manifest.json lists the SHA-256 digest of every published bitstream.", FPGA_BITSTREAM_URL_BASE);
+  event_log_info (hashcat_ctx, "%s/%s/manifest.json lists the SHA-256 digest of every bitstream in this set.", FPGA_BITSTREAM_URL_BASE, FPGA_SET_SUBDIR);
   event_log_info (hashcat_ctx, "Verify the file before programming. At runtime, hashcat validates the identity reported by the design.");
   event_log_info (hashcat_ctx, NULL);
 

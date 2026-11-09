@@ -1994,6 +1994,12 @@ typedef enum xxh32_constants
 
 } xxh32_constants_t;
 
+typedef enum lookup8_constants
+{
+  LOOKUP8_GOLDEN=0x9e3779b97f4a7c13UL
+
+} lookup8_constants_t;
+
 typedef enum combinator_mode
 {
   COMBINATOR_MODE_BASE_LEFT   = 10001,
@@ -2129,6 +2135,13 @@ typedef struct kernel_param
   // read at run time so that one build serves them all. Zero for a module without that hook.
 
   u32 module_tune;          // 43
+
+  // For the run kernels of a mode: how many consecutive right words share the low bytes of w0,
+  // where in its run the first right word of this launch sits, and which bits those are.
+
+  u32 run_len;              // 44
+  u32 run_pos;              // 45
+  u32 run_mask;             // 46
 
 } kernel_param_t;
 

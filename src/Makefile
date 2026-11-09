@@ -327,6 +327,7 @@ INSTALL_FOLDER          ?= $(PREFIX)/bin
 SHARED_ROOT_FOLDER      ?= $(PREFIX)/share
 SHARED_FOLDER           ?= $(SHARED_ROOT_FOLDER)/hashcat
 DOCUMENT_FOLDER         ?= $(SHARED_ROOT_FOLDER)/doc/hashcat
+MANUAL_FOLDER           ?= $(SHARED_ROOT_FOLDER)/man/man1
 LIBRARY_FOLDER          ?= $(PREFIX)/lib
 LIBRARY_DEV_ROOT_FOLDER ?= $(PREFIX)/include
 LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
@@ -1256,7 +1257,7 @@ EMU_OBJS_ALL            += emu_inc_rp_common emu_inc_rp emu_inc_rp_optimized
 EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512 emu_inc_ecc_secp256k1 emu_inc_bignum_2048
 EMU_OBJS_ALL            += emu_inc_hash_blake2b emu_inc_hash_blake2s emu_inc_hash_sm3 emu_inc_hash_whirlpool emu_inc_hash_sha3 emu_inc_hash_gost94 emu_inc_hash_ripemd320 emu_inc_hash_mysql323 emu_inc_hash_haval emu_inc_hash_tiger emu_inc_hash_ripemd128 emu_inc_hash_ripemd256 emu_inc_hash_md2 emu_inc_hash_sha0 emu_inc_hash_snefru emu_inc_hash_skein512 emu_inc_hash_panama emu_inc_hash_lm emu_inc_hash_mdc2
 EMU_OBJS_ALL            += emu_inc_hash_blake emu_inc_hash_bmw emu_inc_hash_cubehash emu_inc_hash_echo emu_inc_hash_fugue emu_inc_hash_groestl emu_inc_hash_hamsi emu_inc_hash_jh emu_inc_hash_luffa emu_inc_hash_shabal emu_inc_hash_shavite emu_inc_hash_simd
-EMU_OBJS_ALL            += emu_inc_hash_has160 emu_inc_hash_edonr emu_inc_hash_md6 emu_inc_hash_radiogatun emu_inc_hash_ripemd emu_inc_hash_whirlpool01 emu_inc_hash_xxhash
+EMU_OBJS_ALL            += emu_inc_hash_has160 emu_inc_hash_edonr emu_inc_hash_md6 emu_inc_hash_radiogatun emu_inc_hash_ripemd emu_inc_hash_whirlpool01 emu_inc_hash_xxhash emu_inc_hash_lookup8
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
@@ -1850,6 +1851,8 @@ install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/tables
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(MANUAL_FOLDER)
+	$(INSTALL) -m 644 docs/hashcat.1                                        $(DESTDIR)$(MANUAL_FOLDER)/
 	$(INSTALL) -m 644 example.dict                                          $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example0.hash                                         $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example400.hash                                       $(DESTDIR)$(DOCUMENT_FOLDER)/
@@ -1999,3 +2002,4 @@ uninstall:
 	$(RM) -rf $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
 	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
+	$(RM) -f  $(DESTDIR)$(MANUAL_FOLDER)/hashcat.1
