@@ -4393,6 +4393,27 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
+  // Progress and Time.Estimated measure the round in progress. With a queue of masks the run is the
+  // whole queue, and these two lines measure that instead. A window given with --skip or --limit is
+  // a position in the queue in base words and there is no candidate count for it here, so the queue
+  // lines are left out rather than shown against a total they do not line up with.
+
+  if ((hashcat_status->queue_keyspace > 0) && (user_options->skip == 0) && (user_options->limit == 0))
+  {
+    const double queue_percent = ((double) hashcat_status->queue_progress_done / (double) hashcat_status->queue_keyspace) * 100;
+
+    event_log_info (hashcat_ctx,
+      "Queue.Keyspace...: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+      hashcat_status->queue_progress_done,
+      hashcat_status->queue_keyspace,
+      queue_percent);
+
+    event_log_info (hashcat_ctx,
+      "Queue.Estimated..: %s (%s)",
+      hashcat_status->queue_time_estimated_absolute,
+      hashcat_status->queue_time_estimated_relative);
+  }
+
   if (bridge_ctx->enabled == true)
   {
     status_display_bridge_speed (hashcat_ctx, hashcat_status);

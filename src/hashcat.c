@@ -3525,6 +3525,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
   hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);
   hashcat_status->time_started_relative       = status_get_time_started_relative      (hashcat_ctx);
+
+  hashcat_status->queue_keyspace                = status_get_queue_keyspace                (hashcat_ctx);
+  hashcat_status->queue_progress_done           = status_get_queue_progress_done           (hashcat_ctx);
+  hashcat_status->queue_time_estimated_absolute = status_get_time_estimated_absolute_queue (hashcat_ctx);
+  hashcat_status->queue_time_estimated_relative = status_get_time_estimated_relative_queue (hashcat_ctx);
   hashcat_status->cpt_cur_min                 = status_get_cpt_cur_min                (hashcat_ctx);
   hashcat_status->cpt_cur_hour                = status_get_cpt_cur_hour               (hashcat_ctx);
   hashcat_status->cpt_cur_day                 = status_get_cpt_cur_day                (hashcat_ctx);

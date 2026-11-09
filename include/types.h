@@ -4006,6 +4006,16 @@ typedef struct hashcat_status
   #endif
   u64         progress_restored;
   u64         progress_skip;
+
+  // The queue-wide counterparts of progress_end, progress_cur and the two time_estimated strings.
+  // queue_keyspace is zero when the run has no mask queue whose keyspace is known, and the other
+  // three then carry nothing either.
+
+  u64         queue_keyspace;
+  u64         queue_progress_done;
+  char       *queue_time_estimated_absolute;
+  char       *queue_time_estimated_relative;
+
   u64         restore_point;
   u64         restore_total;
   double      restore_percent;
@@ -4107,6 +4117,13 @@ typedef struct status_ctx
 
   u64  words_walk_base;
   u64  words_walk_cnt;
+
+  // The keyspace of the whole queue of masks, summed by mask_ctx_queue_keyspace () before the first
+  // round runs, so that the status screen can measure the run against the whole mask file rather
+  // than against the round in progress. Zero means there is no queue of masks or it could not be
+  // sized, and (u64) -1 that the sum did not fit.
+
+  u64  words_queue_cnt;
 
   // This round's share of the window, both positions in the round's own keyspace. words_limit is
   // zero when the round runs to its own end, which is what --limit not being given means.
