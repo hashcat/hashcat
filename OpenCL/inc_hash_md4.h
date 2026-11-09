@@ -83,6 +83,7 @@ typedef struct md4_hmac_ctx_vector
 } md4_hmac_ctx_vector_t;
 
 DECLSPEC void md4_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
+DECLSPEC void md4_run_windows_S (const u32 lo, const u32 a_rev, const u32 b_rev, const u32 c_rev, const u32 d_rev, const u32 sav_c, const u32 sav_d, PRIVATE_AS const u32 *w, PRIVATE_AS u32 *win);
 DECLSPEC void md4_init (PRIVATE_AS md4_ctx_t *ctx);
 DECLSPEC void md4_update_64 (PRIVATE_AS md4_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
 DECLSPEC void md4_update (PRIVATE_AS md4_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);

@@ -201,7 +201,23 @@ KERNEL_FQ KERNEL_FA void r_markov (KERN_ATTR_R_MARKOV)
   pw.i[62] = 0;
   pw.i[63] = 0;
 
-  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_r_len, 0, 0, 0, 0, off + gid);
+  // The right side is walked with its highest position as its lowest digit, so that consecutive
+  // words share their low bytes. Every position has a fixed radix, so the digits are taken in that
+  // order and put back in the order generate_pw () takes them.
+
+  u64 val = off + gid;
+  u64 fwd = 0;
+
+  for (u32 i = pw_r_len; i > 0; i--)
+  {
+    const u32 len = root_css_buf[i - 1].cs_len;
+
+    fwd = (fwd * len) + (u32) (val % len);
+
+    val /= len;
+  }
+
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_r_len, 0, 0, 0, 0, fwd);
 
   pws_buf_r[gid].i = pw.i[0];
 }

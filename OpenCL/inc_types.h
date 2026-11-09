@@ -2136,6 +2136,13 @@ typedef struct kernel_param
 
   u32 module_tune;          // 43
 
+  // For the run kernels of a mode: how many consecutive right words share the low bytes of w0,
+  // where in its run the first right word of this launch sits, and which bits those are.
+
+  u32 run_len;              // 44
+  u32 run_pos;              // 45
+  u32 run_mask;             // 46
+
 } kernel_param_t;
 
 typedef struct salt

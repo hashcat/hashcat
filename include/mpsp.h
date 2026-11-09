@@ -43,6 +43,11 @@ u32   mp_get_length (const char *mask, const u32 opts_type);
 
 HC_PLUGIN_API void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
 
+// The right side of a split mask in the order the device walks it, for the core's own rebuild of a
+// candidate from its two offsets. Not for plugins, which see the mask whole.
+
+void sp_exec_r (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
+
 // The charsets a mask allows, one entry per position, for a feed that selects candidates by a mask
 // rather than producing them from one. css_buf has to hold 256 entries, which is the longest mask the
 // processor takes, and css_max says so. See the comment on the definition for why a feed asks rather

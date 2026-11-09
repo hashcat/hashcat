@@ -37,6 +37,10 @@ static int sp_comp_val (const void *p1, const void *p2)
   return 0;
 }
 
+// the base side a run kernel session has to keep when it takes a fourth right position
+
+#define RUN_KERNEL_BASE_WORDS (1024 * 1024)
+
 static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig, u32 css_cnt_lr[2])
 {
   const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
@@ -77,7 +81,22 @@ static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig
         }
         else
         {
-          if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
+          // The run kernels of an 8 bit mode fix the low three bytes of w0 across a run of right
+          // words, which needs byte 3 on the right side, so a session that loads them gets all
+          // four bytes of w0 on the right. Only while the base side keeps a million words, since
+          // a fourth right position divides it by a charset and a device wants its base words.
+          // Every other session keeps the split below, and with it the base word count its restore
+          // files and --skip values count in. A UTF-16 mode has taken the branch above.
+
+          u64 base_words = 1;
+
+          for (u32 i = 4; i < css_cnt_orig; i++) base_words = MIN (base_words * mask_ctx->css_buf[i].cs_len, RUN_KERNEL_BASE_WORDS);
+
+          if ((css_cnt_orig >= 8) && (base_words >= RUN_KERNEL_BASE_WORDS) && (run_kernels_wanted (hashcat_ctx) == true))
+          {
+            css_cnt_r = 4;
+          }
+          else if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
           {
             css_cnt_r = 3;
           }
@@ -1493,6 +1512,52 @@ void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u
   }
 }
 
+// The right side of a split mask, the amplifier the device walks in its inner loop, is walked with
+// its highest position as its lowest digit, so that consecutive right words share their low bytes.
+// The run kernels of MD4 and NTLM hoist work out of their loop on that. sp_exec () and the markov
+// kernel's generate_pw () take the lowest position as the lowest digit, and every position has a
+// fixed radix, so the two offsets of one candidate convert into each other by taking the digits in
+// one order and assembling them in the other. r_markov does the same conversion on the device.
+
+static u64 sp_right_to_left (u64 right, const cs_t *root_css_buf, const u32 start, const u32 stop)
+{
+  u64 left = 0;
+
+  for (u32 i = stop; i > start; i--)
+  {
+    const u64 len = root_css_buf[i - 1].cs_len;
+
+    left = (left * len) + (right % len);
+
+    right /= len;
+  }
+
+  return left;
+}
+
+static u64 sp_left_to_right (u64 left, const cs_t *root_css_buf, const u32 start, const u32 stop)
+{
+  u64 right = 0;
+
+  for (u32 i = start; i < stop; i++)
+  {
+    const u64 len = root_css_buf[i].cs_len;
+
+    right = (right * len) + (left % len);
+
+    left /= len;
+  }
+
+  return right;
+}
+
+void sp_exec_r (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
+{
+  const u64 left = sp_right_to_left (ctx, root_css_buf, start, stop);
+
+  sp_exec (left, pw_buf, root_css_buf, markov_css_buf, start, stop);
+}
+
 // sp_exec () read backwards: the offset that produces a given stretch of a candidate.
 //
 // Going forward, each position takes one digit off the offset, lowest position first, writes the
@@ -1539,6 +1604,19 @@ static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const
   }
 
   *result = off;
+
+  return true;
+}
+
+// sp_rank () for the right side, whose offset counts the other way.
+
+static bool sp_rank_r (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u64 *result, u32 *fail_pos)
+{
+  u64 left = 0;
+
+  if (sp_rank (root_css_buf, markov_css_buf, pw_buf, start, stop, &left, fail_pos) == false) return false;
+
+  *result = sp_left_to_right (left, root_css_buf, start, stop);
 
   return true;
 }
@@ -1707,7 +1785,7 @@ static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig,
 
   u32 fail_pos = 0;
 
-  const bool got = sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt_r, &amp, &fail_pos)
+  const bool got = sp_rank_r (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt_r, &amp, &fail_pos)
                 && sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, css_cnt_r, css_cnt_orig, &word, &fail_pos);
 
   if (got == false)
@@ -2729,6 +2807,36 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       u32 css_cnt_lr[2];
 
       mp_css_split_cnt (hashcat_ctx, css_cnt_orig, css_cnt_lr);
+
+      // The right side varies its highest position fastest, so consecutive right words share the
+      // low bytes of w0 for as many words as the positions above those bytes can spell. A run
+      // kernel fixes three bytes, or two for UTF-16, where the second character starts at byte 2.
+      // A mode without run kernels gets no run at all.
+
+      mask_ctx->bfs_run      = 0;
+      mask_ctx->bfs_run_mask = 0;
+
+      if (hashconfig->opts_type & OPTS_TYPE_RUN_KERNEL)
+      {
+        const u32 run_fixed = (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) ? 2 : 3;
+
+        u64 bfs_run = 1;
+
+        if (run_fixed < css_cnt_lr[1])
+        {
+          if (sp_get_sum (run_fixed, css_cnt_lr[1], mask_ctx->root_css_buf, &bfs_run) == -1)
+          {
+            event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+            status_set_rc_error (hashcat_ctx, mask_error);
+
+            return -1;
+          }
+        }
+
+        mask_ctx->bfs_run      = (u32) MIN (bfs_run, 0xffffffff);
+        mask_ctx->bfs_run_mask = (1u << (run_fixed * 8)) - 1;
+      }
 
       if (sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {

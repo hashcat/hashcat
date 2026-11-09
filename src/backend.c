@@ -755,6 +755,10 @@ static const hc_dev_kern_t kern_run_all[] =
   HC_DEV_KERN_AUX3,
   HC_DEV_KERN_AUX4,
   HC_DEV_KERN_AUX5,
+  HC_DEV_KERN_AUX6,
+  HC_DEV_KERN_1R,
+  HC_DEV_KERN_2R,
+  HC_DEV_KERN_3R,
 };
 
 static const int kern_run_cnt = sizeof (kern_run_all) / sizeof (kern_run_all[0]);
@@ -4010,6 +4014,57 @@ static void launch_wait (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
   device_param->launch_margin_us = margin_us;
 }
 
+// Whether this session loads the run kernels beside the single-hash ones: a mode that has them, a
+// single hash, and a brute-force attack on the device, which is the one kernel file that carries
+// them. --slow-candidates builds the straight kernel file and so has none to load.
+
+bool run_kernels_wanted (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if ((hashconfig->opts_type & OPTS_TYPE_RUN_KERNEL) == 0) return false;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) == 0) return false;
+
+  if (user_options_extra->attack_kern != ATTACK_KERN_BF) return false;
+
+  if (user_options->slow_candidates == true) return false;
+
+  // a big-endian mode puts its first position in the high byte of w0, where no run forms
+
+  if (hashconfig->opts_type & (OPTS_TYPE_PT_GENERATE_BE | OPTS_TYPE_PT_UTF16BE)) return false;
+
+  return true;
+}
+
+// Which kernel a run index launches. A session with run kernels launches them for a mask whose right
+// side holds all four bytes of w0 and keeps their low bytes fixed for at least two vectors of
+// candidates, which is what the kernel's handling of a vector that straddles two runs relies on.
+// Every other case keeps the single-hash kernel, which is unchanged.
+
+hc_dev_kern_t run_kernel_slot (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 kern_run)
+{
+  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  const hc_dev_kern_t slot = kern_run_to_slot (kern_run);
+
+  if (run_kernels_wanted (hashcat_ctx) == false) return slot;
+
+  if (device_param->kernel_params_mp_r_buf32[4] != 4) return slot;
+
+  const u32 run_min = MAX (2, 2 * (u32) device_param->vector_width);
+
+  if (mask_ctx->bfs_run < run_min) return slot;
+
+  if (slot == HC_DEV_KERN_1) return HC_DEV_KERN_1R;
+  if (slot == HC_DEV_KERN_2) return HC_DEV_KERN_2R;
+  if (slot == HC_DEV_KERN_3) return HC_DEV_KERN_3R;
+
+  return slot;
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num_base, const u32 event_update, const u32 iteration, const bool is_autotune)
 {
   // The device engine spreads one cell across several waves, as many as its rectangle needs at a fixed
@@ -4037,7 +4092,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
 
-  const hc_dev_kern_t slot = kern_run_to_slot (kern_run);
+  const hc_dev_kern_t slot = run_kernel_slot (hashcat_ctx, device_param, kern_run);
 
   if (slot == HC_DEV_KERN_CNT) return -1;
 
@@ -4093,6 +4148,17 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   device_param->kernel_param.pws_pos = pws_pos;
   device_param->kernel_param.gid_max = num;
+
+  // where this launch's right words sit in their run, for a run kernel
+
+  if ((slot == HC_DEV_KERN_1R) || (slot == HC_DEV_KERN_2R) || (slot == HC_DEV_KERN_3R))
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    device_param->kernel_param.run_len  = mask_ctx->bfs_run;
+    device_param->kernel_param.run_pos  = (u32) (device_param->kernel_params_mp_r_buf64[3] % mask_ctx->bfs_run);
+    device_param->kernel_param.run_mask = mask_ctx->bfs_run_mask;
+  }
 
   u64 num_elements = num;
 
@@ -14244,6 +14310,32 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
+    // the run kernels beside the single-hash ones, which run_kernel_slot () picks per mask
+
+    if (run_kernels_wanted (hashcat_ctx) == true)
+    {
+      if (hashconfig->kern_bits & KERN_BIT_04)
+      {
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_r%02d", kern_type, 4);
+
+        SETUP_KERNEL (HC_DEV_KERN_1R, HC_DEV_PROGRAM_MAIN, kernel_name);
+      }
+
+      if (hashconfig->kern_bits & KERN_BIT_08)
+      {
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_r%02d", kern_type, 8);
+
+        SETUP_KERNEL (HC_DEV_KERN_2R, HC_DEV_PROGRAM_MAIN, kernel_name);
+      }
+
+      if (hashconfig->kern_bits & KERN_BIT_16)
+      {
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_r%02d", kern_type, 16);
+
+        SETUP_KERNEL (HC_DEV_KERN_3R, HC_DEV_PROGRAM_MAIN, kernel_name);
+      }
+    }
+
     if (hashconfig->kern_bits & KERN_BIT_TM)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
@@ -14911,6 +15003,39 @@ static u64 memory_used_settled (hashcat_ctx_t *hashcat_ctx, const hc_device_para
   return used;
 }
 
+// kernel_accel_max bounds the work items of a launch rather than -n on its own, the same way it does
+// in the alias pass further down and in autotune3 (). The buffers hold
+// device_processors * kernel_threads_max * kernel_accel_max of them, so the accel that fits them
+// moves inversely with the group size, and autotune raises its own accel ceiling by that ratio
+// whenever it settles below kernel_threads_max. A -T below kernel_threads_max is a user asking for
+// the same trade.
+//
+// Without -T the group size autotune starts from is kernel_threads_max, so the flat ceiling comes
+// back. A mode with OPTS_TYPE_THREAD_MULTI_DISABLE is sized with one thread rather than with
+// kernel_threads_max, which keeps its accel out of the product.
+
+static u32 accel_product_ceiling (const hashconfig_t *hashconfig, const user_options_t *user_options, const hc_device_param_t *device_param, const u32 flat)
+{
+  if (user_options->kernel_threads_chgd == false) return flat;
+
+  if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) != 0) return flat;
+
+  if (device_param->kernel_threads_max == 0) return flat;
+
+  const u32 threads = user_options->kernel_threads;
+
+  if (threads == 0) return flat;
+  if (threads >= device_param->kernel_threads_max) return flat;
+
+  const u64 workitems = (u64) device_param->kernel_accel_max * (u64) device_param->kernel_threads_max;
+
+  const u64 ceiling = MIN (workitems / threads, (u64) KERNEL_ACCEL_MAX_CANDIDATES);
+
+  const u32 widened = (u32) MAX ((u64) flat, ceiling);
+
+  return widened;
+}
+
 int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
@@ -15418,7 +15543,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // bridge block further down clamps it into what the device has allocated for. A mode that counts
       // candidates in kernel_accel, as the scrypt modes do, raises its own ceiling above that one.
 
-      const u32 kernel_accel_ceiling = MAX (KERNEL_ACCEL_MAX, hashconfig->kernel_accel_max);
+      // The ceiling rises with a -T below kernel_threads_max, because what the buffers hold is the
+      // product of the two. accel_product_ceiling () above says why.
+
+      const u32 kernel_accel_flat = MAX (KERNEL_ACCEL_MAX, hashconfig->kernel_accel_max);
+
+      const u32 kernel_accel_ceiling = accel_product_ceiling (hashconfig, user_options, device_param, kernel_accel_flat);
 
       if ((hashconfig->bridge_type == 0) && (_kernel_accel > kernel_accel_ceiling))
       {
@@ -15427,7 +15557,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
+      // Pinned against the same ceiling rather than against kernel_accel_max. The two were the same
+      // number before the ceiling could rise, and holding the pin at kernel_accel_max would have let
+      // a -n that passed the check above fall through here and be discarded without a word.
+      //
+      // Pinning it is also what sizes the buffers for it: every device buffer is sized from
+      // kernel_accel_max further down, and the memory pass reduces it again where the card is too
+      // small for what was asked.
+
+      const u32 kernel_accel_pin_max = MAX (device_param->kernel_accel_max, kernel_accel_ceiling);
+
+      if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= kernel_accel_pin_max))
       {
         device_param->kernel_accel_min = _kernel_accel;
         device_param->kernel_accel_max = _kernel_accel;

@@ -78,6 +78,33 @@ DECLSPEC void md4_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1,
   digest[3] += d;
 }
 
+// The low bits of the round 2 state a single-hash brute-force target requires, for a run of
+// candidates whose first word agrees in its low bits. a_rev is a32 plus w0 after the round 3
+// reversal, b_rev, c_rev and d_rev are the constant parts of steps 32, 31 and 30, and sav_c and
+// sav_d the words those steps read. Borrows only travel upward and G is bitwise, so each word of
+// win is exact in as many low bits as lo fixes, less three for a25 and less 13 for the four words
+// below it, which the rotates of their steps take.
+
+DECLSPEC void md4_run_windows_S (const u32 lo, const u32 a_rev, const u32 b_rev, const u32 c_rev, const u32 d_rev, const u32 sav_c, const u32 sav_d, PRIVATE_AS const u32 *w, PRIVATE_AS u32 *win)
+{
+  const u32 a32 = a_rev - lo;
+  const u32 b28 = b_rev - MD4_G_S (sav_c, sav_d, a32);
+  const u32 c27 = c_rev - MD4_G_S (sav_d, a32, b28);
+  const u32 d26 = d_rev - MD4_G_S (a32, b28, c27);
+
+  const u32 a25 = hc_rotr32_S (a32,  3) - MD4_G_S (b28, c27, d26) - (w[ 3] + MD4C01);
+  const u32 b24 = hc_rotr32_S (b28, 13) - MD4_G_S (c27, d26, a25) - (w[14] + MD4C01);
+  const u32 c23 = hc_rotr32_S (c27,  9) - MD4_G_S (d26, a25, b24) - (w[10] + MD4C01);
+  const u32 d22 = hc_rotr32_S (d26,  5) - MD4_G_S (a25, b24, c23) - (w[ 6] + MD4C01);
+  const u32 a21 = hc_rotr32_S (a25,  3) - MD4_G_S (b24, c23, d22) - (w[ 2] + MD4C01);
+
+  win[0] = a21;
+  win[1] = d22;
+  win[2] = c23;
+  win[3] = b24;
+  win[4] = a25;
+}
+
 DECLSPEC void md4_init (PRIVATE_AS md4_ctx_t *ctx)
 {
   ctx->h[0] = MD4M_A;

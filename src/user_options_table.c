@@ -3167,6 +3167,37 @@ static u32 table_module_missing (const hashconfig_t *hashconfig, const module_ct
   return missing;
 }
 
+// kernel_accel_max bounds the work items of a launch rather than -n on its own. A launch holds
+// device_processors * kernel_threads_max * kernel_accel_max of them, so the accel that fits the
+// buffers moves inversely with the group size, and autotune3 () raises its own accel ceiling by
+// exactly that ratio whenever it settles below kernel_threads_max. A -T below kernel_threads_max is
+// a user asking for the same trade, so the ceiling moves with it here as well.
+//
+// Zero where the trade does not apply and the caller keeps the flat ceiling. Without -T there is no
+// group size to trade against, and a mode with OPTS_TYPE_THREAD_MULTI_DISABLE is sized with one
+// thread rather than with kernel_threads_max, which keeps its accel out of the product.
+
+static u32 table_accel_product_ceiling (const option_table_t *table, const hashconfig_t *hashconfig)
+{
+  if (option_given (table, OPT_KERNEL_THREADS) == false) return 0;
+
+  if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) != 0) return 0;
+
+  if (hashconfig->kernel_threads_max == 0) return 0;
+
+  const u64 threads = table->value[OPT_KERNEL_THREADS];
+
+  if (threads == 0) return 0;
+  if (threads >= hashconfig->kernel_threads_max) return 0;
+  if (threads < hashconfig->kernel_threads_min) return 0;
+
+  const u64 workitems = (u64) hashconfig->kernel_accel_max * (u64) hashconfig->kernel_threads_max;
+
+  const u64 ceiling = MIN (workitems / threads, (u64) KERNEL_ACCEL_MAX_CANDIDATES);
+
+  return (u32) ceiling;
+}
+
 static bool table_module_range (const option_table_t *table, const hashconfig_t *hashconfig, const option_id_t id, option_text_t *text)
 {
   const u32 late = option_rule (table, id)->late;
@@ -3176,6 +3207,8 @@ static bool table_module_range (const option_table_t *table, const hashconfig_t 
   u32 lo = 0;
   u32 hi = 0;
 
+  bool advise_threads = false;
+
   if ((late & LATE_MODULE_ACCEL) != 0)
   {
     // a bridge clamps -n into the range it has allocated for, which only the device side can check
@@ -3184,6 +3217,12 @@ static bool table_module_range (const option_table_t *table, const hashconfig_t 
 
     lo = hashconfig->kernel_accel_min;
     hi = hashconfig->kernel_accel_max;
+
+    const u32 product = table_accel_product_ceiling (table, hashconfig);
+
+    hi = MAX (hi, product);
+
+    if ((product == 0) && ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0)) advise_threads = true;
   }
   else if ((late & LATE_MODULE_THREADS) != 0)
   {
@@ -3198,6 +3237,11 @@ static bool table_module_range (const option_table_t *table, const hashconfig_t 
   if ((value >= lo) && (value <= hi)) return true;
 
   text_printf (text, "--%s %" PRIu64 " is outside the range %u-%u that hash-type %u allows.", option_name (table, id), value, lo, hi, hashconfig->hash_mode);
+
+  if ((advise_threads == true) && (value > hi))
+  {
+    snprintf (text->advice, sizeof (text->advice), "A launch holds kernel_threads times kernel_accel work items per multiprocessor, so a -T below %u raises what -n may be by the same ratio. Autotune makes that trade by itself.", hashconfig->kernel_threads_max);
+  }
 
   return false;
 }
