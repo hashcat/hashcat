@@ -64,6 +64,7 @@ done
 
 rm -rf $OUT
 rm -rf $OUT.7z
+rm -rf $OUT.zip
 
 mkdir -p $OUT
 
@@ -238,3 +239,9 @@ if [ -n "$SOURCE_DATE_EPOCH" ]; then
 fi
 
 time 7z a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $OUT.7z $OUT
+
+# The same tree as a zip, asked for in #4215: winget, the Windows package manager, installs portable
+# applications from zip archives only. Zip's deflate gets nowhere near lzma2 on the kernels, so this
+# archive is several times the size of the 7z, and it is packed beside it, not instead of it.
+
+time 7z a -tzip -mx=9 -mmt=8 $OUT.zip $OUT
