@@ -3222,21 +3222,11 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
       // hide empty OpenCL platforms
       if (opencl_platform_devices_cnt == 0) continue;
 
-      // OpenCL is the one API with several platforms, so the platform gets a line of its own under
-      // this one, and the rule follows the platform line. Some runtimes fill the version with their
-      // build options, PoCL for one.
+      // OpenCL is the one API with several platforms, so each platform prints its own API header and
+      // rule, and the platforms and their devices nest under it. Some runtimes fill the version with
+      // their build options, PoCL for one, which is why the rule is measured rather than fixed.
 
-      event_log_info (hashcat_ctx, "OpenCL API (%s)", opencl_platform_version);
-
-      // Two runtimes of one vendor, Mesa's Clover and rusticl for one, report the same vendor and
-      // differ only in their platform name, so the name goes in front of it where it says something
-      // more.
-
-      const bool name_adds = (opencl_platform_name != NULL) && (opencl_platform_name[0] != 0) && (strcmp (opencl_platform_name, "N/A") != 0) && (strcmp (opencl_platform_name, opencl_platform_vendor) != 0);
-
-      const size_t len = (name_adds == true)
-                       ? event_log_info (hashcat_ctx, "Platform #%u: %s [%s]", opencl_platforms_idx + 1, opencl_platform_name, opencl_platform_vendor)
-                       : event_log_info (hashcat_ctx, "Platform #%u [%s]",     opencl_platforms_idx + 1, opencl_platform_vendor);
+      const size_t len = event_log_info (hashcat_ctx, "OpenCL API (%s)", opencl_platform_version);
 
       char line[HCBUFSIZ_TINY] = { 0 };
 
@@ -3245,6 +3235,21 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
       line[len] = 0;
 
       event_log_info (hashcat_ctx, "%s", line);
+
+      // Two runtimes of one vendor, Mesa's Clover and rusticl for one, report the same vendor and
+      // differ only in their platform name, so the name goes in front of it where it says something
+      // more.
+
+      const bool name_adds = (opencl_platform_name != NULL) && (opencl_platform_name[0] != 0) && (strcmp (opencl_platform_name, "N/A") != 0) && (strcmp (opencl_platform_name, opencl_platform_vendor) != 0);
+
+      if (name_adds == true)
+      {
+        event_log_info (hashcat_ctx, "- Platform #%02u: %s [%s]", opencl_platforms_idx + 1, opencl_platform_name, opencl_platform_vendor);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "- Platform #%02u [%s]", opencl_platforms_idx + 1, opencl_platform_vendor);
+      }
 
       if (bridge_ctx->enabled == true)
       {
@@ -3271,7 +3276,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
               const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
-              event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+              event_log_info (hashcat_ctx, "  * Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1, unit_count,
                         device_name,
                         device_type_desc,
@@ -3282,7 +3287,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+              event_log_info (hashcat_ctx, "  * Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1, unit_count,
                         device_name,
                         device_available_mem / 1024 / 1024,
@@ -3295,7 +3300,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, skipped",
+            event_log_info (hashcat_ctx, "  * Device #%02u -> #%02u: %s, skipped",
                       device_id + 1, unit_count,
                       device_name);
           }
@@ -3324,7 +3329,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
               const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
-              event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+              event_log_info (hashcat_ctx, "  * Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1,
                         device_name,
                         device_type_desc,
@@ -3335,7 +3340,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+              event_log_info (hashcat_ctx, "  * Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1,
                         device_name,
                         device_available_mem / 1024 / 1024,
@@ -3346,7 +3351,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
+            event_log_info (hashcat_ctx, "  * Device #%02u: %s, skipped",
                       device_id + 1,
                       device_name);
           }

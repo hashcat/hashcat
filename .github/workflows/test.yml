@@ -24,8 +24,6 @@
 ##                  and edge tests of password/salt boundaries and vector widths.
 ##                  Only if master has had a commit in the last seven days.
 ##
-##   keepalive      Thursday restores the timing cache without building or testing.
-##
 ##   manual         the weekly run, or the modes given as input, with the kinds
 ##                  picked by five checkboxes (optimized, pure, bridge,
 ##                  container, edge). Edge is off by default. The others are on.
@@ -36,13 +34,17 @@
 ## than passes in one. The kernel kinds share the on-disk mode pool; container
 ## has its own and runs once. A pull request is optimized only, for latency.
 ##
+## The per-mode timings ci_matrix.py balances the shards with live in the Actions
+## cache and nowhere else. .github/workflows/keepalive.yml reads them on Thursdays
+## so they survive the seven days between two runs here.
+##
 ## test.py exits non-zero when a mode fails, so a job here reads its exit code:
 ## the per-mode runs are OR'd into one status and a nonzero one fails the job.
 
 name: test
 
 # Name a manual run after the kinds it was dispatched with, so the run list shows "test: opt pure
-# (all)" rather than a column of identical "test". The cache keepalive has its own label.
+# (all)" rather than a column of identical "test".
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
       && format('test: {0}{1}{2}{3}{4}({5})',
@@ -52,13 +54,11 @@ run-name: >-
                 inputs.container && 'container ' || '',
                 inputs.edge && 'edge ' || '',
                 inputs.modes)
-      || github.event.schedule == '0 1 * * 4' && 'test (timing cache keepalive)'
       || format('test ({0})', github.event_name) }}
 
 on:
   schedule:
     - cron: '0 1 * * 6'
-    - cron: '0 1 * * 4'
   workflow_dispatch:
     inputs:
       modes:
@@ -107,19 +107,7 @@ permissions:
   contents: read
 
 jobs:
-  keepalive:
-    if: github.event_name == 'schedule' && github.event.schedule == '0 1 * * 4'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Keep saved timings active
-        uses: actions/cache/restore@v6
-        with:
-          path: .github/workflows/ci_timings.json
-          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: ci-timings-v2-${{ runner.os }}-
-
   plan:
-    if: github.event.schedule != '0 1 * * 4'
     runs-on: ubuntu-latest
 
     outputs:

@@ -220,7 +220,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/hashcat-help.md
           git add docs/hashcat-example-hashes.md
-          git add docs/hashcat.1
+
+          # The workflow for a pull request is read from its merge with master, while the tree the
+          # job builds is the pull request head, generate_docs.sh included. A head cut before the
+          # manual page neither carries docs/hashcat.1 nor generates one.
+          if [ -f docs/hashcat.1 ]; then
+            git add docs/hashcat.1
+          fi
+
           if ! git diff --staged --quiet; then
             # The repository variable DOCS_BOT=manual holds the commit back, for a release that
             # carries its generated docs itself. The diff is still printed below.

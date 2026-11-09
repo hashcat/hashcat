@@ -1,0 +1,40 @@
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+## Keeps the Actions caches that other workflows balance their work with from
+## expiring.
+##
+## .github/workflows/ci_timings.json holds the per-mode test durations that
+## ci_matrix.py uses to balance the test shards. It lives in the Actions cache
+## and nowhere else, and a cache that goes seven days without a read is evicted.
+## The weekly test run is also seven days apart, so the gap between two of them
+## is the eviction window itself. Reading the cache in the middle of that gap
+## keeps the timings comfortably inside it.
+##
+## This is a workflow of its own rather than a second cron in test.yml because a
+## run of test.yml is what the test badge in README.md reports. A cache touch
+## that ran there would conclude success without building or testing anything,
+## and the badge would read green on the strength of it.
+
+name: keepalive
+
+on:
+  schedule:
+    - cron: '0 1 * * 4'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test_timings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep saved test timings active
+        uses: actions/cache/restore@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ci-timings-v2-${{ runner.os }}-

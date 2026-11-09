@@ -7653,6 +7653,10 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         opencl_platforms_version[opencl_platforms_idx] = opencl_platform_version;
 
+        hc_string_trim_leading (opencl_platform_version);
+
+        hc_string_trim_trailing (opencl_platform_version);
+
         // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
         // this causes trouble with vendor id based macros
         // we'll assign generic to those without special optimization available
