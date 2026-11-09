@@ -230,6 +230,11 @@ DECLSPEC u32 bip39s_checksum_ok (PRIVATE_AS const u32 *word_idx, const u32 word_
 {
   const u32 cs_bits = word_cnt / 3;
 
+  // The entropy is the bit stream without its checksum tail: 128 bits for 12 words up to 256 for
+  // 24. Writing past it overflows ent and feeds the checksum bits into the hash.
+
+  const u32 ent_len = (word_cnt * 11 - cs_bits) / 8;
+
   u32 acc = 0;
   u32 nbits = 0;
 
@@ -242,7 +247,7 @@ DECLSPEC u32 bip39s_checksum_ok (PRIVATE_AS const u32 *word_idx, const u32 word_
     acc = (acc << 11) | word_idx[i];
     nbits += 11;
 
-    while (nbits >= 8)
+    while ((nbits >= 8) && (nout < ent_len))
     {
       nbits -= 8;
 
