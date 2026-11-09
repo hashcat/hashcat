@@ -355,7 +355,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // words base
 
-  const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
+  const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx) * user_options_encoding_variants (hashcat_ctx);
 
   // The division is exact only while words_cnt is, so a producer that knows its base is believed over
   // it. A mask states nothing and is recovered by division exactly as before.

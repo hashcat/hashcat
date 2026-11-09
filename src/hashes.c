@@ -31,6 +31,7 @@
 #include "locking.h"
 #include "mpsp.h"
 #include "hashes.h"
+#include "user_options.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -2107,6 +2108,14 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
         const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
 
         if (amplifier > 1) word_pos = word_pos / amplifier;
+      }
+      else
+      {
+        // The encoding lists amplify on the host the same way, one candidate per (from, to) pair.
+
+        const u64 variants = user_options_encoding_variants (hashcat_ctx);
+
+        if (variants > 1) word_pos = word_pos / variants;
       }
 
       debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len, word_pos);

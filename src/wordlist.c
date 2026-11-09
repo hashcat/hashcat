@@ -59,6 +59,123 @@ size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_
   return (line_len);
 }
 
+// A comma separated encoding list, split into its elements. The same shape the device list takes:
+// empty elements are collapsed by strtok_r () rather than refused.
+
+static int encoding_list_split (const char *str, char items[][ENCODING_NAME_MAX], u32 *items_cnt)
+{
+  char *copy = hcstrdup (str);
+
+  char *saveptr = NULL;
+
+  u32 cnt = 0;
+
+  char *next = strtok_r (copy, ",", &saveptr);
+
+  while (next != NULL)
+  {
+    const size_t len = strlen (next);
+
+    if (len >= ENCODING_NAME_MAX) break;
+
+    if (cnt >= ENCODING_LIST_MAX) break;
+
+    strcpy (items[cnt], next);
+
+    cnt++;
+
+    next = strtok_r (NULL, ",", &saveptr);
+  }
+
+  hcfree (copy);
+
+  if (next != NULL) return -1;
+
+  *items_cnt = cnt;
+
+  return 0;
+}
+
+// The (from, to) pairs the two encoding lists make, in list order. Several identical pairs are one
+// candidate and so are several identity pairs, so the list keeps the first of each.
+
+static int encoding_pairs_build (const char *encoding_from, const char *encoding_to, char pairs_from[][ENCODING_NAME_MAX], char pairs_to[][ENCODING_NAME_MAX], u32 *pairs_cnt)
+{
+  char froms[ENCODING_LIST_MAX][ENCODING_NAME_MAX];
+  char tos  [ENCODING_LIST_MAX][ENCODING_NAME_MAX];
+
+  u32 froms_cnt = 0;
+  u32 tos_cnt   = 0;
+
+  if (encoding_list_split (encoding_from, froms, &froms_cnt) == -1) return -1;
+  if (encoding_list_split (encoding_to,   tos,   &tos_cnt)   == -1) return -1;
+
+  // An empty list is not an empty answer, it is a list that does not parse: a single empty name used
+  // to reach iconv and fail there, and it is the same command line mistake now.
+
+  if ((froms_cnt == 0) || (tos_cnt == 0)) return -1;
+
+  u32 cnt = 0;
+
+  bool identity_seen = false;
+
+  for (u32 i = 0; i < froms_cnt; i++)
+  {
+    for (u32 j = 0; j < tos_cnt; j++)
+    {
+      if (strcmp (froms[i], tos[j]) == 0)
+      {
+        if (identity_seen == true) continue;
+
+        identity_seen = true;
+      }
+      else
+      {
+        bool dup = false;
+
+        for (u32 k = 0; k < cnt; k++)
+        {
+          if ((strcmp (pairs_from[k], froms[i]) == 0) && (strcmp (pairs_to[k], tos[j]) == 0))
+          {
+            dup = true;
+
+            break;
+          }
+        }
+
+        if (dup == true) continue;
+      }
+
+      if (cnt >= ENCODING_VARIANTS_MAX) return -2;
+
+      strcpy (pairs_from[cnt], froms[i]);
+      strcpy (pairs_to  [cnt], tos[j]);
+
+      cnt++;
+    }
+  }
+
+  *pairs_cnt = cnt;
+
+  return 0;
+}
+
+int encoding_variants_cnt (const char *encoding_from, const char *encoding_to)
+{
+  char pairs_from[ENCODING_VARIANTS_MAX][ENCODING_NAME_MAX];
+  char pairs_to  [ENCODING_VARIANTS_MAX][ENCODING_NAME_MAX];
+
+  u32 pairs_cnt = 0;
+
+  const int rc = encoding_pairs_build (encoding_from, encoding_to, pairs_from, pairs_to, &pairs_cnt);
+
+  if (rc != 0) return rc;
+
+  const int variants = (int) pairs_cnt;
+
+  return variants;
+}
+
 // Set a transform up for one side of a candidate. role says which feed instance that side is read
 // from, because a plugin declares which of these hashcat should do for it: a generator that produces
 // finished candidates does not want the user's rule applied on top of them. PT_UPPER and PT_HEX are
@@ -87,41 +204,78 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
     transform->rule_buf = rule_buf;
   }
 
-  const bool iconv_wanted = (generic_ctx->iconv_enable == true) && (strcmp (user_options->encoding_from, user_options->encoding_to) != 0);
+  transform->iconv_cnt = 0;
 
-  if (iconv_wanted == true)
+  if (generic_ctx->iconv_enable == true)
   {
-    // iconv is loaded at runtime and only this path needs it, so a machine without one runs every
-    // attack that does not change encoding and hears about the library the first time one does.
+    char pairs_from[ENCODING_VARIANTS_MAX][ENCODING_NAME_MAX];
+    char pairs_to  [ENCODING_VARIANTS_MAX][ENCODING_NAME_MAX];
 
-    const hc_iconv_lib_t *iconv_lib = hc_iconv ();
+    u32 pairs_cnt = 0;
 
-    if (iconv_lib == NULL)
+    const int rc = encoding_pairs_build (user_options->encoding_from, user_options->encoding_to, pairs_from, pairs_to, &pairs_cnt);
+
+    if (rc != 0)
     {
-      event_log_error (hashcat_ctx, "iconv support is unavailable: %s. To fix this, %s", hc_iconv_error (), hc_iconv_hint ());
+      // user_options_sanity () has already turned a bad list down, so this is unreachable in a run
+      // that started from the command line
+
+      event_log_error (hashcat_ctx, "Invalid --encoding-from or --encoding-to list");
 
       return -1;
     }
 
-    transform->iconv_lib = iconv_lib;
+    // A single pair that converts an encoding to itself is no encoding change at all, which is the
+    // case the fast paths test for.
 
-    transform->iconv_ctx = iconv_lib->iconv_open (user_options->encoding_to, user_options->encoding_from);
+    const bool no_change = (pairs_cnt == 1) && (strcmp (pairs_from[0], pairs_to[0]) == 0);
 
-    if (transform->iconv_ctx == HC_ICONV_ERR)
+    if (no_change == false)
     {
-      event_log_error (hashcat_ctx, "Cannot convert from encoding '%s' to '%s': %s", user_options->encoding_from, user_options->encoding_to, strerror (errno));
+      // iconv is loaded at runtime and only this path needs it, so a machine without one runs every
+      // attack that does not change encoding and hears about the library the first time one does.
 
-      transform->iconv_ctx = NULL;
+      const hc_iconv_lib_t *iconv_lib = hc_iconv ();
 
-      return -1;
+      if (iconv_lib == NULL)
+      {
+        event_log_error (hashcat_ctx, "iconv support is unavailable: %s. To fix this, %s", hc_iconv_error (), hc_iconv_hint ());
+
+        return -1;
+      }
+
+      transform->iconv_lib = iconv_lib;
+
+      for (u32 i = 0; i < pairs_cnt; i++)
+      {
+        // an identity pair converts the candidate to itself and gets no descriptor
+
+        if (strcmp (pairs_from[i], pairs_to[i]) == 0)
+        {
+          transform->iconv_ctx[i] = NULL;
+
+          continue;
+        }
+
+        transform->iconv_ctx[i] = iconv_lib->iconv_open (pairs_to[i], pairs_from[i]);
+
+        if (transform->iconv_ctx[i] == HC_ICONV_ERR)
+        {
+          event_log_error (hashcat_ctx, "Cannot convert from encoding '%s' to '%s': %s", pairs_from[i], pairs_to[i], strerror (errno));
+
+          transform->iconv_ctx[i] = NULL;
+
+          return -1;
+        }
+      }
+
+      transform->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      transform->iconv_cnt = pairs_cnt;
     }
-
-    transform->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-    transform->iconv_enabled = true;
   }
 
-  const bool others = transform->pt_hex | transform->pt_uppercase | transform->pt_lowercase | transform->iconv_enabled;
+  const bool others = transform->pt_hex | transform->pt_uppercase | transform->pt_lowercase | (transform->iconv_cnt > 0);
   const bool rules  = (run_rule_engine (transform->rule_len, transform->rule_buf) != 0);
 
   transform->autohex_only = (others == false) && (rules == false);
@@ -131,16 +285,22 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
 
 void pw_transform_term (pw_transform_t *transform)
 {
-  if (transform->iconv_enabled == false) return;
+  if (transform->iconv_cnt == 0) return;
 
-  transform->iconv_lib->iconv_close (transform->iconv_ctx);
+  for (u32 i = 0; i < transform->iconv_cnt; i++)
+  {
+    if (transform->iconv_ctx[i] == NULL) continue;
+
+    transform->iconv_lib->iconv_close (transform->iconv_ctx[i]);
+
+    transform->iconv_ctx[i] = NULL;
+  }
 
   hcfree (transform->iconv_tmp);
 
-  transform->iconv_enabled = false;
-  transform->iconv_ctx     = NULL;
-  transform->iconv_tmp     = NULL;
-  transform->iconv_lib     = NULL;
+  transform->iconv_cnt = 0;
+  transform->iconv_tmp = NULL;
+  transform->iconv_lib = NULL;
 }
 
 // Whether a candidate can come out shorter than it arrived. Only these three can do that, and without
@@ -148,9 +308,19 @@ void pw_transform_term (pw_transform_t *transform)
 
 bool pw_transform_shrinks (const pw_transform_t *transform)
 {
-  const bool result = transform->pt_hex | transform->wordlist_autohex | transform->iconv_enabled;
+  const bool result = transform->pt_hex | transform->wordlist_autohex | (transform->iconv_cnt > 0);
 
   return result;
+}
+
+// How many candidates one word becomes. 1 when the run does no encoding change, so the producers
+// that cannot lay several candidates out can keep calling pw_transform_apply () untouched.
+
+u32 pw_transform_variants (const pw_transform_t *transform)
+{
+  const u32 variants = (transform->iconv_cnt > 0) ? transform->iconv_cnt : 1;
+
+  return variants;
 }
 
 // Apply the whole transform in place, and return the new length or -1 when the word cannot be used.
@@ -161,6 +331,30 @@ bool pw_transform_shrinks (const pw_transform_t *transform)
 
 int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len, const int buf_size)
 {
+  const int out_len = pw_transform_apply_variant (transform, 0, buf, len, buf, buf_size);
+
+  return out_len;
+}
+
+// The same transform, producing the word's variant: which (from, to) pair the encoding step uses.
+// src_buf is only read, so a producer with several variants can hand each of them the word as it was
+// read; a caller that has no use for the original passes one buffer for both and it works in place.
+
+int pw_transform_apply_variant (const pw_transform_t *transform, const u32 variant, const u8 *src_buf, const int src_len, u8 *dst_buf, const int dst_size)
+{
+  if (dst_buf != src_buf)
+  {
+    if (src_len > dst_size) return -1;
+
+    memcpy (dst_buf, src_buf, (size_t) src_len);
+  }
+
+  u8 *buf = dst_buf;
+
+  const int len = src_len;
+
+  const int buf_size = dst_size;
+
   // The ordinary wordlist run has no inline rule, no encoding change, no hex mode and no forced
   // uppercase, so the only step below that could fire is the autohex one, and that needs the word to
   // spell $HEX[ and to be an even number of bytes at least 6 long. Those are the first three things
@@ -223,23 +417,30 @@ int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len,
 
   // 4. the bytes the kernel gets
 
-  if (transform->iconv_enabled == true)
+  if (transform->iconv_cnt > 0)
   {
-    char  *iconv_ptr = transform->iconv_tmp;
-    size_t iconv_sz  = HCBUFSIZ_TINY;
+    const hc_iconv_t iconv_ctx = transform->iconv_ctx[variant];
 
-    char  *in_buf = (char *) buf;
-    size_t in_len = (size_t) out_len;
+    // an identity pair converts the candidate to itself and has no descriptor
 
-    if (transform->iconv_lib->iconv (transform->iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
+    if (iconv_ctx != NULL)
+    {
+      char  *iconv_ptr = transform->iconv_tmp;
+      size_t iconv_sz  = HCBUFSIZ_TINY;
 
-    const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
+      char  *in_buf = (char *) buf;
+      size_t in_len = (size_t) out_len;
 
-    if (iconv_left > (size_t) buf_size) return -1;
+      if (transform->iconv_lib->iconv (iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
 
-    memcpy (buf, transform->iconv_tmp, iconv_left);
+      const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
 
-    out_len = (int) iconv_left;
+      if (iconv_left > (size_t) buf_size) return -1;
+
+      memcpy (buf, transform->iconv_tmp, iconv_left);
+
+      out_len = (int) iconv_left;
+    }
   }
 
   return out_len;

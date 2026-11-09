@@ -21,6 +21,7 @@
 #include "feed.h"
 #include "straight.h"
 #include "status_rc.h"
+#include "user_options.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
@@ -475,6 +476,11 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (generic_ctx->global_ctx.dev_rules == true) amplifier *= straight_ctx->kernel_rules_cnt;
     }
+
+    // The encoding lists amplify on the host the same way the rules do on the device: the feed
+    // producer turns one base word into one candidate per (from, to) pair.
+
+    amplifier *= user_options_encoding_variants (hashcat_ctx);
 
     // A feed that reads a mask cannot say its keyspace when it is asked, because a mask is sized once
     // per round by mask_ctx_update_loop a few lines above this and the feed was asked long before the

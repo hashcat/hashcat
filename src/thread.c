@@ -326,7 +326,7 @@ void seek_apply (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
-  const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+  const u64 amplifier = user_options_extra_amplifier (hashcat_ctx) * user_options_encoding_variants (hashcat_ctx);
 
   hc_thread_mutex_lock (status_ctx->mux_counter);
 

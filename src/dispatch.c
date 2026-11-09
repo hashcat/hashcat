@@ -868,7 +868,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
         // reject_amplifier that is zero for the kernels which amplify on the device, and a skipped
         // word would then be counted nowhere at all.
 
-        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx) * user_options_encoding_variants (hashcat_ctx);
 
         hc_thread_mutex_lock (status_ctx->mux_counter);
 
@@ -1040,49 +1040,121 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       // Everything that happens to a base word, in the one order every producer uses.
 
-      pw_len = pw_transform_apply (&gf->transform, work_buf, pw_len, (work_buf == pw_buf) ? PW_MAX : gf->scratch_size);
+      const u32 variants = pw_transform_variants (&gf->transform);
 
-      if (pw_len < 0)
+      if (variants == 1)
       {
-        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+        pw_len = pw_transform_apply (&gf->transform, work_buf, pw_len, (work_buf == pw_buf) ? PW_MAX : gf->scratch_size);
 
-        continue;
+        if (pw_len < 0)
+        {
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+          continue;
+        }
+
+        // Only now is the length final, so only now can it be judged. Rejecting before the transforms
+        // would throw away a hex line that decodes to a candidate of a perfectly legal length: a 256
+        // byte password written as hex arrives as 512 bytes.
+
+        if (pw_len > PW_MAX)
+        {
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+          continue;
+        }
+
+        if (work_buf != pw_buf) memcpy (pw_buf, work_buf, pw_len);
+
+        if (gf->length_policy != BASE_LENGTH_NONE)
+        {
+          const bool too_short = (gf->length_policy == BASE_LENGTH_BOTH) && (pw_len < (int) hashconfig->pw_min);
+          const bool too_long  = (pw_len > (int) hashconfig->pw_max);
+
+          if ((too_short == true) || (too_long == true))
+          {
+            if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+            continue;
+          }
+        }
+
+        const u64 pws_was = batch->pws_cnt;
+
+        pw_add_zerocopy (batch, device_param->kernel_power, pw_buf, pw_len);
+
+        // and lay out the cell that came with it, while it is still in cache. A full batch does not take
+        // the candidate, so there is nothing to lay out either.
+
+        if ((gf->amp == true) && (batch->pws_cnt > pws_was)) pcfg_plan_cell (batch, device_param->kernel_power);
       }
-
-      // Only now is the length final, so only now can it be judged. Rejecting before the transforms
-      // would throw away a hex line that decodes to a candidate of a perfectly legal length: a 256
-      // byte password written as hex arrives as 512 bytes.
-
-      if (pw_len > PW_MAX)
+      else
       {
-        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+        // One word, one candidate per encoding pair. The word is word atomic: either every variant
+        // fits in the batch or none of them goes in, because a variant left behind could not be found
+        // again, the feed cursor is already on the next word. What does not fit is handed to the next
+        // batch through the same mechanism a feed flush uses.
 
-        continue;
-      }
+        if (batch->pws_cnt + variants > device_param->kernel_power)
+        {
+          if (batch->pws_cnt == 0)
+          {
+            event_log_error (hashcat_ctx, "More encoding variants than the device batch holds");
 
-      if (work_buf != pw_buf) memcpy (pw_buf, work_buf, pw_len);
+            return -1;
+          }
 
-      if (gf->length_policy != BASE_LENGTH_NONE)
-      {
-        const bool too_short = (gf->length_policy == BASE_LENGTH_BOTH) && (pw_len < (int) hashconfig->pw_min);
-        const bool too_long  = (pw_len > (int) hashconfig->pw_max);
+          gf->flush_off = words_off + work_cur;
+          gf->flush_cnt = work_cnt - work_cur;
 
-        if ((too_short == true) || (too_long == true))
+          break;
+        }
+
+        // Every variant starts from the word as it was read, and the first variant applied in place
+        // would destroy what the next one still has to read.
+
+        if (work_buf == pw_buf)
+        {
+          memcpy (gf->scratch, work_buf, pw_len);
+
+          work_buf = gf->scratch;
+        }
+
+        u64 accepted = 0;
+
+        for (u32 variant = 0; variant < variants; variant++)
+        {
+          pw_idx_t *pw_idx_variant = batch->pws_idx + batch->pws_cnt;
+
+          u8 *variant_buf = (u8 *) (batch->pws_comp + pw_idx_variant->off);
+
+          const int variant_len = pw_transform_apply_variant (&gf->transform, variant, work_buf, pw_len, variant_buf, PW_MAX);
+
+          if (variant_len < 0) continue;
+
+          if (gf->length_policy != BASE_LENGTH_NONE)
+          {
+            const bool too_short = (gf->length_policy == BASE_LENGTH_BOTH) && (variant_len < (int) hashconfig->pw_min);
+            const bool too_long  = (variant_len > (int) hashconfig->pw_max);
+
+            if ((too_short == true) || (too_long == true)) continue;
+          }
+
+          pw_add_zerocopy (batch, device_param->kernel_power, variant_buf, variant_len);
+
+          accepted++;
+        }
+
+        // A word every variant refused is a rejected word. A word some variants refused is not: the
+        // skipped variants are the same loss a bad conversion is for the one encoding today.
+
+        if (accepted == 0)
         {
           if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
       }
-
-      const u64 pws_was = batch->pws_cnt;
-
-      pw_add_zerocopy (batch, device_param->kernel_power, pw_buf, pw_len);
-
-      // and lay out the cell that came with it, while it is still in cache. A full batch does not take
-      // the candidate, so there is nothing to lay out either.
-
-      if ((gf->amp == true) && (batch->pws_cnt > pws_was)) pcfg_plan_cell (batch, device_param->kernel_power);
     }
 
     // How far into the keyspace this batch reached. It is the restore point, so it has to be a
@@ -1359,7 +1431,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         // rejected total short by that factor and the run would never reach 100%. Under -S the
         // amplifier is 1 and this is the plain word count it always was.
 
-        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx) * user_options_encoding_variants (hashcat_ctx);
 
         for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
         {
@@ -1377,6 +1449,28 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
   }
   #endif
+
+  // Several encodings turn one base word into several candidates, and only the feed producer knows
+  // how to lay those out. Every other path is built on one candidate per position: the slow
+  // candidates, the combinator and hybrid amplifiers, and a feed that amplifies on the device. A run
+  // that would need one of those is refused rather than short a whole encoding's candidates.
+
+  if (encoding_variants_cnt (user_options->encoding_from, user_options->encoding_to) > 1)
+  {
+    const bool base_feed = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].iconv_enable == true)
+                        && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_enable   == false);
+
+    const bool supported = (user_options->slow_candidates == false)
+                        && (base_feed == true)
+                        && ((attack_mode == ATTACK_MODE_STRAIGHT) || (attack_mode == ATTACK_MODE_GENERIC));
+
+    if (supported == false)
+    {
+      event_log_error (hashcat_ctx, "Multiple encodings are supported in attack modes 0 and 8 only, without the slow candidate path");
+
+      return -1;
+    }
+  }
 
   if (user_options->slow_candidates == true)
   {
@@ -1710,6 +1804,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       // is only the rule count, and pipe_run () multiplies the two.
 
       if ((attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true)) reject_amplifier = straight_ctx->kernel_rules_cnt;
+
+      // a rejected base word also stood for one candidate per encoding pair
+
+      reject_amplifier *= user_options_encoding_variants (hashcat_ctx);
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, false, reject_amplifier);
 

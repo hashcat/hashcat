@@ -1082,7 +1082,7 @@ int generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, c
 
   hcfree (out_buf);
 
-  const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
+  const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx) * user_options_encoding_variants (hashcat_ctx);
 
   const u64 rejected = status_ctx->words_off * amplifier_cnt;
 
@@ -1216,16 +1216,16 @@ bool generic_ctx_described (const hashcat_ctx_t *hashcat_ctx)
 // advances seek_pos before it tests anything. An amplifier word gives its slot up, because the fill
 // packs what it accepted and everything after a refusal moves up.
 
-static bool generic_word_transform (const pw_transform_t *transform, u8 *buf, const int out_len, const size_t buf_size, u32 *len_out)
+static bool generic_word_transform (const pw_transform_t *transform, const u32 variant, const u8 *src_buf, const int src_len, u8 *dst_buf, const size_t dst_size, u32 *len_out)
 {
   // A position the feed skipped has no bytes to transform, and it holds its place in the count the
   // same way a word too long for the transform does.
 
-  if (out_len < 0) return false;
+  if (src_len < 0) return false;
 
-  if (out_len > PW_MAX) return false;
+  if (src_len > PW_MAX) return false;
 
-  const int len = pw_transform_apply (transform, buf, out_len, (int) buf_size);
+  const int len = pw_transform_apply_variant (transform, variant, src_buf, src_len, dst_buf, (int) dst_size);
 
   if (len < 0) return false;
 
@@ -1428,6 +1428,12 @@ int generic_ctx_word_index (hashcat_ctx_t *hashcat_ctx, const generic_role_t rol
   {
     u8 buf[HCBUFSIZ_TINY];
 
+    // a word with several encodings matches when any variant of it does
+
+    u8 variant_buf[HCBUFSIZ_TINY];
+
+    const u32 variants = pw_transform_variants (&transform);
+
     u64 index = 0;
     u64 first = 0;
     u64 more  = 0;
@@ -1455,11 +1461,13 @@ int generic_ctx_word_index (hashcat_ctx_t *hashcat_ctx, const generic_role_t rol
         break;
       }
 
-      u32 len = 0;
-
-      if (generic_word_transform (&transform, buf, out_len, sizeof (buf), &len) == true)
+      for (u32 variant = 0; variant < variants; variant++)
       {
-        if ((len == cand_len) && (memcmp (buf, cand, cand_len) == 0))
+        u32 len = 0;
+
+        if (generic_word_transform (&transform, variant, buf, out_len, variant_buf, sizeof (variant_buf), &len) == false) continue;
+
+        if ((len == cand_len) && (memcmp (variant_buf, cand, cand_len) == 0))
         {
           if (found == false)
           {
@@ -1558,6 +1566,12 @@ int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
   {
     u8 buf[HCBUFSIZ_TINY];
 
+    // a word with several encodings matches when any variant of it does
+
+    u8 variant_buf[HCBUFSIZ_TINY];
+
+    const u32 variants = pw_transform_variants (&transform);
+
     u64 index = 0;
 
     lookup_say_t say;
@@ -1581,9 +1595,21 @@ int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
         break;
       }
 
+      bool usable = false;
+
       u32 len = 0;
 
-      if (generic_word_transform (&transform, buf, out_len, sizeof (buf), &len) == false)
+      for (u32 variant = 0; variant < variants; variant++)
+      {
+        if (generic_word_transform (&transform, variant, buf, out_len, variant_buf, sizeof (variant_buf), &len) == true)
+        {
+          usable = true;
+
+          break;
+        }
+      }
+
+      if (usable == false)
       {
         if (advance_on_reject == true) index++;
 
@@ -1594,7 +1620,7 @@ int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
       {
         const u8 *want = (backward == true) ? (anchor - len) : anchor;
 
-        if (memcmp (buf, want, len) == 0)
+        if (memcmp (variant_buf, want, len) == 0)
         {
           if (out_index[len - min_len] == GENERIC_KEYSPACE_UNKNOWN) out_index[len - min_len] = index;
         }

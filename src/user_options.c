@@ -28,6 +28,7 @@
 #include "module_options.h"
 #include "user_options_table.h"
 #include "status_rc.h"
+#include "wordlist.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -920,6 +921,27 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (show_error == true)
   {
     usage_mini_print (user_options->hc_bin);
+
+    return -1;
+  }
+
+  // The encoding lists are parsed here so a bad one fails on the command line rather than in a
+  // device thread. Which attack modes may use several of them is decided where the producer is
+  // chosen, because it depends on the kernel path and the slow candidate flag, and neither is
+  // settled here.
+
+  const int enc_variants = encoding_variants_cnt (user_options->encoding_from, user_options->encoding_to);
+
+  if (enc_variants == -1)
+  {
+    event_log_error (hashcat_ctx, "Invalid --encoding-from or --encoding-to list: expected at most %d comma separated encoding names of at most %d characters each", ENCODING_LIST_MAX, ENCODING_NAME_MAX - 1);
+
+    return -1;
+  }
+
+  if (enc_variants == -2)
+  {
+    event_log_error (hashcat_ctx, "Too many encoding pairs: --encoding-from and --encoding-to may make at most %d", ENCODING_VARIANTS_MAX);
 
     return -1;
   }
@@ -2287,6 +2309,25 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
   }
 
   return 1;
+}
+
+// How many candidates the encoding lists alone make of one base word. 1 unless the run actually
+// converts: the lists name a single pair, or the base feed is not one the encoding step applies to.
+// The counters that turn a base word count into a candidate count multiply by this, exactly as they
+// multiply by the amplifier.
+
+u64 user_options_encoding_variants (hashcat_ctx_t *hashcat_ctx)
+{
+  const generic_ctx_t  *generic_ctx  = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (generic_ctx->iconv_enable == false) return 1;
+
+  const int variants = encoding_variants_cnt (user_options->encoding_from, user_options->encoding_to);
+
+  if (variants < 1) return 1;
+
+  return (u64) variants;
 }
 
 int user_options_check_files (hashcat_ctx_t *hashcat_ctx)

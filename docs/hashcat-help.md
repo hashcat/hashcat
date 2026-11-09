@@ -61,8 +61,8 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --remove-timer             | Num  | Update input hash file each X seconds                | --remove-timer=30
      --potfile-disable          |      | Do not write potfile                                 |
      --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot
-     --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15
-     --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le
+     --encoding-from            | Code | Force internal wordlist encoding from X or a list    | --encoding-from=utf8,cp1251
+     --encoding-to              | Code | Force internal wordlist encoding to X or a list      | --encoding-to=utf-32le
      --debug-mode               | Num  | Defines the debug mode, needs rules or a feed        | --debug-mode=4
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts

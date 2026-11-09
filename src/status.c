@@ -1447,7 +1447,7 @@ static u64 status_get_stdin_count_words (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->stdin_count_chgd == false) return 0;
 
-  const u64 amplifier = user_options_extra_amplifier ((hashcat_ctx_t *) hashcat_ctx);
+  const u64 amplifier = user_options_extra_amplifier ((hashcat_ctx_t *) hashcat_ctx) * user_options_encoding_variants ((hashcat_ctx_t *) hashcat_ctx);
 
   if (overflow_check_u64_mul (user_options->stdin_count, amplifier) == true) return 0;
 
@@ -1817,6 +1817,8 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) words_cnt  *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    words_cnt  *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       words_cnt  *= mask_ctx->bfs_cnt;
+
+      words_cnt *= user_options_encoding_variants ((hashcat_ctx_t *) hashcat_ctx);
     }
   }
   // Important for ETA only
@@ -1916,6 +1918,8 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
 
         progress_end = (overflow_check_u64_mul (progress_end, amplifier) == true) ? UINT64_MAX : (progress_end * amplifier);
       }
+
+      progress_end *= user_options_encoding_variants ((hashcat_ctx_t *) hashcat_ctx);
     }
   }
 
@@ -2001,6 +2005,8 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
+
+      progress_skip *= user_options_encoding_variants ((hashcat_ctx_t *) hashcat_ctx);
     }
   }
 

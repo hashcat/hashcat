@@ -14,6 +14,18 @@
 size_t convert_from_hex     (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len);
 size_t convert_hex_wordlist (char *line_buf, const size_t line_len);
 
+// Bounds for the comma separated encoding lists: so many names per list, and so many (from, to)
+// pairs once duplicates and identity pairs are folded.
+
+#define ENCODING_LIST_MAX      8
+#define ENCODING_VARIANTS_MAX 16
+#define ENCODING_NAME_MAX     64
+
+// How many candidates one word becomes under the two encoding lists. -1 is a list syntax error,
+// -2 more pairs than a transform holds.
+
+int encoding_variants_cnt (const char *encoding_from, const char *encoding_to);
+
 // Everything that happens to one side of a candidate between the source handing it over and the
 // device receiving it. There are four producers and each used to carry its own copy of this, in its
 // own order, so a word could come out of a -a 1 with its two halves transformed differently.
@@ -41,9 +53,13 @@ typedef struct pw_transform
   // An iconv descriptor carries conversion state, so one belongs to one thread and never to two.
   // The library is held here as well, because it is loaded at runtime and asking for it again is a
   // once-check this would otherwise do for every candidate.
+  //
+  // One descriptor per (from, to) pair the two encoding lists make, in pair order. An identity pair
+  // converts the candidate to itself and gets no descriptor. iconv_cnt is 0 when the run does no
+  // encoding change at all, which is what a single identity pair folds to.
 
-  bool       iconv_enabled;
-  hc_iconv_t iconv_ctx;
+  u32        iconv_cnt;
+  hc_iconv_t iconv_ctx[ENCODING_VARIANTS_MAX];
   char      *iconv_tmp;
 
   const hc_iconv_lib_t *iconv_lib;
@@ -55,10 +71,12 @@ typedef struct pw_transform
 
 } pw_transform_t;
 
-int  pw_transform_init    (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int rule_len, const char *rule_buf);
-void pw_transform_term    (pw_transform_t *transform);
-bool pw_transform_shrinks (const pw_transform_t *transform);
-int  pw_transform_apply   (const pw_transform_t *transform, u8 *buf, const int len, const int buf_size);
+int  pw_transform_init          (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int rule_len, const char *rule_buf);
+void pw_transform_term          (pw_transform_t *transform);
+bool pw_transform_shrinks       (const pw_transform_t *transform);
+u32  pw_transform_variants      (const pw_transform_t *transform);
+int  pw_transform_apply         (const pw_transform_t *transform, u8 *buf, const int len, const int buf_size);
+int  pw_transform_apply_variant (const pw_transform_t *transform, const u32 variant, const u8 *src_buf, const int src_len, u8 *dst_buf, const int dst_size);
 
 void pw_pre_add       (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len, const u8 *base_buf, const int base_len, const int rule_idx);
 void pw_base_add      (pw_batch_t *batch, const u64 pws_max, const u8 *base_buf, const int base_len, const int rule_idx);
