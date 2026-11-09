@@ -454,11 +454,13 @@ def module_generate_hash(word, salt=None, iterations=None):
 
   ph_cnt = len(candidate_words)
 
-  positions = random.sample(range(12), ph_cnt)
+  word_cnt = random.choice((12, 15, 18, 21, 24))
+
+  positions = random.sample(range(word_cnt), ph_cnt)
   positions.sort()
 
   while True:
-    mnemonic = [random.choice(WORDS) for _ in range(12)]
+    mnemonic = [random.choice(WORDS) for _ in range(word_cnt)]
 
     for pos, candidate_word in zip(positions, candidate_words):
       mnemonic[pos] = candidate_word
