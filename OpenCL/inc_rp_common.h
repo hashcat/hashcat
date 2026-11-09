@@ -71,6 +71,7 @@
 #define RULE_OP_MANGLE_TO_HEX_LOWER      'h'
 #define RULE_OP_MANGLE_TO_HEX_UPPER      'H'
 #define RULE_OP_MANGLE_INSERT_EVERY      'v'
+#define RULE_OP_MANGLE_REPLACE_NTH       'N'
 
 
 /* using character classes */

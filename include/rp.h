@@ -31,6 +31,7 @@ typedef struct
   char *grp_op_pos_chr_selection;
   char *grp_op_pos_pos0_selection;
   char *grp_op_pos_pos1_selection;
+  char *grp_op_pos_chr_chr_selection;
 
   int grp_op_nop_cnt;
   int grp_op_pos_p0_cnt;
@@ -40,10 +41,11 @@ typedef struct
   int grp_op_pos_chr_cnt;
   int grp_op_pos_pos0_cnt;
   int grp_op_pos_pos1_cnt;
+  int grp_op_pos_chr_chr_cnt;
 
-  // 8 if all operator group types used, but can be lower if user is using operator selection options
+  // 9 if all operator group types used, but can be lower if user is using operator selection options
 
-  int grp_op_alias_buf[8];
+  int grp_op_alias_buf[9];
   int grp_op_alias_cnt;
 
 } rp_gen_ops_t;

@@ -25,6 +25,7 @@
 #define RULE_OP_MANGLE_OVERSTRIKE        'o'  // overwrite with char X at pos N
 #define RULE_OP_MANGLE_TRUNCATE_AT       '\'' // cut the word at pos N
 #define RULE_OP_MANGLE_REPLACE           's'  // replace all chars X with char Y
+#define RULE_OP_MANGLE_REPLACE_NTH       'N'  // replace the Nth occurrence (0-based) of char X with char Y. ex: N1eo on seeds -> seods
 #define RULE_OP_MANGLE_PURGECHAR         '@'  // purge all instances of char X
 #define RULE_OP_MANGLE_DUPECHAR_FIRST    'z'  // prepend first char of word to itself N times. ex: hello -> hhhello
 #define RULE_OP_MANGLE_DUPECHAR_LAST     'Z'  // append last char of word to itself N times.   ex: hello -> hellooo

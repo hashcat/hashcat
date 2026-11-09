@@ -377,6 +377,27 @@ static int mangle_replace (char arr[RP_PASSWORD_SIZE], int arr_len, char oldc, c
   return arr_len;
 }
 
+static int mangle_replace_nth (char arr[RP_PASSWORD_SIZE], int arr_len, int occurrence, char oldc, char newc)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (arr[arr_pos] != oldc) continue;
+
+    if (cnt == occurrence)
+    {
+      arr[arr_pos] = newc;
+
+      break;
+    }
+
+    cnt++;
+  }
+
+  return arr_len;
+}
+
 static int mangle_replace_class_l (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
 {
   for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
@@ -1489,6 +1510,14 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RULEPOS (rule_pos);
         NEXT_RULEPOS (rule_pos);
         out_len = mangle_replace (out, out_len, rule_new[rule_pos - 1], rule_new[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NTH:
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RULEPOS (rule_pos);
+        out_len = mangle_replace_nth (out, out_len, upos, rule_new[rule_pos - 1], rule_new[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:

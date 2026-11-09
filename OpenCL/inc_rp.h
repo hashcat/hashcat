@@ -40,6 +40,7 @@ DECLSPEC int mangle_insert_every (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u
 DECLSPEC int mangle_overstrike (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_truncate_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_replace (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_replace_nth (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, MAYBE_UNUSED const u8 p2, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_replace_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_purgechar (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_purgechar_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
@@ -62,7 +63,7 @@ DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 DECLSPEC int mangle_title_sep_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len);
 DECLSPEC int mangle_to_hex_lower (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_to_hex_upper (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
-DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int in_len);
+DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, MAYBE_UNUSED const u8 p2, PRIVATE_AS u32 *buf, const int in_len);
 DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf, const int in_len);
 
 #endif // INC_RP_H

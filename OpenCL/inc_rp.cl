@@ -589,6 +589,27 @@ DECLSPEC int mangle_replace (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1,
   return len;
 }
 
+DECLSPEC int mangle_replace_nth (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, MAYBE_UNUSED const u8 p2, PRIVATE_AS u8 *buf, const int len)
+{
+  int occurrence = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (buf[pos] != p1) continue;
+
+    if (occurrence == p0)
+    {
+      buf[pos] = p2;
+
+      break;
+    }
+
+    occurrence++;
+  }
+
+  return len;
+}
+
 DECLSPEC int mangle_replace_class_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++)
@@ -1211,7 +1232,7 @@ DECLSPEC int mangle_title_sep_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED cons
   return len;
 }
 
-DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int in_len)
+DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, MAYBE_UNUSED const u8 p2, PRIVATE_AS u32 *buf, const int in_len)
 {
   int out_len = in_len;
 
@@ -1243,6 +1264,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_OVERSTRIKE:       out_len = mangle_overstrike       (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = mangle_truncate_at      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = mangle_replace          (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_REPLACE_NTH:      out_len = mangle_replace_nth      (p0, p1, p2, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_REPLACE_CLASS:    out_len = mangle_replace_class    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = mangle_purgechar        (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR_CLASS:  out_len = mangle_purgechar_class  (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
@@ -1282,9 +1304,10 @@ DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf, cons
     const u8 name = (cmd >>  0) & 0xff;
     const u8 p0   = (cmd >>  8) & 0xff;
     const u8 p1   = (cmd >> 16) & 0xff;
+    const u8 p2   = (cmd >> 24) & 0xff;
 
     // we need to guarantee input length < 256 otherwise functions like rule_op_mangle_switch_last() and others will read out of boundary
-    out_len = apply_rule (name, p0, p1, buf, out_len);
+    out_len = apply_rule (name, p0, p1, p2, buf, out_len);
   }
 
   return out_len;
