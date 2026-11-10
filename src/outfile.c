@@ -539,6 +539,25 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   return len;
 }
 
+// A rule line of only spaces, or an AN"STR" with an empty string, compiles to no command, and
+// kernel_rule_to_cpu_rule () returns -1 for it. The word is left as it is, which is what ':' says.
+
+static int debug_rule_to_cpu_rule (u8 *debug_rule_buf, kernel_rule_t *kernel_rule)
+{
+  int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, kernel_rule);
+
+  if (len < 0)
+  {
+    debug_rule_buf[0] = RULE_OP_MANGLE_NOOP;
+
+    len = 1;
+  }
+
+  debug_rule_buf[len] = 0;
+
+  return len;
+}
+
 int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
   const debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
@@ -565,11 +584,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // save rule
     if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
-      const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[pw_base->rule_idx]);
-
-      debug_rule_buf[len] = 0;
-
-      *debug_rule_len = len;
+      *debug_rule_len = debug_rule_to_cpu_rule (debug_rule_buf, &straight_ctx->kernel_rules_buf[pw_base->rule_idx]);
     }
 
     // save plain
@@ -619,11 +634,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
       else
       {
-        const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
-
-        debug_rule_buf[len] = 0;
-
-        *debug_rule_len = len;
+        *debug_rule_len = debug_rule_to_cpu_rule (debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
       }
     }
 

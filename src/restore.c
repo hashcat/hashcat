@@ -178,6 +178,22 @@ static char *restore_shell_quote (const char *src)
       continue;
     }
 
+    // fish reads \\ and \' inside single quotes as escapes, so a backslash left inside them can
+    // swallow the closing quote there. Like the single quote, it is written outside the quotes,
+    // where every shell reads \\ as one backslash.
+
+    if (c == '\\')
+    {
+      dst[dst_len + 0] = '\'';
+      dst[dst_len + 1] = '\\';
+      dst[dst_len + 2] = '\\';
+      dst[dst_len + 3] = '\'';
+
+      dst_len += 4;
+
+      continue;
+    }
+
     dst[dst_len] = c;
 
     dst_len++;
@@ -195,11 +211,13 @@ static char *restore_shell_quote (const char *src)
 }
 
 // No quoting makes a byte the terminal reads as a command safe to hand back to the user as something
-// to paste, so a file holding one gets no pasteable line at all. On Windows three printable
+// to paste, so a file holding one gets no pasteable line at all. On Windows five printable
 // characters join that list. cmd.exe expands %VAR% inside double quotes and there is no quoting that
 // stops it. With delayed expansion enabled the same happens to !VAR!. And cmd.exe does not let a
 // backslash escape a double quote, so a double quote inside an argument would end the quoted region
-// and hand the rest of the argument to the shell. A restore file hashcat wrote holds none of them.
+// and hand the rest of the argument to the shell. PowerShell, the default shell on current Windows,
+// expands $name and $(...) inside double quotes and reads a backtick as an escape, including one in
+// front of the closing quote. No double quoting is safe in both shells, so these are refused too.
 
 static bool restore_str_is_pasteable (const char *src)
 {
@@ -216,6 +234,8 @@ static bool restore_str_is_pasteable (const char *src)
     if (c == '%') return false;
     if (c == '!') return false;
     if (c == '"') return false;
+    if (c == '$') return false;
+    if (c == '`') return false;
     #endif
   }
 
@@ -815,9 +835,9 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
     else
     {
       #if defined (_WIN)
-      event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, or a %%, ! or double quote that cmd.exe would act on, so it");
-      event_log_warning (hashcat_ctx, "is not printed as a command line to run. Every argument is listed instead, with each byte");
-      event_log_warning (hashcat_ctx, "outside ASCII written as \\xNN.");
+      event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, or a %%, !, double quote, $ or backtick that cmd.exe or");
+      event_log_warning (hashcat_ctx, "PowerShell would act on, so it is not printed as a command line to run. Every argument is");
+      event_log_warning (hashcat_ctx, "listed instead, with each byte outside ASCII written as \\xNN.");
       #else
       event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, so it is not printed as a command line to run. Every");
       event_log_warning (hashcat_ctx, "argument is listed instead, with each byte outside ASCII written as \\xNN.");
