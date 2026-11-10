@@ -10,8 +10,6 @@ import hashlib
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-from lib.test_helpers import random_lowercase_string
-
 # Tezos presale (ICO) wallet. The PBKDF2-HMAC-SHA512 key is the mnemonic and the salt is
 # "mnemonic" || email || password, so the candidate sits inside the HMAC message. The first 32
 # bytes of the 64 byte derived key seed an ed25519 key pair and the tz1 address payload is
@@ -84,7 +82,17 @@ def module_generate_hash(word, salt, iterations=None, email=None):
   mnemonic = salt.decode("utf-8") if isinstance(salt, bytes) else salt
 
   if email is None:
-    email = "%s@%s.example.com" % (random_lowercase_string(12), random_lowercase_string(8))
+    # the module takes 1..255 bytes of email: tie the length to the edge lengths being run, so
+    # the edge cells cross the 128 byte block boundary of the HMAC update and reach the maximum
+
+    email_len = 1 + (2 * len (mnemonic) + len (word)) % 255
+
+    suffix = "@e.co"
+
+    if email_len > len (suffix):
+      email = "a" * (email_len - len (suffix)) + suffix
+    else:
+      email = "a" * email_len
 
   pkh = _derive(word, mnemonic, email)
 
