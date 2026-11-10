@@ -2309,7 +2309,15 @@ DECLSPEC void sha512_hmac_init_global (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_global_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+// HC_NOINLINE_ALWAYS: both branches are large. The len > 128 branch inlines a whole sha512 pass
+// (init, sha512_update_global_swap (), final), the other one expands to 32 bounded global reads
+// plus swaps, and both end in sha512_hmac_init_128 () with its two sha512_transform () calls.
+// Inlined into an init kernel that already carries its own update/final transforms, this one
+// function is what pushes the AMDGPU back end (ROCm 7, gfx1103) past what it can finish: -m 44500
+// did not compile in 15 minutes, with this attribute the same kernel builds in under a minute.
+// The helper runs once per candidate in the init kernel, so the call is free by comparison.
+
+DECLSPEC HC_NOINLINE_ALWAYS void sha512_hmac_init_global_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
