@@ -73,4 +73,6 @@ int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
 void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx);
 
+u64   mask_ctx_queue_prefix_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 end_pos);
+
 #endif // HC_MPSP_H

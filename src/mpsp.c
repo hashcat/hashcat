@@ -3567,10 +3567,13 @@ int mask_ctx_check_arg (hashcat_ctx_t *hashcat_ctx)
 
 static int maskfile_split (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, mf_t *mfs_buf, size_t *mfs_cnt_out);
 
-// The keyspace of the whole queue of masks, summed ahead of the first round, so that the status
+// The keyspace of a range of the mask queue, summed ahead of the first round, so that the status
 // screen can measure the run against the whole queue rather than against the round in progress.
-// The sum lands in status_ctx->words_queue_cnt, and Queue.Keyspace and Queue.Estimated are the
-// lines that read it.
+// The caller of the whole queue is mask_ctx_init (), and the sum lands in
+// status_ctx->words_queue_cnt, and Queue.Keyspace and Queue.Estimated are the lines that read it.
+// The caller of a prefix is outer_loop () after a restore: a run restored into a later round
+// starts its walk there, and the rounds before it are part of the queue's progress, so their sum
+// is seeded into words_walk_cnt as if this run had sized them itself.
 //
 // A round reports its keyspace out of the tables sp_tbl_to_css () builds, but those add a
 // position's own characters and stop at --markov-threshold, so what a position contributes is the
@@ -3583,15 +3586,12 @@ static int maskfile_split (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, mf_
 // that does not parse is reported here and reported again when its round parses it, because the
 // parsers are the shared ones and they say what they fail on.
 
-static void mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx)
+static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_pos, const u32 end_pos)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  status_ctx->words_queue_cnt = 0;
 
   const u32 threshold = user_options->markov_threshold;
 
@@ -3612,7 +3612,7 @@ static void mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx)
 
   u64 queue_cnt = 0;
 
-  for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+  for (u32 mask_pos = start_pos; mask_pos < end_pos; mask_pos++)
   {
     // A queue read from a mask file holds lines, each the charsets it defines and then the mask, so
     // it is split the way mask_ctx_parse_maskfile () splits the round's: what the command line gave
@@ -3692,7 +3692,14 @@ static void mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_saved == RC_FINAL_OK) status_clear_rc_error (hashcat_ctx);
 
-  status_ctx->words_queue_cnt = queue_cnt;
+  return queue_cnt;
+}
+
+u64 mask_ctx_queue_prefix_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 end_pos)
+{
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  return mask_ctx_queue_keyspace (hashcat_ctx, 0, MIN (end_pos, mask_ctx->masks_cnt));
 }
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -4110,7 +4117,9 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (mask_ctx->masks_cnt > 1)
     {
-      mask_ctx_queue_keyspace (hashcat_ctx);
+      status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+      status_ctx->words_queue_cnt = mask_ctx_queue_keyspace (hashcat_ctx, 0, mask_ctx->masks_cnt);
     }
   }
 
