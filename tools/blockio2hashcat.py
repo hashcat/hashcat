@@ -41,7 +41,7 @@ def user_keys(obj) -> list:
   if isinstance(obj, dict) == True:
     found = []
 
-    if "encrypted_passphrase" in obj and "algorithm" in obj:
+    if "encrypted_passphrase" in obj:
       found.append(obj)
 
     for value in obj.values(): found += user_keys(value)
@@ -59,9 +59,9 @@ def user_keys(obj) -> list:
 
 
 def hash_line(user_key: dict) -> str:
-  algo = user_key["algorithm"]
+  algo = user_key.get("algorithm") or {}
 
-  name = algo.get("aes_cipher")
+  name = algo.get("aes_cipher", "AES-256-ECB")
 
   if name not in CIPHERS: raise ValueError("the %s cipher is not supported" % name)
 
@@ -73,7 +73,7 @@ def hash_line(user_key: dict) -> str:
   if algo.get("pbkdf2_phase1_key_length", 16) != 16 or algo.get("pbkdf2_phase2_key_length", 32) != 32:
     raise ValueError("the pbkdf2 key lengths are not supported, only 16 and 32 are")
 
-  iterations = algo.get("pbkdf2_iterations")
+  iterations = algo.get("pbkdf2_iterations", 2048)
 
   if not isinstance(iterations, int) or iterations < 2 or iterations % 2 != 0:
     raise ValueError("an iteration count of %s is not usable" % iterations)
