@@ -34,15 +34,18 @@ static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$1c41586d6c060071
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 12
+#define MAX_KDC_SALT_LEN 1022
 
 typedef struct krb5db_17
 {
   u32 user[128];
   u32 realm[128];
-  u32 account_info[512];
-  u32 account_info_len;
+  u32 kdc_salt[256];
+  u32 kdc_salt_len;
 
 } krb5db_17_t;
+
 
 typedef struct krb5db_17_tmp
 {
@@ -96,7 +99,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
    * format 2: $krb5db$17$user$realm$*spn*$key  (with optional SPN)
    */
 
-  // assume no signature found
+  // no signature found - reject
   if (line_len < 12) return (PARSER_SALT_LENGTH);
 
   // hc_strchr_next, not strchr: the field ends where the line ends. strchr () ended it at the
@@ -127,7 +130,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  // format 1: $krb5db$17$user$realm$*spn*$key
+  // format 2: $krb5db$17$user$realm$*spn*$key  (with SPN field)
   else
   {
     // bounded for the same reason as the search above: the field ends where the line ends
@@ -138,7 +141,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     if (spn_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-    spn_info_stop++; // we want the * $char included
+    spn_info_stop++; // we want the * char included
     spn_info_stop++; // we want the $ char included
 
     const int spn_info_len = spn_info_stop - spn_info_start;
@@ -176,7 +179,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int user_len;
   int realm_len;
-  int account_info_len;
+  int kdc_salt_len;
 
   user_pos = token.buf[1];
   user_len = token.len[1];
@@ -190,21 +193,21 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   checksum_pos = token.buf[3 + is_spn_provided];
 
-  account_info_len = token.len[2] + token.len[1];
+  kdc_salt_len = token.len[2] + token.len[1];
 
-  u8 *account_info_ptr = (u8 *) krb5db->account_info;
+  u8 *kdc_salt_ptr = (u8 *) krb5db->kdc_salt;
 
-  // domain must be uppercase
+  // realm must be uppercase
 
   u8 realm[512];
 
   memcpy (realm, realm_pos, realm_len);
   uppercase (realm, realm_len);
 
-  memcpy (account_info_ptr, realm, realm_len);
-  memcpy (account_info_ptr + realm_len, user_pos, user_len);
+  memcpy (kdc_salt_ptr, realm, realm_len);
+  memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
 
-  krb5db->account_info_len = account_info_len;
+  krb5db->kdc_salt_len = kdc_salt_len;
 
   // digest
 
@@ -215,7 +218,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   // salt
 
-  if (account_info_len > 256)
+  if (kdc_salt_len > 256)
   {
     salt->salt_buf[0] = digest[0];
     salt->salt_buf[1] = digest[1];
@@ -226,12 +229,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    const int ai_words = (account_info_len + 3) / 4;
+    const int ai_words = (kdc_salt_len + 3) / 4;
 
     for (int i = 0; i < ai_words; i++)
-      salt->salt_buf[i] = krb5db->account_info[i];
+      salt->salt_buf[i] = krb5db->kdc_salt[i];
 
-    salt->salt_len = account_info_len;
+    salt->salt_len = kdc_salt_len;
   }
 
   salt->salt_iter = 4096 - 1;

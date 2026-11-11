@@ -19,8 +19,8 @@ typedef struct krb5tgs_17
 {
   u32 user[128];
   u32 realm[128];
-  u32 account_info[512];
-  u32 account_info_len;
+  u32 kdc_salt[256];
+  u32 kdc_salt_len;
 
   u32 checksum[3];
   u32 edata2[5120];
@@ -137,7 +137,7 @@ KERNEL_FQ KERNEL_FA void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, kr
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].account_info, esalt_bufs[DIGESTS_OFFSET_HOST].account_info_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len);
 
  for (u32 i = 0, j = 1; i < 4; i += 5, j += 1)
   {

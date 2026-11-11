@@ -24,8 +24,8 @@ typedef struct krb5asrep_3
   u32 realm[128];
   u32 format;
 
-  u32 salt_buf[32];
-  u32 salt_len;
+  u32 kdc_salt[32];
+  u32 kdc_salt_len;
 
   u32 checksum[4];
   u32 edata2[5120];
@@ -97,7 +97,7 @@ KERNEL_FQ KERNEL_FA void m38600_mxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_3_t))
     pw[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt_len;
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
 
   const u32 w0l = pw[0];
 
@@ -111,7 +111,7 @@ KERNEL_FQ KERNEL_FA void m38600_mxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_3_t))
 
     u32 w[64];
 
-    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_len, w);
+    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
 
     u32 key[2];
 
@@ -191,7 +191,7 @@ KERNEL_FQ KERNEL_FA void m38600_sxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_3_t))
     pw[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt_len;
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
 
   const u32 w0l = pw[0];
 
@@ -205,7 +205,7 @@ KERNEL_FQ KERNEL_FA void m38600_sxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_3_t))
 
     u32 w[64];
 
-    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_len, w);
+    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
 
     u32 key[2];
 
