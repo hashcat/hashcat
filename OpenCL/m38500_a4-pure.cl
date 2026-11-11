@@ -92,7 +92,7 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED GLOBA
 
   hc->esalt_bufs = esalt_bufs;
   hc->digest_pos = digest_pos;
-  hc->salt_len   = esalt_bufs[digest_pos].kdc_salt_len;
+  hc->kdc_salt_len   = esalt_bufs[digest_pos].kdc_salt_len;
 }
 
 DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED PRIVATE_AS u32 *w, MAYBE_UNUSED const u32 pw_len)
@@ -114,11 +114,11 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   u32 t[64];
 
-  krb5_des_build_buf (w, len, hc->esalt_bufs[hc->digest_pos].kdc_salt, hc->salt_len, t);
+  krb5_des_build_buf (w, len, hc->esalt_bufs[hc->digest_pos].kdc_salt, hc->kdc_salt_len, t);
 
   u32 key[2];
 
-  krb5_des_string_to_key (t, len + hc->salt_len, key, s_SPtrans, s_skb);
+  krb5_des_string_to_key (t, len + hc->kdc_salt_len, key, s_SPtrans, s_skb);
 
   if (krb5_des_encpart_check (key, hc->esalt_bufs[hc->digest_pos].checksum, hc->esalt_bufs[hc->digest_pos].edata2, hc->esalt_bufs[hc->digest_pos].edata2_len, false, s_SPtrans, s_skb) == false) return false;
 
