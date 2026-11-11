@@ -638,7 +638,7 @@ KERNEL_FQ KERNEL_FA void m45500_comp (KERN_ATTR_TMPS_ESALT (monero_tmp_t, monero
     }
   }
 
-  for (int i = 0; i < 32; i++) st32[16 + i] = text[i];
+  for (int i = 0; i < 16; i++) st[8 + i] = ((u64) text[2 * i + 1] << 32) | text[2 * i + 0];
 
   // hash_permutation + extra hash
 
