@@ -2088,10 +2088,20 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   return hashes_dev_msec;
 }
 
+// How close to the fastest launch of a run another launch has to be to count towards the figure a
+// benchmark prints.
+
+#define BENCHMARK_SLOT_FRACTION 0.98
+
+// A benchmark measures only its own launches, not the startup and autotune in front of them, which
+// is why it does not use the function above. The launches are not alike: the one that starts a chunk
+// of base words also pays about seven percent for preparing it, so a figure taken from a single
+// launch depends on where the keyspace happens to end. Pooling the launches that ran within the
+// fraction above of the fastest one keeps that out of the figure, and drops a launch that something
+// else on the device interrupted along with it.
+
 double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
-  // this function increases accuracy for benchmark modes
-
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   u64    speed_cnt  = 0;
@@ -2103,8 +2113,30 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
   {
     const u32 speed_pos = MAX (device_param->speed_pos, 1);
 
-    speed_cnt  += device_param->speed_cnt[speed_pos - 1];
-    speed_msec += device_param->speed_msec[speed_pos - 1];
+    double rate_best = 0;
+
+    for (u32 i = 0; i < speed_pos; i++)
+    {
+      if (device_param->speed_msec[i] <= 0) continue;
+
+      const double rate = (double) device_param->speed_cnt[i] / device_param->speed_msec[i];
+
+      rate_best = MAX (rate_best, rate);
+    }
+
+    const double rate_floor = rate_best * BENCHMARK_SLOT_FRACTION;
+
+    for (u32 i = 0; i < speed_pos; i++)
+    {
+      if (device_param->speed_msec[i] <= 0) continue;
+
+      const double rate = (double) device_param->speed_cnt[i] / device_param->speed_msec[i];
+
+      if (rate < rate_floor) continue;
+
+      speed_cnt  += device_param->speed_cnt[i];
+      speed_msec += device_param->speed_msec[i];
+    }
   }
 
   double hashes_dev_msec = 0;
