@@ -3569,6 +3569,12 @@ typedef struct mask_ctx
   u32    masks_cnt;
   u32    masks_avail;
 
+  // Prefix sums of the per mask keyspaces, sized once at init: entry i is the queue's work
+  // before round i, entry masks_cnt is the whole queue. Read by the status thread, so it is
+  // built once and never written again.
+
+  u64   *masks_prefix_cnt;
+
   char  *mask;
 
   mf_t  *mfs;

@@ -1609,7 +1609,52 @@ time_t status_get_sec_etc_queue (const hashcat_ctx_t *hashcat_ctx)
 
       if ((queue_keyspace > queue_done) && (hashes_msec_all > 0))
       {
-        const u64 msec_left = (u64) ((queue_keyspace - queue_done) / hashes_msec_all);
+        u64 queue_left = queue_keyspace - queue_done;
+
+        // A cracked salt is skipped for the rest of the round in progress and for every round after
+        // it, so its work comes out of the estimate the way status_get_progress_ignore () leaves it
+        // out of Time.Estimated. The rounds after the one in progress are sized per salt, and each
+        // cracked salt takes their whole keyspace with it.
+
+        u64 progress_ignore = status_get_progress_ignore (hashcat_ctx);
+
+        const hashes_t   *hashes   = hashcat_ctx->hashes;
+        const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+        if ((mask_ctx->masks_prefix_cnt != NULL) && (mask_ctx->masks_pos + 1 < mask_ctx->masks_cnt))
+        {
+          const u32 cracked_cnt = hashes->salts_done;
+
+          if (cracked_cnt > 0)
+          {
+            // The prefix sums were sized once at init, so this is a plain read, safe on the
+            // status thread.
+
+            const u64 prefix_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_pos + 1];
+
+            if ((prefix_cnt != UINT64_MAX) && (status_ctx->words_queue_cnt >= prefix_cnt))
+            {
+              const u64 rounds_left_cnt = status_ctx->words_queue_cnt - prefix_cnt;
+
+              if (overflow_check_u64_mul (rounds_left_cnt, cracked_cnt) == false)
+              {
+                const u64 queue_ignore = rounds_left_cnt * cracked_cnt;
+
+                if (overflow_check_u64_add (progress_ignore, queue_ignore) == false)
+                {
+                  progress_ignore += queue_ignore;
+                }
+              }
+            }
+          }
+        }
+
+        // The same salt ordering caveat as Time.Estimated: a live salt can pass the ignored work of
+        // a cracked one, and then there is no estimate to give.
+
+        if (progress_ignore > queue_left) return 0;
+
+        const u64 msec_left = (u64) ((queue_left - progress_ignore) / hashes_msec_all);
 
         sec_etc = msec_left / 1000;
       }

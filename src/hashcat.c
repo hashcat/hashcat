@@ -1989,12 +1989,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   // Restored into a later round of a queue: the rounds before it ran in the session being
   // restored, and what they held is part of the queue's progress. The walk that measures the
   // queue starts at this round, so the sum of the rounds before it is seeded here, the same sum
-  // mask_ctx_queue_keyspace () reports for the whole queue.
+  // mask_ctx_queue_keyspace () reports for the whole queue. Only words_walk_cnt is seeded: it is
+  // advanced by words_cnt, which counts candidates the way masks_prefix_cnt does, while
+  // words_walk_base advances by words_base, which counts base words.
 
-  if (mask_ctx->masks_pos > 0)
+  if ((mask_ctx->masks_pos > 0) && (mask_ctx->masks_prefix_cnt != NULL))
   {
-    status_ctx->words_walk_base = mask_ctx_queue_prefix_keyspace (hashcat_ctx, mask_ctx->masks_pos);
-    status_ctx->words_walk_cnt  = status_ctx->words_walk_base;
+    status_ctx->words_walk_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_pos];
   }
 
   int rc_outer = 0;

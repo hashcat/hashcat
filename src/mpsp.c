@@ -3695,13 +3695,6 @@ static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_
   return queue_cnt;
 }
 
-u64 mask_ctx_queue_prefix_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 end_pos)
-{
-  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-  return mask_ctx_queue_keyspace (hashcat_ctx, 0, MIN (end_pos, mask_ctx->masks_cnt));
-}
-
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -4119,7 +4112,27 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-      status_ctx->words_queue_cnt = mask_ctx_queue_keyspace (hashcat_ctx, 0, mask_ctx->masks_cnt);
+      // The prefix sums are sized here on the main thread, next to the total: the status thread
+      // reads them for every estimate, and re-parsing masks there would race the round's own
+      // parse of this same context.
+
+      mask_ctx->masks_prefix_cnt = (u64 *) hccalloc (mask_ctx->masks_cnt + 1, sizeof (u64));
+
+      for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+      {
+        const u64 mask_cnt = mask_ctx_queue_keyspace (hashcat_ctx, mask_pos, mask_pos + 1);
+
+        if ((mask_cnt == UINT64_MAX) || (overflow_check_u64_add (mask_ctx->masks_prefix_cnt[mask_pos], mask_cnt) == true))
+        {
+          mask_ctx->masks_prefix_cnt[mask_pos + 1] = UINT64_MAX;
+        }
+        else
+        {
+          mask_ctx->masks_prefix_cnt[mask_pos + 1] = mask_ctx->masks_prefix_cnt[mask_pos] + mask_cnt;
+        }
+      }
+
+      status_ctx->words_queue_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_cnt];
     }
   }
 
@@ -4149,6 +4162,8 @@ void mask_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (mask_ctx->masks);
+
+  hcfree (mask_ctx->masks_prefix_cnt);
 
   hcfree (mask_ctx->mfs);
 
