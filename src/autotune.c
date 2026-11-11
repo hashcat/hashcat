@@ -1287,6 +1287,12 @@ static bool autotune_bridge_fixed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 #define AUTOTUNE3_THREADS_NOQUERY 64
 #define AUTOTUNE3_WAVES            4
 
+// The grid accel is rounded to once the device is full, counted in waves. A single wave is under one
+// percent of a full launch on a large device, about as much as a card's clock changes between cold
+// and hot, so a grid that narrow lets a repeated command answer two ways.
+
+#define AUTOTUNE3_GRID_WAVES 16
+
 static u32 autotune3_slot (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -1601,9 +1607,49 @@ static void autotune3 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   const bool at_limit = (accel >= accel_hi);
 
+  // Accel rounds to that grid rather than to single waves, and to the nearer of the two grid points,
+  // so the launch stays within half a grid of what was measured. On an RTX 4090 at hash-mode 0 the
+  // fit lands on 1780 on a cold card and 1767 on a hot one, which are 128 and 127 waves of 14, and
+  // both round to the same place. What the grid costs is launch duration rather than speed: the rate
+  // is flat to 0.2 percent from 32 waves to 128. A launch with no room for a coarse grid keeps the
+  // single wave one below, and so does one that stopped at its ceiling rather than at the target,
+  // because an accel that is already pinned repeats on its own and rounding it down only shortens
+  // the launch: 740 under OpenCL on the same card, where the grid would have taken 736.
+
+  const u32 grid = wave_accel * AUTOTUNE3_GRID_WAVES;
+
+  if ((at_limit == false) && (wave_accel > 1) && (accel >= (grid * 2)) && ((accel % grid) != 0))
+  {
+    const u32 accel_down = (accel / grid) * grid;
+
+    const u32 accel_up = accel_down + grid;
+
+    const double msec_up = (msec * (double) accel_up) / (double) accel;
+
+    const bool nearer_up = ((accel - accel_down) >= (accel_up - accel));
+
+    const bool fits_up = ((accel_up <= accel_hi) && (msec_up <= target_msec));
+
+    accel = ((nearer_up == true) && (fits_up == true)) ? accel_up : accel_down;
+
+    msec = autotune3_time (hashcat_ctx, device_param, accel, loops, threads);
+
+    // Rounding up moves the launch at most half a grid past what was measured, and the extrapolation
+    // above only has to hold over that. Where it does not, the launch runs past the target, so the
+    // grid point below is taken instead.
+
+    if ((msec > target_msec) && (accel != accel_down))
+    {
+      accel = accel_down;
+
+      msec = autotune3_time (hashcat_ctx, device_param, accel, loops, threads);
+    }
+  }
+
   // Once the device is full, a launch that ends in part of a wave leaves compute units idle while
   // that part runs. The whole waves above are taken when they still fit the target, and otherwise
-  // the launch ends at the whole waves below.
+  // the launch ends at the whole waves below. A launch the grid above has already rounded is a whole
+  // number of waves and passes through.
 
   if ((wave_accel > 1) && (accel > wave_accel) && ((accel % wave_accel) != 0))
   {
