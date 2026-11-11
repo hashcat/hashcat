@@ -175,6 +175,13 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
   return 0;
 }
 
+bool run_kernels_wanted (hashcat_ctx_t *hashcat_ctx)
+{
+  (void) hashcat_ctx;
+
+  return false;
+}
+
 const char *generic_ctx_segment_of (const hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u64 index)
 {
   (void) hashcat_ctx;

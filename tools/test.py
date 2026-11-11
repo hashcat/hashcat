@@ -132,15 +132,16 @@ MEMSKIP_RC = 90
 AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
 
 # Reasons keyed by hashcat's exit code, as rc_final in hashcat.c sets it: -3 to -11 wrap to 253 to
-# 245. The 246-253 and 30 codes are runtime skips. 1 is a clean exhaust, 4 a timeout, 10 a crack
-# whose plains were not in the output, and 245, a failed self-test, is an error.
+# 245. The 246-253 and 30 codes are runtime skips apart from 250 and 251 (see runtime_skip). 1 is a
+# clean exhaust, 4 a timeout, 10 a crack whose plains were not in the output, and 245, a failed
+# self-test, is an error, as are 250 and 251.
 REASON = {
   245: "self-test failed",
   246: "autotune failure",
   247: "skipped by runtime (mixed backend errors detected)",
   248: "skipped by runtime (Invalid module_extra_buffer_size)",
-  250: "skipped by runtime (kernel create error)",
-  251: "skipped by runtime (main kernel build error)",
+  250: "kernel create error",
+  251: "main kernel build error",
   252: "skipped by runtime (memory hit limit)",
   253: "skipped by runtime (module_unstable_warning)",
   30:  "luks test files are missing",
@@ -148,6 +149,19 @@ REASON = {
   4:   "timeout reached",
   10:  "hash:plains not matched in output",
 }
+
+
+def runtime_skip(ret):
+  # Whether an exit code is a skip: hashcat left the device out for a reason that belongs to the
+  # device or the run, not to the mode. 250 and 251 are a kernel hashcat could not create or build,
+  # which is a fault of the kernel. Counted as a skip, a kernel that no longer compiles reads as a
+  # clean run.
+  if ret in (250, 251):
+    return False
+
+  skip = (ret == 30) or (246 <= ret <= 253)
+
+  return skip
 
 
 def reason_for(ret):
@@ -1165,10 +1179,11 @@ def oracle_vectors(mode, optimized):
 def classify(rc, matched, c):
   # A hashcat run that exits 0 but whose output does not carry the pair is rewritten to code 10, then
   # the code is bucketed as test.sh's status() did: 1 exhausted, 4 --runtime, 10 not matched, the
-  # runtime-skip codes to skipped. The one deviation: test.sh sent every other
-  # code, 255 (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that
-  # never got its memory read the same as one that ran and missed the password. Those go to err
-  # instead, a hard error kept apart from a failed crack. The skip set is 246 to 253, 247 included:
+  # runtime-skip codes to skipped. There are two deviations. test.sh sent every other code, 255
+  # (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that never got
+  # its memory read the same as one that ran and missed the password. Those go to err instead, a
+  # hard error kept apart from a failed crack. And test.sh counted a kernel it could not create or
+  # build as a skip. The skip set is 246 to 253 without 250 and 251 (runtime_skip), 247 included:
   # every device skipped, though not all for the same one of those reasons.
 
   c["cnt"] += 1
@@ -1186,7 +1201,7 @@ def classify(rc, matched, c):
     c["to"] += 1
   elif ret == 10:
     c["nm"] += 1
-  elif ret == 30 or 246 <= ret <= 253:
+  elif runtime_skip(ret) == True:
     c["rs"] += 1
 
     if ret == 252 and os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
@@ -4600,15 +4615,16 @@ MINIMAL_MODES = [0, 100, 110, 400, 500, 2600, 3000, 3200, 6211, 11600, 12500, 13
 def selftest_status(rc):
   # test.sh status() as container_run_and_report calls it (test.sh): bucket the raw hashcat
   # exit code. Unlike the oracle attacks there is no cracked-but-not-matched rewrite, because the
-  # self-test path checks the exit code alone, not the output. A code outside the known set, a crash
-  # or a failed self-test among them, is a hard error, as classify() counts it.
+  # self-test path checks the exit code alone, not the output. A code outside the known set, a crash,
+  # a failed self-test or a kernel that does not build among them, is a hard error, as classify()
+  # counts it.
 
   e = {"ce": 0, "rs": 0, "to": 0, "nf": 0, "nm": 0, "err": 0}
 
   if rc == 0:
     return e
 
-  if rc == 30 or 246 <= rc <= 253:
+  if runtime_skip(rc) == True:
     e["rs"] += 1
   elif rc == 1:
     e["nf"] += 1
