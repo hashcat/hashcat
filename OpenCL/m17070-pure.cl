@@ -2,22 +2,15 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  *
- * GPG symmetric-mode: SHA256-S2K (Iterated+Salted) + AES-256-CFB128 + SHA1-MDC
- * Mode 17070 — pk_algorithm==0, usage==18, cipher==AES-256
+ * GPG symmetrically encrypted message: iterated and salted SHA-256 S2K, AES-256 in CFB128,
+ * verified by the SHA-1 MDC that RFC 4880 5.13 puts at the end of the plaintext. The MDC is
+ * SHA-1 whatever the S2K hash is, which is why this kernel includes both.
  *
- * Key derivation (RFC 4880 §3.7.1.3):
- *   AES-256 key[0..31] = SHA256( (salt||pass) repeated for `count` bytes )
+ * SHA-256 gives all 32 key bytes, so the S2K runs once and the C module asks for that with
+ * salt_repeats = 0.
  *
- * SHA256 emits 32 bytes, exactly the AES-256 key length, so a single S2K
- * pass suffices. Mode 17060 (SHA1) needs a second 0x00-prefixed pass because
- * SHA1 only yields 20 of the 32 required key bytes — that is why the C module
- * here sets salt_repeats=0 (one pass) instead of 1 (two passes).
- *
- * Decryption: AES-256-CFB128, IV = all-zero 16 bytes
- *
- * Verification (MDC): the MDC is always SHA1 (RFC 4880 §5.13), independent of
- * the S2K hash, so it is unchanged from mode 17060:
- *   SHA1(plaintext[0..datalen-21]) == plaintext[datalen-20..]
+ * CFB starts on a zero IV. The random prefix of the plaintext is what the IV would otherwise
+ * be, and the message carries no IV field of its own.
  */
 
 //#define NEW_SIMD_CODE
@@ -32,36 +25,38 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
+// Mirrors GPG_DATA_MAX in src/modules/module_17070.c. The two have to move together.
+
+#define GPG_DATA_MAX 1536
+
 typedef struct gpg
 {
   u32 cipher_algo;
   u32 iv[4];
   u32 modulus_size;
-  u32 encrypted_data[2560];
+  u32 encrypted_data[GPG_DATA_MAX / 4];
   u32 encrypted_data_size;
 
 } gpg_t;
 
 typedef struct gpg_tmp
 {
-  /* Pre-built repeating (salt || password) block, big-endian for SHA256 */
   u32 salted_pw_block[80];
+
   u32 salted_pw_block_len;
 
-  /* SHA256 state for the single S2K pass (h[0..7] = 32-byte AES-256 key) */
+  // the one S2K pass, and all 32 key bytes
+
   u32 h[8];
 
-  /* Current SHA256 block accumulator */
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
   u32 w3[4];
 
-  u32 len;
+  int len;
 
 } gpg_tmp_t;
-
-/* ── Byte manipulation helpers (reused from m17010) ── */
 
 DECLSPEC void memcat_le_S (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, u32 len)
 {
@@ -106,8 +101,6 @@ DECLSPEC void memzero_be_S (PRIVATE_AS u32 *block, const u32 start_offset, const
   }
 }
 
-/* ── AES-256-CFB128 decryption ── */
-
 DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
                                   SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
@@ -121,7 +114,7 @@ DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_
 
   aes256_set_encrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3);
 
-  for (u32 i = 0; i < (u32)(data_len + 3) / 4; i += 4)
+  for (u32 i = 0; i < (u32) (data_len + 3) / 4; i += 4)
   {
     aes256_encrypt (ks, essiv, decrypted_data + i, s_te0, s_te1, s_te2, s_te3, s_te4);
 
@@ -137,8 +130,6 @@ DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_
   }
 }
 
-/* ── MDC verification: SHA1(plaintext[:-20]) == plaintext[-20:] ── */
-
 DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded_data_size)
 {
   const u32 sha1_byte_off = (decoded_data_size - 20);
@@ -152,7 +143,7 @@ DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded
   expected_sha1[3] = hc_bytealign_be_S (decoded_data[sha1_u32_off + 4], decoded_data[sha1_u32_off + 3], sha1_byte_off);
   expected_sha1[4] = hc_bytealign_be_S (decoded_data[sha1_u32_off + 5], decoded_data[sha1_u32_off + 4], sha1_byte_off);
 
-  memzero_le_S (decoded_data, sha1_byte_off, 2560 * sizeof (u32));
+  memzero_le_S (decoded_data, sha1_byte_off, GPG_DATA_MAX);
 
   sha1_ctx_t ctx;
 
@@ -169,8 +160,6 @@ DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded
       && (expected_sha1[4] == hc_swap32_S (ctx.h[4]));
 }
 
-/* ── Init: build the repeating (salt || password) block ── */
-
 KERNEL_FQ KERNEL_FA void m17070_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
@@ -182,7 +171,8 @@ KERNEL_FQ KERNEL_FA void m17070_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   u32 salted_pw_block[80];
 
-  /* salt is always 8 bytes; place it first, followed by the password */
+  // the salt is always 8 bytes, and the password follows it
+
   salted_pw_block[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
   salted_pw_block[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
@@ -190,7 +180,8 @@ KERNEL_FQ KERNEL_FA void m17070_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   for (u32 idx = 66; idx < 80; idx++) salted_pw_block[idx] = 0;
 
-  /* Fill buffer with multiple copies for efficiency */
+  // a number of copies, for efficiency
+
   const u32 copies = 80 * sizeof (u32) / salted_pw_len;
 
   for (u32 idx = 1; idx < copies; idx++)
@@ -198,15 +189,29 @@ KERNEL_FQ KERNEL_FA void m17070_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     memcat_le_S (salted_pw_block, idx * salted_pw_len, salted_pw_block, salted_pw_len);
   }
 
-  /* Store in big-endian form (SHA256 processes big-endian words) */
+  const u32 salted_pw_block_len = copies * salted_pw_len;
+
+  // memcat_le_S() copies whole u32 words, so the word that straddles the end of the last
+  // copy comes out holding the next bytes of the repeated salt||pw stream instead of zero.
+  // Everything from salted_pw_block_len on has to read as zero: sha256_update_padded()
+  // always pulls a full 64 byte tail window and ORs it into the running context, and
+  // sha256_final() ORs its 0x80 padding byte into whatever is left sitting there. Leave the
+  // slack dirty and the S2K key comes out wrong whenever the truncated last repetition of
+  // salt||pw is shorter than it, which is why some (iteration count, password length) pairs
+  // never cracked.
+
+  if (salted_pw_block_len < sizeof (salted_pw_block))
+  {
+    memzero_le_S (salted_pw_block, salted_pw_block_len, sizeof (salted_pw_block));
+  }
+
   for (u32 idx = 0; idx < 80; idx++)
   {
     tmps[gid].salted_pw_block[idx] = hc_swap32_S (salted_pw_block[idx]);
   }
 
-  tmps[gid].salted_pw_block_len = (copies * salted_pw_len);
+  tmps[gid].salted_pw_block_len = salted_pw_block_len;
 
-  /* Initialise the SHA256 state (single S2K pass) */
   tmps[gid].h[0] = SHA256M_A;
   tmps[gid].h[1] = SHA256M_B;
   tmps[gid].h[2] = SHA256M_C;
@@ -218,8 +223,6 @@ KERNEL_FQ KERNEL_FA void m17070_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   tmps[gid].len = 0;
 }
-
-/* ── Loop prepare: reset accumulator for this S2K pass ── */
 
 KERNEL_FQ KERNEL_FA void m17070_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
@@ -244,14 +247,10 @@ KERNEL_FQ KERNEL_FA void m17070_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, g
   tmps[gid].w3[2] = 0;
   tmps[gid].w3[3] = 0;
 
-  /*
-   * SHA256 needs only a single pass (SALT_REPEAT is always 0 here because the
-   * C module sets salt_repeats=0), so the accumulator starts empty.
-   */
-  tmps[gid].len = 0;
-}
+  // one pass, so SALT_REPEAT is always 0 and the accumulator starts empty
 
-/* ── Loop: feed (salt || password) pattern to SHA256 ── */
+  tmps[gid].len = SALT_REPEAT;
+}
 
 KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
@@ -267,8 +266,6 @@ KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (salted_pw_block_len == 0) return;
 
-  /* Restore SHA256 context */
-
   sha256_ctx_t ctx;
 
   for (int i = 0; i < 8; i++) ctx.h[i] = tmps[gid].h[i];
@@ -280,8 +277,6 @@ KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   ctx.len = tmps[gid].len;
 
-  /* Feed the pattern bytes */
-
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
   const u32 salted_pw_block_pos = LOOP_POS % salted_pw_block_len;
@@ -289,7 +284,7 @@ KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   for (u32 i = 0; i < rounds; i++)
   {
-    sha256_update (&ctx, salted_pw_block, salted_pw_block_len);
+    sha256_update_padded (&ctx, salted_pw_block, salted_pw_block_len);
   }
 
   if ((LOOP_POS + LOOP_CNT) == salt_iter)
@@ -300,13 +295,11 @@ KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     {
       memzero_be_S (salted_pw_block, remaining_bytes, salted_pw_block_len);
 
-      sha256_update (&ctx, salted_pw_block, remaining_bytes);
+      sha256_update_padded (&ctx, salted_pw_block, remaining_bytes);
     }
 
     sha256_final (&ctx);
   }
-
-  /* Save SHA256 context */
 
   for (int i = 0; i < 8; i++) tmps[gid].h[i] = ctx.h[i];
 
@@ -318,22 +311,16 @@ KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].len = ctx.len;
 }
 
-/* ── Comp: not used; verification is done in aux1 ── */
-
 KERNEL_FQ KERNEL_FA void m17070_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
-  // not in use — special case handled by DEEP_COMP_KERNEL / aux1
+  // not in use, the mode decides a candidate in its deep comp kernel
 }
-
-/* ── Aux1: derive AES-256 key and decrypt + MDC-check ── */
 
 KERNEL_FQ KERNEL_FA void m17070_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /* ── AES S-boxes (shared memory for speed) ── */
 
   #ifdef REAL_SHM
 
@@ -366,34 +353,33 @@ KERNEL_FQ KERNEL_FA void m17070_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (gid >= GID_CNT) return;
 
-  /*
-   * AES-256 key = the 32-byte SHA256 digest of the single S2K pass:
-   *   key[0..31] = h[0..7]
-   */
+  // the one SHA-256 pass is the whole key
+
   u32 aes_key[8];
 
   for (int i = 0; i < 8; i++) aes_key[i] = hc_swap32_S (tmps[gid].h[i]);
 
-  /*
-   * IV = all-zero 16 bytes.
-   * Symmetric mode in GPG does not include a stored IV in the hash format;
-   * the decryption IV is implicitly zero.
-   */
   u32 iv[4] = { 0, 0, 0, 0 };
 
-  u32 decoded_data[2560];
+  // one word past the message, because check_decoded_data () reads six words from the start
+  // of the last whole word of the payload, and at the maximum message size the sixth is one
+  // past what the payload itself occupies
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
+  u32 decoded_data[(GPG_DATA_MAX / 4) + 1];
 
-  aes256_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  const u32 digest_pos = LOOP_POS;
 
-  /* MDC check: SHA1(plaintext[:-20]) == plaintext[-20:] */
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
+
+  aes256_decrypt_cfb (esalt_bufs[digest_cur].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }
