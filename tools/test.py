@@ -123,11 +123,23 @@ FAIL_VERDICTS = ("Fault", "Error", "Compare Error")
 # pins the virtual host for a bridged mode (see bridge_opts).
 CPU_BACKEND_ID = -1
 
-# A -j worker that skips on 252 (memory hit limit) only because its share of the card was too small
-# exits with MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage
-# survives. A 252 with no cap in the environment is a genuine skip and does not set this.
+# A -j worker that ran out of memory only because its share of the card was too small exits with
+# MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage survives.
+# There are two ways to run out. hashcat sizes itself against the share, decides it does not fit and
+# exits 252, or its sizing fits and the driver refuses the allocation anyway, which exits 255. Only
+# a run with a cap in the environment sets this, because without one both are genuine.
 CAPPED_MEM_SKIP = False
 MEMSKIP_RC = 90
+
+# The text hashcat prints when an allocation fails, read off its own error paths. The CUDA and HIP
+# wrappers print the driver's string, which is "out of memory" on both, and hcmalloc and the feeds
+# word their own message the same way, so the first entry covers those three. The OpenCL wrapper
+# prints the name val2cstr_cl gives the error, and the Metal one prints the size it could not get.
+ALLOC_FAILED = (b"out of memory",
+                b"CL_MEM_OBJECT_ALLOCATION_FAILURE",
+                b"CL_OUT_OF_RESOURCES",
+                b"CL_OUT_OF_HOST_MEMORY",
+                b"failed (size: ")
 
 AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
 
@@ -164,6 +176,40 @@ def runtime_skip(ret):
   return skip
 
 
+def memskip_rc(rc):
+  # A worker squeezed by its memory share asks the parent for the uncapped re-run, whatever else the
+  # run would have returned, because the re-run's result is the one that decides. main () has an exit
+  # of its own for the self-test split, so the rule lives here rather than at one of them.
+  if CAPPED_MEM_SKIP == True:
+    return MEMSKIP_RC
+
+  return rc
+
+
+def capped_run():
+  # Whether a per-worker memory cap is in force. Only the -j breadth split sets one
+  # (export_worker_mem_shares), and either cap counts: the device one rations the card, the host one
+  # rations RAM, and a worker can run out against either.
+  if os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
+    return True
+
+  if os.environ.get("HASHCAT_HOST_MEM_LIMIT"):
+    return True
+
+  return False
+
+
+def alloc_failed(out):
+  # Whether a run died trying to allocate memory, by what it printed. CL_OUT_OF_RESOURCES is
+  # OpenCL's catch-all and is not always about memory, so this can say yes to a run that failed for
+  # another reason. That costs one re-run on the whole card, which reports the same failure again.
+  for text in ALLOC_FAILED:
+    if text in out:
+      return True
+
+  return False
+
+
 def reason_for(ret):
   # The English reason for a non-zero hashcat result, for logfull.txt. A code outside the known set is
   # an error rather than a result: a negative return is a process killed by a signal (subprocess
@@ -196,9 +242,23 @@ def work_dir(prefix):
     print("[ test.py ] > scratch directory kept: %s" % path)
     logfull_append("scratch directory kept: %s" % path)
 
+  # luks1.sh and m34100.sh build their containers and hash files under these. Unset, they fall back
+  # to /tmp/out and /tmp/mnt, where nothing removes them.
+
+  saved = {name: os.environ.get(name) for name in ("HCTEST_SCRATCH_DIR", "HCTEST_MOUNT_DIR")}
+
+  os.environ["HCTEST_SCRATCH_DIR"] = os.path.join(path, "luks_out")
+  os.environ["HCTEST_MOUNT_DIR"]   = os.path.join(path, "luks_mnt")
+
   try:
     yield path
   finally:
+    for name, value in saved.items():
+      if value is None:
+        os.environ.pop(name, None)
+      else:
+        os.environ[name] = value
+
     if not KEEP_TMP:
       shutil.rmtree(path, ignore_errors=True)
 
@@ -603,9 +663,9 @@ MASK_ONLY_MODES = {37000}
 
 MFULC_MODES = {37000}
 
-# The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
-# leaves their -a 4 list alone (test.sh); 40023 takes its hash from another field and is excluded
-# there too.
+# The LUKS modes whose oracle prints the path of the hash file it extracted from a fresh container,
+# not the hash itself. whole_word_vectors leaves their -a 4 list alone (test.sh); 40023 takes its
+# hash from another field and is excluded there too.
 
 LUKS_MODES = {29511, 29512, 29513, 29514, 29521, 29522, 29523, 29524,
               29531, 29532, 29533, 29534, 29541, 29542, 29543, 29544, 34100}
@@ -1203,12 +1263,6 @@ def classify(rc, matched, c):
     c["nm"] += 1
   elif runtime_skip(ret) == True:
     c["rs"] += 1
-
-    if ret == 252 and os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
-      # A memory skip while a per-worker cap is in force is a property of the -j run, not the mode, so
-      # flag it for run_parallel to retry without the cap.
-      global CAPPED_MEM_SKIP
-      CAPPED_MEM_SKIP = True
   else:
     c["err"] += 1
 
@@ -1232,7 +1286,7 @@ def verdict(c):
 
 
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
-  global LAST_CMD, LAST_STDIN
+  global LAST_CMD, LAST_STDIN, CAPPED_MEM_SKIP
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
@@ -1246,6 +1300,21 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
 
   out = proc.stdout + proc.stderr
   log_output(cmd, out)
+
+  if capped_run() == True:
+    # A worker squeezed by the -j split rather than a mode that is broken, in either of the two ways
+    # that happens. hashcat sizes itself against the share, decides the mode does not fit and exits
+    # 252. Or its sizing fits the share and the driver refuses the allocation all the same, which
+    # exits 255, because the share is advisory and read once at startup and cannot describe a card
+    # whose free memory moves while four workers start. Both go to the re-run on the whole card.
+    #
+    # Decided here rather than in classify (), which the self-test path does not reach.
+
+    if proc.returncode == 252:
+      CAPPED_MEM_SKIP = True
+
+    if (proc.returncode == 255) and (alloc_failed(out) == True):
+      CAPPED_MEM_SKIP = True
 
   return proc.returncode, out
 
@@ -4993,7 +5062,7 @@ def run_parallel_selftest(args):
     proc = subprocess.run(base + ["-m", str(mode)],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    return proc.stdout
+    return proc.returncode, proc.stdout
 
   sweep_total = 0
   sweep_ok    = 0
@@ -5004,32 +5073,66 @@ def run_parallel_selftest(args):
 
   print("[ test.py ] > Cracking one test vector per hash-mode")
 
-  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for mode, out in zip(selected, pool.map(run_one, selected)):
-      sys.stdout.buffer.write(out)
-      sys.stdout.buffer.flush()
+  # One mode's output printed and counted. A deferred mode goes through this after its re-run, so
+  # the counting is written once and the capped attempt is not counted at all.
 
-      if mode in NO_SELFTEST:
-        sweep_na += "%d " % mode
+  def tally(mode, out):
+    nonlocal sweep_total, sweep_ok, sweep_slow, sweep_na, sweep_bad, sweep_fault
+
+    sys.stdout.buffer.write(out)
+    sys.stdout.buffer.flush()
+
+    if mode in NO_SELFTEST:
+      sweep_na += "%d " % mode
+      return
+
+    sweep_total += 1
+    record("modes")
+
+    text = out.decode("utf-8", "replace")
+
+    if "> OK :" in text:
+      sweep_ok += 1
+      record("OK")
+    elif "> Warning :" in text:
+      sweep_slow += "%d " % mode
+      record("Warning")
+    elif "> Fault :" in text:
+      sweep_fault += "%d " % mode
+      record("Fault")
+    else:
+      sweep_bad += "%d " % mode
+      record("not-OK")
+
+  retry = []
+
+  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    for mode, (prc, out) in zip(selected, pool.map(run_one, selected)):
+      if prc == MEMSKIP_RC:
+        # Squeezed by its share of the card. Its output is left out and the mode is re-run below,
+        # once the workers that squeezed it have finished.
+        retry.append(mode)
+
         continue
 
-      sweep_total += 1
-      record("modes")
+      tally(mode, out)
 
-      text = out.decode("utf-8", "replace")
+  if retry:
+    # One at a time with both shares removed, the same answer run_parallel gives. A mode that needs
+    # more than the whole card runs out again, now with nothing capping it.
 
-      if "> OK :" in text:
-        sweep_ok += 1
-        record("OK")
-      elif "> Warning :" in text:
-        sweep_slow += "%d " % mode
-        record("Warning")
-      elif "> Fault :" in text:
-        sweep_fault += "%d " % mode
-        record("Fault")
-      else:
-        sweep_bad += "%d " % mode
-        record("not-OK")
+    nocap = {k: v for k, v in os.environ.items()
+             if k not in ("HASHCAT_DEVICE_MEM_LIMIT", "HASHCAT_HOST_MEM_LIMIT")}
+
+    print("[ test.py ] > re-running %d memory-capped skip(s) without the cap: %s"
+          % (len(retry), " ".join(str(m) for m in retry)))
+    sys.stdout.flush()
+
+    for mode in retry:
+      proc = subprocess.run(base + ["-m", str(mode)], env=nocap,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+      tally(mode, proc.stdout)
 
   selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
@@ -5235,6 +5338,22 @@ def edge_strip_userpw(data):
   # mode that appends a note to the plaintext line still matches. Applied per line here.
 
   return re.sub(rb"    \(user password[^\n]*", b"", data)
+
+
+def edge_hash_line(mode, dig):
+  # A LUKS_MODES oracle prints the path of a hash file. hashcat reads the hash out of that file and
+  # writes the hash, not the path, to the outfile, so the compare needs the line the file holds.
+
+  if (mode in LUKS_MODES) == False:
+    return dig
+
+  try:
+    with open(dig, "rb") as fh:
+      line = fh.read().rstrip(b"\r\n")
+  except OSError:
+    return dig
+
+  return line
 
 
 def edge_out_verifies(mode, raw, hashes, tmp):
@@ -5660,7 +5779,7 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
       hash_out = target
     else:
       target   = dig
-      hash_out = dig
+      hash_out = edge_hash_line(ctx.mode, dig)
 
     extra, stdin = edge_single_cmd(ctx, word, word_len, i, tmp)
 
@@ -5887,11 +6006,13 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   hlines = []
 
   for word, word_len, word_compare, dig in selected:
-    hlines.append(dig)
+    line = edge_hash_line(mode, dig)
+
+    hlines.append(line)
 
     wline = word_compare if (use_compare and word_compare is not None) else word
 
-    hcout.append(dig + b":" + wline)
+    hcout.append(line + b":" + wline)
 
   _w(hash_in, b"".join(h + b"\n" for h in hlines))
 
@@ -6787,7 +6908,9 @@ def main():
     if args.jobs > 1 and not args.selftest_child:
       sys.exit(run_parallel_selftest(args))
 
-    sys.exit(selftest_vector_sweep(args))
+    rc = selftest_vector_sweep(args)
+
+    sys.exit(memskip_rc(rc))
 
   if args.jobs > 1:
     sys.exit(run_parallel_depth(args) if depth else run_parallel(args))
@@ -6950,14 +7073,15 @@ def main():
   if args.generate:
     print_gen_summary()
 
-  if CAPPED_MEM_SKIP:
-    # A -j child: tell the parent this mode skipped only because its memory share was too small, so it
-    # can be re-run without the cap. This outranks ERRORS so the parent re-runs on the whole card and
-    # the retry's own exit code, not this capped run's, decides pass or fail.
-    sys.exit(MEMSKIP_RC)
+  rc = 0
 
   if ERRORS:
-    sys.exit(1)
+    rc = 1
+
+  # The ask outranks ERRORS, so the parent re-runs on the whole card and the re-run's own exit code,
+  # not this capped run's, decides pass or fail.
+
+  sys.exit(memskip_rc(rc))
 
 
 if __name__ == "__main__":
