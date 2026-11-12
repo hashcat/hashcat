@@ -2364,14 +2364,23 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
-    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
+    const time_t now = time (NULL);
 
-    cpt_ctx->cpt_pos++;
+    // The history is indexed by the second it stands for rather than filled in order, so a run that
+    // cracks in very many batches no longer walks over its own earlier seconds. A slot still holding
+    // an older second is stale and starts again instead of adding to a count from a day ago.
+
+    cpt_t *slot = &cpt_ctx->cpt_buf[(u64) now % CPT_SECONDS];
+
+    if (slot->timestamp != now)
+    {
+      slot->timestamp = now;
+      slot->cracked   = 0;
+    }
+
+    slot->cracked += cpt_cracked;
 
     cpt_ctx->cpt_total += cpt_cracked;
-
-    if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
   }

@@ -117,7 +117,16 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false) && (bypass_eta_check == false))
+  // The curve of what is left against what has been spent is sampled on this thread's tick, because
+  // it is the only thing that ticks whether or not anyone is watching the status. A run with a single
+  // digest has no curve to speak of and no line to print it on, which is the same condition the
+  // Recovered/Time line is printed under.
+
+  bool curve_check = false;
+
+  if (hashes->digests_cnt > 1) curve_check = true;
+
+  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false) && (bypass_eta_check == false) && (curve_check == false))
   {
     return 0;
   }
@@ -161,6 +170,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if (status_ctx->shutdown_inner == true) break;
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
+
+    if (curve_check == true)
+    {
+      if (status_ctx->devices_status == STATUS_RUNNING) status_curve_sample (hashcat_ctx);
+    }
 
     if (hwmon_check == true)
     {

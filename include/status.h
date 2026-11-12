@@ -100,6 +100,13 @@ double      status_get_cpt_avg_min                    (const hashcat_ctx_t *hash
 double      status_get_cpt_avg_hour                   (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_cpt_avg_day                    (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_cpt                            (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_recovered_est_min              (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_recovered_est_hour             (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_recovered_est_day              (const hashcat_ctx_t *hashcat_ctx);
+u32         status_get_recovered_limit                (const hashcat_ctx_t *hashcat_ctx);
+double      status_get_recovered_limit_percent        (const hashcat_ctx_t *hashcat_ctx);
+
+void        status_curve_sample                       (hashcat_ctx_t *hashcat_ctx);
 int         status_get_salt_pos_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 u64         status_get_innerloop_pos_dev              (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 u64         status_get_innerloop_left_dev             (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);

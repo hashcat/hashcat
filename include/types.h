@@ -1716,6 +1716,28 @@ typedef struct cpt
 
 } cpt_t;
 
+// One point on the curve of what is left against what has been spent. Both coordinates are read off
+// counters hashcat already keeps exactly, so a point is observed rather than estimated.
+
+typedef struct curve_point
+{
+  u64       progress;
+  u32       remaining;
+
+  // When the point was taken, which is what turns a window of seconds into a span of candidates.
+  // The curve itself is in candidates and knows nothing about the clock.
+
+  time_t    when;
+
+  // Whether this point lies on the curve this attack is walking. A run restarted on a list an
+  // earlier run already cracked re-walks those candidates with the answers sitting in the potfile,
+  // so until it cracks one of its own the remainder it reports was reached by candidates this run
+  // never spent. Such a point has the right x and somebody else's y, and fitting it tilts the line.
+
+  bool      on_curve;
+
+} curve_point_t;
+
 #define LINK_SPEED_COUNT 10000
 
 typedef struct link_speed
@@ -3880,9 +3902,44 @@ typedef struct cpt_ctx
   bool enabled;
 
   cpt_t     *cpt_buf;
-  int        cpt_pos;
   time_t     cpt_start;
   u64        cpt_total;
+
+  // The curve the recovered count follows against the candidates spent, and the fit over it. It
+  // lives here because it answers for the same line of the status view, and because one array does
+  // not earn a context of its own.
+
+  curve_point_t *curve_buf;
+  int            curve_cnt;
+
+  // The fit over those points. The share of the ever crackable digests found by a given point is
+  // taken as a normal distribution over the logarithm of the candidates spent, which for a fixed
+  // floor is a straight line through the probit of that share. curve_have says there is a line.
+
+  u32            curve_total;
+  u32            curve_never;
+  double         curve_inter;
+  double         curve_slope;
+  bool           curve_have;
+
+  // What the residuals say about that line: the scatter of the points about it, the mean and the
+  // spread of their x, and how many carry it. Those four give the standard error of anything read
+  // off the line, which is what decides whether a figure is worth printing rather than a threshold
+  // written into the source.
+
+  double         curve_s;
+  double         curve_xbar;
+  double         curve_sxx;
+  int            curve_n;
+
+  // The widest and narrowest floor whose fit this data cannot tell apart from the best one, which
+  // is the ceiling's own error bar. curve_bounded says the search bounded the floor at all: an exact
+  // fit admits no rival, so the pair below is then the whole searched range and says nothing.
+
+  bool           curve_bounded;
+
+  u32            curve_never_lo;
+  u32            curve_never_hi;
 
 } cpt_ctx_t;
 
@@ -3987,6 +4044,11 @@ typedef struct hashcat_status
   double      digests_percent;
   double      digests_percent_new;
   double      digests_percent_attack;
+  int         recovered_est_min;
+  int         recovered_est_hour;
+  int         recovered_est_day;
+  u32         recovered_limit;
+  double      recovered_limit_percent;
   u32         salts_cnt;
   u32         salts_done;
   double      salts_percent;

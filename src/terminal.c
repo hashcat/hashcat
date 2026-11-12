@@ -3622,6 +3622,11 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   json_key (&js, "recovered_hashes");
   json_raw (&js, numbuf);
 
+  // Both zero while there is nothing to say, which is how the view reads them too.
+
+  json_kv_uint (&js, "recovered_est_hour", (unsigned long long) hashcat_status->recovered_est_hour);
+  json_kv_uint (&js, "recovered_limit", hashcat_status->recovered_limit);
+
   snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->salts_done, hashcat_status->salts_cnt);
   json_key (&js, "recovered_salts");
   json_raw (&js, numbuf);
@@ -4487,6 +4492,20 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
 
     event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
+
+    // Where the run ends up if it runs forever, which is a different question from the outlook on
+    // the line above and a far longer extrapolation, so it waits for a floor that has settled and
+    // says nothing before. It answers for this attack rather than for the list: one attack mode
+    // reaches far less than every mode together does over a campaign.
+
+    if (hashcat_status->recovered_limit > 0)
+    {
+      event_log_info (hashcat_ctx,
+        "Recovered.Limit..: %u/%u (%.2f%%) Digests, if it ran on",
+        hashcat_status->recovered_limit,
+        hashcat_status->digests_cnt,
+        hc_percent_display (hashcat_status->recovered_limit_percent));
+    }
   }
 
   // How far a protected run has got is itself worth withholding. On a job that takes days, handing

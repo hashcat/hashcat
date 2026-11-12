@@ -3532,6 +3532,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->cpt_avg_hour                = status_get_cpt_avg_hour               (hashcat_ctx);
   hashcat_status->cpt_avg_day                 = status_get_cpt_avg_day                (hashcat_ctx);
   hashcat_status->cpt                         = status_get_cpt                        (hashcat_ctx);
+  hashcat_status->recovered_est_min           = status_get_recovered_est_min          (hashcat_ctx);
+  hashcat_status->recovered_est_hour          = status_get_recovered_est_hour         (hashcat_ctx);
+  hashcat_status->recovered_est_day           = status_get_recovered_est_day          (hashcat_ctx);
+  hashcat_status->recovered_limit             = status_get_recovered_limit            (hashcat_ctx);
+  hashcat_status->recovered_limit_percent     = status_get_recovered_limit_percent    (hashcat_ctx);
 
   // multiple devices
 

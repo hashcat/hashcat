@@ -2201,7 +2201,13 @@ char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int back
   return display;
 }
 
-int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
+// The cracks inside a trailing window, summed off the per second history. A slot whose second falls
+// outside the window is either older than it or was never written, and reads as nothing either way,
+// so a window shorter than the run needs no special case and neither does a run shorter than the
+// window: before a minute has passed the minute count is everything cracked so far, which is what a
+// count over the last minute means.
+
+static int cpt_cur (const hashcat_ctx_t *hashcat_ctx, const time_t window)
 {
   const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -2214,74 +2220,35 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   const time_t now = time (NULL);
 
-  int cpt_cur_min = 0;
+  int cracked = 0;
 
-  for (int i = 0; i < CPT_CACHE; i++)
+  for (int i = 0; i < CPT_SECONDS; i++)
   {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-    if ((timestamp + 60) > now)
-    {
-      cpt_cur_min += cracked;
-    }
+    if ((cpt_ctx->cpt_buf[i].timestamp + window) > now) cracked += (int) cpt_ctx->cpt_buf[i].cracked;
   }
 
-  return cpt_cur_min;
+  return cracked;
+}
+
+int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
+{
+  const int cracked = cpt_cur (hashcat_ctx, 60);
+
+  return cracked;
 }
 
 int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const int cracked = cpt_cur (hashcat_ctx, 60 * 60);
 
-  if (status_ctx->accessible == false) return 0;
-
-  if (cpt_ctx->enabled == false) return 0;
-
-  const time_t now = time (NULL);
-
-  int cpt_cur_hour = 0;
-
-  for (int i = 0; i < CPT_CACHE; i++)
-  {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-    if ((timestamp + 3600) > now)
-    {
-      cpt_cur_hour += cracked;
-    }
-  }
-
-  return cpt_cur_hour;
+  return cracked;
 }
 
 int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const int cracked = cpt_cur (hashcat_ctx, 60 * 60 * 24);
 
-  if (status_ctx->accessible == false) return 0;
-
-  if (cpt_ctx->enabled == false) return 0;
-
-  const time_t now = time (NULL);
-
-  int cpt_cur_day = 0;
-
-  for (int i = 0; i < CPT_CACHE; i++)
-  {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-    if ((timestamp + 86400) > now)
-    {
-      cpt_cur_day += cracked;
-    }
-  }
-
-  return cpt_cur_day;
+  return cracked;
 }
 
 double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
@@ -2338,49 +2305,733 @@ double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
   return cpt_avg_day;
 }
 
-char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
+// Fit what is still to find against the candidates spent, as a number this attack never reaches plus
+// a power law falling onto it:
+//
+//   M(g) = never + A g^-beta
+//
+// With never fixed the rest is a straight line in log space, log (M - never) = log A - beta log g,
+// so never is the only thing gridded and the line behind it is solved in closed form. The error is
+// measured in digests rather than in logs, so the grid compares candidates in the unit the answer is
+// read in.
+//
+// Both coordinates come off counters hashcat already keeps exactly, so there is nothing to smooth
+// and no rate to difference. Differencing is what makes a rate too noisy to read: on an RTX 4090
+// measuring example0.hash, consecutive five second rates swung by an order of magnitude while the
+// cumulative pairs they were taken from carried no scatter at all.
+//
+// Nothing here is tuned. The fit decides for itself how much data it needs, which floor to settle
+// on and whether either answer is worth printing, all out of the scatter of the points about the
+// line. A threshold written into the source would be a guess about runs nobody has made yet.
+
+typedef struct curve_line
+{
+  // The line itself: the probit of the share against the logarithm of the candidates spent.
+
+  double inter;
+  double slope;
+
+  // What the residuals say about it. s is the scatter of the points about the line, xbar and sxx
+  // place the line's own span, and n is how many points carry it. Those four give the standard
+  // error of anything read off the line, and that error grows with how far beyond the span the
+  // question reaches, which is what makes a day ahead answerable later than a minute ahead.
+
+  double s;
+  double xbar;
+  double sxx;
+  double sse;
+
+  int    n;
+
+  bool   ok;
+
+} curve_line_t;
+
+// The share of the ever crackable digests found by a given point, as a normal distribution over the
+// logarithm of the candidates spent. A password's position in a grammar's output is spread over
+// orders of magnitude rather than over a range, which is why the logarithm is the variable that
+// behaves. A distribution over it also has to end, and that is the part a power law gets wrong: a
+// power law's remainder decays polynomially for ever, so an extrapolation keeps promising cracks
+// after the measured runs have stopped delivering any. Fitted to the first minute of a run on
+// example0.hash, a power law said 6178 digests by this time tomorrow and kept lowering that by
+// hundreds as the data arrived, where this shape said 5507 and then moved by seven.
+//
+// Fitted exactly as the power law was. For a fixed floor the model is a straight line, this time
+// against the probit of the share rather than the logarithm of the remainder, so the same closed
+// form solves it and the same search finds the floor.
+
+static double curve_ndtr (const double x)
+{
+  const double p = 0.5 * (1.0 + erf (x / sqrt (2.0)));
+
+  return p;
+}
+
+// The probit, by Newton on the function above, whose derivative is the normal density and so is
+// closed form. It runs until a step stops moving the answer, which is the arithmetic saying it is
+// done rather than a tolerance written here. An approximation's coefficient table would be a page
+// of constants in the source whatever their provenance, so there is none.
+
+static double curve_ndtri (const double p)
+{
+  const double pi = acos (-1.0);
+
+  double x = 0;
+
+  for (int i = 0; i < 64; i++)
+  {
+    const double pdf = exp (-0.5 * x * x) / sqrt (2.0 * pi);
+
+    if (pdf <= 0.0) break;
+
+    const double step = (curve_ndtr (x) - p) / pdf;
+
+    const double next = x - step;
+
+    if (next == x) break;
+
+    x = next;
+  }
+
+  return x;
+}
+
+// The straight line through the probit of the share against log (progress), by least squares, which
+// is the one fit that also says how far the points lie from it. Answers ok false when there is no
+// line to speak of: too few points to have a residual at all, a span of candidates too short to
+// separate a rising share from a flat one, or a share that has not moved, which fits every floor
+// perfectly with a slope made of rounding dust.
+
+static void curve_solve (const cpt_ctx_t *cpt_ctx, const u32 never, curve_line_t *out)
+{
+  out->ok = false;
+
+  if (cpt_ctx->curve_total <= never) return;
+
+  // The digests this attack can still reach, which is everything but the floor. The share is what
+  // it has reached of that, so the floor being searched for moves the share of every point.
+
+  const double amp = (double) (cpt_ctx->curve_total - never);
+
+  double sum_x  = 0;
+  double sum_y  = 0;
+  double sum_xx = 0;
+  double sum_xy = 0;
+  double sum_yy = 0;
+
+  int n = 0;
+
+  for (int i = 0; i < cpt_ctx->curve_cnt; i++)
+  {
+    if (cpt_ctx->curve_buf[i].on_curve  == false) continue;
+    if (cpt_ctx->curve_buf[i].progress  == 0)     continue;
+    if (cpt_ctx->curve_buf[i].remaining <= never) continue;
+
+    const double done = (double) (cpt_ctx->curve_total - cpt_ctx->curve_buf[i].remaining);
+
+    const double share = done / amp;
+
+    if (share <= 0.0) continue;
+    if (share >= 1.0) continue;
+
+    const double x = log ((double) cpt_ctx->curve_buf[i].progress);
+    const double y = curve_ndtri (share);
+
+    sum_x  += x;
+    sum_y  += y;
+    sum_xx += x * x;
+    sum_xy += x * y;
+    sum_yy += y * y;
+
+    n++;
+  }
+
+  // Two parameters, and one point left over to measure the scatter with. Fewer than that is an
+  // interpolation calling itself a fit, and it is the degrees of freedom saying so rather than a
+  // sample count anyone chose.
+
+  if (n < 3) return;
+
+  const double xbar = sum_x / (double) n;
+  const double ybar = sum_y / (double) n;
+
+  const double sxx = sum_xx - ((double) n * xbar * xbar);
+  const double syy = sum_yy - ((double) n * ybar * ybar);
+
+  if (sxx <= 0) return;
+
+  // A share that has not moved leaves syy at zero, give or take the last bits of the sums, and the
+  // slope is then whatever those bits round to. A run restarted on a list an earlier one stripped
+  // is exactly that case, and with the floor searched over a range rather than solved for, some of
+  // the floors tried come out of the rounding with a slope of the right sign and a perfect fit. On
+  // a 7900 XTX measuring example0.hash, 34 of the 64 floors an earlier version gridded did, and
+  // the arbitrary winner had the line claiming one more digest by this time tomorrow. Asking
+  // whether the share moved at all is what catches it, and it is the same quantity the scatter is
+  // measured against.
+
+  if (syy <= 0) return;
+
+  const double sxy = sum_xy - ((double) n * xbar * ybar);
+
+  const double slope = sxy / sxx;
+
+  // The share can only grow as the candidates are spent. A fit that says otherwise is not this
+  // curve.
+
+  if (slope <= 0) return;
+
+  const double inter = ybar - (slope * xbar);
+
+  double sse = 0;
+
+  for (int i = 0; i < cpt_ctx->curve_cnt; i++)
+  {
+    if (cpt_ctx->curve_buf[i].on_curve  == false) continue;
+    if (cpt_ctx->curve_buf[i].progress  == 0)     continue;
+    if (cpt_ctx->curve_buf[i].remaining <= never) continue;
+
+    const double done = (double) (cpt_ctx->curve_total - cpt_ctx->curve_buf[i].remaining);
+
+    const double share = done / amp;
+
+    if (share <= 0.0) continue;
+    if (share >= 1.0) continue;
+
+    const double x = log ((double) cpt_ctx->curve_buf[i].progress);
+    const double y = curve_ndtri (share);
+
+    const double d = y - (inter + (slope * x));
+
+    sse += d * d;
+  }
+
+  out->inter = inter;
+  out->slope = slope;
+  out->sse   = sse;
+  out->s    = sqrt (sse / (double) (n - 2));
+  out->xbar = xbar;
+  out->sxx  = sxx;
+  out->n    = n;
+  out->ok   = true;
+}
+
+// The floor is the one number the line cannot solve for, so it is searched for. The residual is not
+// a bowl: on a run whose recoveries pause for a while it has a second, worse dip near a floor of
+// zero, and a search that only walks downhill falls into whichever one it starts above. A 7900 XTX
+// measuring example0.hash did exactly that at 243 seconds, where the day column jumped from 5423
+// to 6125 and the ceiling vanished, while an exhaustive grid over the same samples stayed at 5411.
+//
+// So the range is swept first and then refined. The sweep takes as many probes as there are points
+// on the curve, because a floor cannot be resolved more finely than the data that has to tell it
+// apart, and the refinement is a golden section inside the winning interval which stops when its
+// bracket is under one digest.
+
+static bool curve_floor (const cpt_ctx_t *cpt_ctx, const u32 top, u32 *best)
+{
+  const int probes = cpt_ctx->curve_cnt;
+
+  if (probes < 1) return false;
+
+  double  at   = 0;
+  double  sse  = 0;
+  bool    have = false;
+
+  const double step = (double) top / (double) probes;
+
+  for (int i = 0; i <= probes; i++)
+  {
+    const double try_at = (double) i * step;
+
+    curve_line_t f;
+
+    curve_solve (cpt_ctx, (u32) try_at, &f);
+
+    if (f.ok == false) continue;
+
+    if ((have == false) || (f.sse < sse))
+    {
+      at   = try_at;
+      sse  = f.sse;
+      have = true;
+    }
+  }
+
+  if (have == false) return false;
+
+  // The reciprocal of the golden ratio, which is what makes each step reuse one of the last step's
+  // two probes. It is a property of the search, not a setting.
+
+  const double gr = (sqrt (5.0) - 1.0) / 2.0;
+
+  double lo = at - step;
+  double hi = at + step;
+
+  if (lo < 0) lo = 0;
+  if (hi > (double) top) hi = (double) top;
+
+  double c = hi - (gr * (hi - lo));
+  double d = lo + (gr * (hi - lo));
+
+  curve_line_t fc;
+  curve_line_t fd;
+
+  curve_solve (cpt_ctx, (u32) c, &fc);
+  curve_solve (cpt_ctx, (u32) d, &fd);
+
+  while ((hi - lo) > 1.0)
+  {
+    const bool c_better = (fc.ok == true) && ((fd.ok == false) || (fc.sse <= fd.sse));
+
+    if (c_better == true)
+    {
+      hi = d;
+      d  = c;
+      fd = fc;
+      c  = hi - (gr * (hi - lo));
+
+      curve_solve (cpt_ctx, (u32) c, &fc);
+    }
+    else
+    {
+      lo = c;
+      c  = d;
+      fc = fd;
+      d  = lo + (gr * (hi - lo));
+
+      curve_solve (cpt_ctx, (u32) d, &fd);
+    }
+  }
+
+  const double mid = (lo + hi) / 2.0;
+
+  curve_line_t fm;
+
+  curve_solve (cpt_ctx, (u32) mid, &fm);
+
+  // The refinement only ever improves on the sweep's winner, and if it somehow cannot, the winner
+  // stands.
+
+  if ((fm.ok == true) && (fm.sse <= sse))
+  {
+    *best = (u32) mid;
+
+    return true;
+  }
+
+  *best = (u32) at;
+
+  return true;
+}
+
+// How wide the floor's answer really is: every floor whose fit is as good as the best one, allowing
+// for the scatter the best one leaves. That is the standard one parameter likelihood band, so its
+// width is the ceiling's error bar and nothing in it was picked. Bisecting outwards from the best
+// floor finds each edge to one digest.
+
+static u32 curve_floor_edge (const cpt_ctx_t *cpt_ctx, const u32 from, const u32 to, const double worst)
+{
+  u32 keep = from;
+
+  u32 lo = from;
+  u32 hi = to;
+
+  while (true)
+  {
+    const u32 mid = lo + ((hi - lo) / 2);
+
+    if (mid == lo) break;
+
+    curve_line_t f;
+
+    curve_solve (cpt_ctx, mid, &f);
+
+    if ((f.ok == true) && (f.sse <= worst))
+    {
+      keep = mid;
+      lo   = mid;
+    }
+    else
+    {
+      hi = mid;
+    }
+  }
+
+  return keep;
+}
+
+// Returns false when there is not enough curve to fit anything.
+
+static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
+{
+  cpt_ctx->curve_have    = false;
+  cpt_ctx->curve_bounded = false;
+
+  if (remaining == 0) return false;
+
+  u32 never = 0;
+
+  if (curve_floor (cpt_ctx, remaining - 1, &never) == false) return false;
+
+  curve_line_t f;
+
+  curve_solve (cpt_ctx, never, &f);
+
+  if (f.ok == false) return false;
+
+  cpt_ctx->curve_never = never;
+  cpt_ctx->curve_inter = f.inter;
+  cpt_ctx->curve_slope = f.slope;
+  cpt_ctx->curve_s     = f.s;
+  cpt_ctx->curve_xbar  = f.xbar;
+  cpt_ctx->curve_sxx   = f.sxx;
+  cpt_ctx->curve_n     = f.n;
+  cpt_ctx->curve_have  = true;
+
+  // The band the floor could be anywhere in. One more parameter than the line costs one degree of
+  // freedom, and a fit inside that much of the best one is a fit this data cannot tell apart from
+  // it.
+  //
+  // There are two ways to end up with no band at all, and the band is the whole searched range in
+  // both. Three points fit a three parameter model exactly, so there is no residual to hold a rival
+  // floor against. And with more points the winner can still fit them exactly, which scales the band
+  // to zero and has the fit claiming a precision the data cannot carry.
+
+  if (f.n <= 3)
+  {
+    cpt_ctx->curve_never_lo = 0;
+    cpt_ctx->curve_never_hi = remaining - 1;
+
+    return true;
+  }
+
+  cpt_ctx->curve_never_lo = never;
+  cpt_ctx->curve_never_hi = never;
+  cpt_ctx->curve_bounded  = true;
+
+  const double worst = f.sse * (1.0 + (1.0 / (double) (f.n - 3)));
+
+  cpt_ctx->curve_never_hi = curve_floor_edge (cpt_ctx, never, remaining - 1, worst);
+
+  // Downwards the same bisection runs with the ends swapped, so it is written out rather than
+  // folded into one function with a direction flag.
+
+  u32 lo = 0;
+  u32 hi = never;
+
+  cpt_ctx->curve_never_lo = never;
+
+  while (true)
+  {
+    const u32 mid = lo + ((hi - lo) / 2);
+
+    if (mid == lo) break;
+
+    curve_line_t g;
+
+    curve_solve (cpt_ctx, mid, &g);
+
+    if ((g.ok == true) && (g.sse <= worst))
+    {
+      cpt_ctx->curve_never_lo = mid;
+
+      hi = mid;
+    }
+    else
+    {
+      lo = mid;
+    }
+  }
+
+  // The bisections resolve each edge to one digest, so a band that comes back with no width is one
+  // where no other floor could be told from the winner. That is the exact fit above. A 7900 XTX did
+  // it five seconds into a run on example0.hash: four points lay on one line for a floor of 2384,
+  // the band around it was a single digest wide, and both lines then reported a list that stops at
+  // 4110 digests against the 5386 it went on to reach.
+
+  if (cpt_ctx->curve_never_lo >= cpt_ctx->curve_never_hi)
+  {
+    cpt_ctx->curve_never_lo = 0;
+    cpt_ctx->curve_never_hi = remaining - 1;
+
+    cpt_ctx->curve_bounded = false;
+  }
+
+  return true;
+}
+
+// A point every tick, thinned when the buffer fills. A tick is as fine as the timestamps go, and
+// keeping every second point when it fills doubles the spacing while leaving both the span and the
+// shape intact. There is no threshold on how much the candidate count must grow first: a span too
+// short to fit over shows up as a wide standard error, which is the same test everything else here
+// is decided by.
+
+void status_curve_sample (hashcat_ctx_t *hashcat_ctx)
+{
+  cpt_ctx_t          *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (cpt_ctx->enabled == false) return;
+  if (status_ctx->accessible == false) return;
+
+  const u64 progress = status_get_progress_done (hashcat_ctx);
+
+  if (progress == 0) return;
+
+  if (cpt_ctx->curve_cnt > 0)
+  {
+    if (progress <= cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1].progress) return;
+  }
+
+  if (cpt_ctx->curve_cnt == CURVE_SAMPLES)
+  {
+    for (int i = 0; i < (CURVE_SAMPLES / 2); i++)
+    {
+      cpt_ctx->curve_buf[i] = cpt_ctx->curve_buf[i * 2];
+    }
+
+    cpt_ctx->curve_cnt = CURVE_SAMPLES / 2;
+  }
+
+  const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
+  const u32 digests_done = status_get_digests_done (hashcat_ctx);
+
+  if (digests_done > digests_cnt) return;
+
+  const u32 remaining = digests_cnt - digests_done;
+
+  cpt_ctx->curve_total = digests_cnt;
+
+  // A list carrying cracks in from a potfile is not on its curve until this run cracks one of its
+  // own, because until then the remainder it reports was reached by candidates somebody else spent.
+
+  const u32 digests_done_pot = status_get_digests_done_pot (hashcat_ctx);
+
+  bool on_curve = true;
+
+  if (digests_done_pot > 0)
+  {
+    if (digests_done <= digests_done_pot) on_curve = false;
+  }
+
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].progress  = progress;
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].remaining = remaining;
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].when      = time (NULL);
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].on_curve  = on_curve;
+
+  cpt_ctx->curve_cnt++;
+
+  curve_fit (cpt_ctx, remaining);
+}
+
+// The candidates a second the run has achieved, over its whole span. A window would be a choice of
+// window, and the span is what the run has actually done. It lags a speed that is still climbing,
+// which makes the conversion conservative, and the conversion is the only part of the outlook that
+// knows about time at all.
+
+static double curve_rate (const cpt_ctx_t *cpt_ctx)
+{
+  if (cpt_ctx->curve_cnt < 2) return 0;
+
+  const curve_point_t *first = &cpt_ctx->curve_buf[0];
+  const curve_point_t *last  = &cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1];
+
+  const time_t span = last->when - first->when;
+
+  if (span <= 0) return 0;
+  if (last->progress <= first->progress) return 0;
+
+  const double rate = (double) (last->progress - first->progress) / (double) span;
+
+  return rate;
+}
+
+// What the run will have recovered after this many more seconds, and how wide that answer is. The
+// width is the regression's own prediction standard error, which carries the scatter of the points
+// and the leverage of asking about a point beyond their span. A day ahead is further beyond the span
+// than an hour, so it earns a wider band from the same fit rather than from a rule about horizons.
+//
+// Answers zero when there is nothing worth saying, which the view reads as nothing to say. That
+// covers a fit that has not happened, a fit that never bounded its floor, and a fit whose band is as
+// wide as the gain it is claiming: a projection of thirty more digests give or take forty is not an
+// outlook.
+
+static u32 curve_project (const hashcat_ctx_t *hashcat_ctx, const time_t seconds)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
-  const time_t now = time (NULL);
+  if (cpt_ctx->enabled == false) return 0;
+  if (cpt_ctx->curve_have == false) return 0;
+  if (cpt_ctx->curve_slope <= 0) return 0;
+  if (cpt_ctx->curve_n < 3) return 0;
 
+  // A share of the digests above the floor is not an answer when the search never bounded the floor
+  // at all. An exact fit is that case: it admits no rival, so the band around it comes out with no
+  // width and the whole searched range is the honest answer instead. A 7900 XTX did it five seconds
+  // into a run on example0.hash, where four points lay on one line for a floor of 2384 and both
+  // lines reported a list that stops at 4110 digests against the 5386 it went on to reach.
+  //
+  // A band that merely reaches zero is a different thing and is not refused. That was tried and
+  // measured on other attack modes, where it reads as the floor being unresolved and is not: a
+  // straight wordlist attack over a list of found passwords recovers 6479 of this list's 6494
+  // digests, so a floor of zero is very nearly right there, and the projection off one lands within
+  // 0.2 percent of the count the run exhausted at. Refusing those would cost a correct answer at
+  // every tick of such a run.
+
+  if (cpt_ctx->curve_bounded == false) return 0;
+
+  const double rate = curve_rate (cpt_ctx);
+
+  if (rate <= 0) return 0;
+
+  const curve_point_t *last = &cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1];
+
+  const double ahead = (double) last->progress + (rate * (double) seconds);
+
+  const double x = log (ahead);
+
+  const double d = x - cpt_ctx->curve_xbar;
+
+  const double se = cpt_ctx->curve_s * sqrt (1.0 + (1.0 / (double) cpt_ctx->curve_n) + ((d * d) / cpt_ctx->curve_sxx));
+
+  const double mid = cpt_ctx->curve_inter + (cpt_ctx->curve_slope * x);
+
+  const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
+  const u32 digests_done = status_get_digests_done (hashcat_ctx);
+
+  if (digests_cnt <= cpt_ctx->curve_never) return 0;
+
+  const double amp = (double) (digests_cnt - cpt_ctx->curve_never);
+
+  // The share is bounded by its own shape, so the band on it is too, and a band that would reach
+  // past the floor cannot.
+
+  const double done    = amp * curve_ndtr (mid);
+  const double done_lo = amp * curve_ndtr (mid - se);
+  const double done_hi = amp * curve_ndtr (mid + se);
+
+  // A projection at or below what is already in hand is the fit disagreeing with the counters, and
+  // the counters are the truth. It used to be raised to the recovered count, which reads as a
+  // considered answer that the run is finished. Saying nothing is the honest form of not knowing.
+
+  if (done <= (double) digests_done) return 0;
+
+  const double gain = done - (double) digests_done;
+  const double band = (done_hi - done_lo) / 2.0;
+
+  if (gain <= band) return 0;
+
+  const u32 out = (u32) done;
+
+  return out;
+}
+
+int status_get_recovered_est_min (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 est = curve_project (hashcat_ctx, 60);
+
+  return (int) est;
+}
+
+int status_get_recovered_est_hour (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 est = curve_project (hashcat_ctx, 60 * 60);
+
+  return (int) est;
+}
+
+int status_get_recovered_est_day (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 est = curve_project (hashcat_ctx, 60 * 60 * 24);
+
+  return (int) est;
+}
+
+// Where this attack ends up if it runs forever, which is the floor the fit settled on read as a
+// count of digests. It is reported only when the data can tell that floor apart from its
+// neighbours: the band of floors the fit cannot distinguish has to be narrower than the gain the
+// ceiling is claiming over what is already in hand. A band reaching down to no floor at all is the
+// data saying it has not seen the bend yet.
+
+u32 status_get_recovered_limit (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  if (cpt_ctx->enabled == false) return 0;
+  if (cpt_ctx->curve_have == false) return 0;
+  if (cpt_ctx->curve_never == 0) return 0;
+  if (cpt_ctx->curve_never_lo == 0) return 0;
+
+  const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
+  const u32 digests_done = status_get_digests_done (hashcat_ctx);
+
+  if (cpt_ctx->curve_never >= digests_cnt) return 0;
+
+  const u32 limit = digests_cnt - cpt_ctx->curve_never;
+
+  if (limit <= digests_done) return 0;
+
+  const u32 gain = limit - digests_done;
+  const u32 band = (cpt_ctx->curve_never_hi - cpt_ctx->curve_never_lo) / 2;
+
+  if (gain <= band) return 0;
+
+  return limit;
+}
+
+double status_get_recovered_limit_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 digests_cnt = status_get_digests_cnt (hashcat_ctx);
+
+  if (digests_cnt == 0) return 0;
+
+  const u32 recovered_limit = status_get_recovered_limit (hashcat_ctx);
+
+  const double percent = ((double) recovered_limit / (double) digests_cnt) * 100;
+
+  return percent;
+}
+
+char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
+{
   char *cpt;
 
   const int cpt_cur_min  = status_get_cpt_cur_min  (hashcat_ctx);
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
   const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
 
-  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
-  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
-  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+  // The three counts are counts and need no waiting: before an hour has passed the hour count is
+  // everything cracked so far, which is what a count over the last hour means. They used to be
+  // withheld until their whole period had gone by, which left the line reading N/A throughout the
+  // first minute, and on a run whose rate collapses that is where nearly all of the recovery is.
 
-  if ((cpt_ctx->cpt_start + (60 * 60 * 24)) < now)
+  // The second half of the line used to be the same mean three times over, per minute, per hour and
+  // per day, each the one before it multiplied by 60. What a reader wants from it is the outlook, how
+  // much will be recovered by then, and a mean cannot answer that on a run whose rate collapses. So
+  // the three windows now hold what the curve says the total will be once that much more time has
+  // passed, which is a projection in candidates converted back into the clock. The mean is still
+  // available through status_get_cpt_avg_min () and the two multiplied out forms through _hour () and
+  // _day ().
+
+  const int est_min  = status_get_recovered_est_min  (hashcat_ctx);
+  const int est_hour = status_get_recovered_est_hour (hashcat_ctx);
+  const int est_day  = status_get_recovered_est_day  (hashcat_ctx);
+
+  if (est_min > 0)
   {
-    hc_asprintf (&cpt, "CUR:%u,%u,%u AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,%d EST:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
-  }
-  else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
-  {
-    hc_asprintf (&cpt, "CUR:%u,%u,N/A AVG:%.2f,%.2f,N/A (Min,Hour,Day)",
-      cpt_cur_min,
-      cpt_cur_hour,
-      cpt_avg_min,
-      cpt_avg_hour);
-  }
-  else if ((cpt_ctx->cpt_start + 60) < now)
-  {
-    hc_asprintf (&cpt, "CUR:%u,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
-      cpt_cur_min,
-      cpt_avg_min);
+      est_min,
+      est_hour,
+      est_day);
   }
   else
   {
-    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:N/A,N/A,N/A (Min,Hour,Day)");
+    hc_asprintf (&cpt, "CUR:%d,%d,%d EST:N/A,N/A,N/A (Min,Hour,Day)",
+      cpt_cur_min,
+      cpt_cur_hour,
+      cpt_cur_day);
   }
 
   return cpt;
