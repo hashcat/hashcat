@@ -1534,10 +1534,138 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
   return sec_etc;
 }
 
-char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
+u64 status_get_queue_keyspace (const hashcat_ctx_t *hashcat_ctx)
 {
-  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
+  // Zero and (u64) -1 are how mask_ctx_queue_keyspace () says there is no answer: no queue of
+  // masks, or a sum that did not fit.
+
+  if (status_ctx->words_queue_cnt == 0) return 0;
+  if (status_ctx->words_queue_cnt == (u64) -1) return 0;
+
+  // Progress counts one candidate per salt, so the total the queue is measured against counts them
+  // too.
+
+  if (overflow_check_u64_mul (status_ctx->words_queue_cnt, hashes->salts_cnt) == true) return 0;
+
+  const u64 queue_keyspace = status_ctx->words_queue_cnt * hashes->salts_cnt;
+
+  return queue_keyspace;
+}
+
+u64 status_get_queue_progress_done (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_get_queue_keyspace (hashcat_ctx) == 0) return 0;
+
+  // words_walk_cnt is every round sized so far, the one in progress included. Taking that round
+  // back out and adding what of it has actually run gives the queue-wide counterpart of
+  // status_get_progress_cur ().
+
+  u64 words_prev = 0;
+
+  if ((status_ctx->words_walk_cnt != (u64) -1) && (status_ctx->words_cnt != (u64) -1))
+  {
+    if (status_ctx->words_walk_cnt >= status_ctx->words_cnt)
+    {
+      words_prev = status_ctx->words_walk_cnt - status_ctx->words_cnt;
+    }
+  }
+
+  u64 queue_done = status_get_progress_cur (hashcat_ctx);
+
+  if (overflow_check_u64_mul (words_prev, hashes->salts_cnt) == false)
+  {
+    const u64 prev_cnt = words_prev * hashes->salts_cnt;
+
+    if (overflow_check_u64_add (queue_done, prev_cnt) == false)
+    {
+      queue_done += prev_cnt;
+    }
+  }
+
+  return queue_done;
+}
+
+time_t status_get_sec_etc_queue (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  time_t sec_etc = 0;
+
+  const u64 queue_keyspace = status_get_queue_keyspace (hashcat_ctx);
+
+  if (queue_keyspace > 0)
+  {
+    if (status_ctx->devices_status != STATUS_CRACKED)
+    {
+      const u64 queue_done = status_get_queue_progress_done (hashcat_ctx);
+
+      const double hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
+
+      if ((queue_keyspace > queue_done) && (hashes_msec_all > 0))
+      {
+        u64 queue_left = queue_keyspace - queue_done;
+
+        // A cracked salt is skipped for the rest of the round in progress and for every round after
+        // it, so its work comes out of the estimate the way status_get_progress_ignore () leaves it
+        // out of Time.Estimated. The rounds after the one in progress are sized per salt, and each
+        // cracked salt takes their whole keyspace with it.
+
+        u64 progress_ignore = status_get_progress_ignore (hashcat_ctx);
+
+        const hashes_t   *hashes   = hashcat_ctx->hashes;
+        const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+        if ((mask_ctx->masks_prefix_cnt != NULL) && (mask_ctx->masks_pos + 1 < mask_ctx->masks_cnt))
+        {
+          const u32 cracked_cnt = hashes->salts_done;
+
+          if (cracked_cnt > 0)
+          {
+            // The prefix sums were sized once at init, so this is a plain read, safe on the
+            // status thread.
+
+            const u64 prefix_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_pos + 1];
+
+            if ((prefix_cnt != UINT64_MAX) && (status_ctx->words_queue_cnt >= prefix_cnt))
+            {
+              const u64 rounds_left_cnt = status_ctx->words_queue_cnt - prefix_cnt;
+
+              if (overflow_check_u64_mul (rounds_left_cnt, cracked_cnt) == false)
+              {
+                const u64 queue_ignore = rounds_left_cnt * cracked_cnt;
+
+                if (overflow_check_u64_add (progress_ignore, queue_ignore) == false)
+                {
+                  progress_ignore += queue_ignore;
+                }
+              }
+            }
+          }
+        }
+
+        // The same salt ordering caveat as Time.Estimated: a live salt can pass the ignored work of
+        // a cracked one, and then there is no estimate to give.
+
+        if (progress_ignore > queue_left) return 0;
+
+        const u64 msec_left = (u64) ((queue_left - progress_ignore) / hashes_msec_all);
+
+        sec_etc = msec_left / 1000;
+      }
+    }
+  }
+
+  return sec_etc;
+}
+
+static char *status_format_time_estimated_absolute (const time_t sec_etc)
+{
   time_t now;
   time (&now);
 
@@ -1566,13 +1694,29 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   return strdup (etc);
 }
 
-char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+  char *etc = status_format_time_estimated_absolute (sec_etc);
+
+  return etc;
+}
+
+char *status_get_time_estimated_absolute_queue (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc_queue (hashcat_ctx);
+
+  char *etc = status_format_time_estimated_absolute (sec_etc);
+
+  return etc;
+}
+
+static char *status_format_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx, const time_t sec_etc)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
 
   struct tm *tmp;
   struct tm  tm;
@@ -1618,6 +1762,24 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
     hcfree (tmp_display);
   }
+
+  return display;
+}
+
+char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+  char *display = status_format_time_estimated_relative (hashcat_ctx, sec_etc);
+
+  return display;
+}
+
+char *status_get_time_estimated_relative_queue (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc_queue (hashcat_ctx);
+
+  char *display = status_format_time_estimated_relative (hashcat_ctx, sec_etc);
 
   return display;
 }
@@ -3906,6 +4068,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->session);
   hcfree (hashcat_status->time_estimated_absolute);
   hcfree (hashcat_status->time_estimated_relative);
+  hcfree (hashcat_status->queue_time_estimated_absolute);
+  hcfree (hashcat_status->queue_time_estimated_relative);
   hcfree (hashcat_status->time_started_absolute);
   hcfree (hashcat_status->time_started_relative);
   hcfree (hashcat_status->speed_sec_all);
@@ -3919,22 +4083,24 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->brain_tx_all);
   #endif
 
-  hashcat_status->hash_target             = NULL;
-  hashcat_status->hash_name               = NULL;
-  hashcat_status->session                 = NULL;
-  hashcat_status->time_estimated_absolute = NULL;
-  hashcat_status->time_estimated_relative = NULL;
-  hashcat_status->time_started_absolute   = NULL;
-  hashcat_status->time_started_relative   = NULL;
-  hashcat_status->speed_sec_all           = NULL;
-  hashcat_status->guess_base              = NULL;
-  hashcat_status->guess_mod               = NULL;
-  hashcat_status->guess_mod_q             = NULL;
-  hashcat_status->guess_charset           = NULL;
-  hashcat_status->cpt                     = NULL;
+  hashcat_status->hash_target                   = NULL;
+  hashcat_status->hash_name                     = NULL;
+  hashcat_status->session                       = NULL;
+  hashcat_status->time_estimated_absolute       = NULL;
+  hashcat_status->time_estimated_relative       = NULL;
+  hashcat_status->queue_time_estimated_absolute = NULL;
+  hashcat_status->queue_time_estimated_relative = NULL;
+  hashcat_status->time_started_absolute         = NULL;
+  hashcat_status->time_started_relative         = NULL;
+  hashcat_status->speed_sec_all                 = NULL;
+  hashcat_status->guess_base                    = NULL;
+  hashcat_status->guess_mod                     = NULL;
+  hashcat_status->guess_mod_q                   = NULL;
+  hashcat_status->guess_charset                 = NULL;
+  hashcat_status->cpt                           = NULL;
   #ifdef WITH_BRAIN
-  hashcat_status->brain_rx_all            = NULL;
-  hashcat_status->brain_tx_all            = NULL;
+  hashcat_status->brain_rx_all                  = NULL;
+  hashcat_status->brain_tx_all                  = NULL;
   #endif
 
   // hwmon_fan_dev below is allocated by status_get_hwmon_fan_dev () next to speed_sec_dev,

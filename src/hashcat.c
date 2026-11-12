@@ -1992,6 +1992,18 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_ctx->words_walk_base = 0;
   status_ctx->words_walk_cnt  = 0;
 
+  // Restored into a later round of a queue: the rounds before it ran in the session being
+  // restored, and what they held is part of the queue's progress. The walk that measures the
+  // queue starts at this round, so the sum of the rounds before it is seeded here, the same sum
+  // mask_ctx_queue_keyspace () reports for the whole queue. Only words_walk_cnt is seeded: it is
+  // advanced by words_cnt, which counts candidates the way masks_prefix_cnt does, while
+  // words_walk_base advances by words_base, which counts base words.
+
+  if ((mask_ctx->masks_pos > 0) && (mask_ctx->masks_prefix_cnt != NULL))
+  {
+    status_ctx->words_walk_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_pos];
+  }
+
   int rc_outer = 0;
 
   if (mask_ctx->masks_cnt)
@@ -3531,6 +3543,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
   hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);
   hashcat_status->time_started_relative       = status_get_time_started_relative      (hashcat_ctx);
+
+  hashcat_status->queue_keyspace                = status_get_queue_keyspace                (hashcat_ctx);
+  hashcat_status->queue_progress_done           = status_get_queue_progress_done           (hashcat_ctx);
+  hashcat_status->queue_time_estimated_absolute = status_get_time_estimated_absolute_queue (hashcat_ctx);
+  hashcat_status->queue_time_estimated_relative = status_get_time_estimated_relative_queue (hashcat_ctx);
   hashcat_status->cpt_cur_min                 = status_get_cpt_cur_min                (hashcat_ctx);
   hashcat_status->cpt_cur_hour                = status_get_cpt_cur_hour               (hashcat_ctx);
   hashcat_status->cpt_cur_day                 = status_get_cpt_cur_day                (hashcat_ctx);

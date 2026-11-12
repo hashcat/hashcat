@@ -64,8 +64,13 @@ double      status_get_msec_real                      (const hashcat_ctx_t *hash
 char       *status_get_time_started_absolute          (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_started_relative          (const hashcat_ctx_t *hashcat_ctx);
 time_t      status_get_sec_etc                        (const hashcat_ctx_t *hashcat_ctx);
+time_t      status_get_sec_etc_queue                  (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_absolute        (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_relative        (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_time_estimated_absolute_queue  (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_time_estimated_relative_queue  (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_queue_keyspace                 (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_queue_progress_done            (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_restore_point                  (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_restore_total                  (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_restore_percent                (const hashcat_ctx_t *hashcat_ctx);
