@@ -1703,6 +1703,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   EVENT (EVENT_POTFILE_NUM_CRACKED);
 
   /**
+   * take over the restore file name from an earlier session of the same name
+   */
+
+  restore_keep_earlier (hashcat_ctx);
+
+  /**
    * the bridge this hash mode selects
    */
 

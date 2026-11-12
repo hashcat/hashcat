@@ -747,6 +747,35 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
     event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in the outfile check directory.", hashes->digests_done_outcheck);
     event_log_info (hashcat_ctx, NULL);
   }
+
+  // Where a crack ends up is a frequent question from new users, and the path depends on the profile
+  // folder and --potfile-path, so it belongs with what the lines above say the potfile already held.
+  // A benchmark and a speed or progress run crack nothing, and where the hash mode or the attack
+  // mode turns the potfile off the main screen has said so already. potfile_ctx is not the place to
+  // ask about the hash mode: potfile_init () runs before hashconfig_init (), so its enabled flag
+  // answers true for a mode that writes no potfile at all.
+
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  const bool cracks_nothing = (user_options->benchmark == true) || (user_options->speed_only == true) || (user_options->progress_only == true);
+
+  const bool said_above = (hashconfig->potfile_disable == true) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
+  if ((cracks_nothing == false) && (said_above == false))
+  {
+    const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+    if (potfile_ctx->enabled == true)
+    {
+      event_log_advice (hashcat_ctx, "Cracked hashes are saved to the potfile %s", potfile_ctx->filename);
+    }
+    else
+    {
+      event_log_advice (hashcat_ctx, "Cracked hashes are not saved to a potfile in this run.");
+    }
+
+    event_log_advice (hashcat_ctx, NULL);
+  }
 }
 
 static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1011,23 +1040,6 @@ static void main_backend_session_hostmem (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   else
   {
     event_log_info (hashcat_ctx, "Host memory allocated for this attack: %" PRIu64 " MB (%" PRIu64 " MB free)", *hostmem / (1024 * 1024), free_memory / (1024 * 1024));
-  }
-
-  // Where a crack ends up is a frequent question from new users, and the path depends on the
-  // profile folder and --potfile-path. A benchmark and a speed or progress run crack nothing.
-
-  if ((user_options->benchmark == false) && (user_options->speed_only == false) && (user_options->progress_only == false))
-  {
-    const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
-
-    if (potfile_ctx->enabled == true)
-    {
-      event_log_advice (hashcat_ctx, "Cracked hashes are saved to the potfile %s", potfile_ctx->filename);
-    }
-    else
-    {
-      event_log_advice (hashcat_ctx, "Cracked hashes are not saved to a potfile in this run.");
-    }
   }
 
   event_log_info (hashcat_ctx, NULL);
@@ -2441,18 +2453,11 @@ int main (int argc, char **argv)
 
   main_timing_stop (MAIN_TIMING_SESSION_DESTROY);
 
-  main_error_banner (hashcat_ctx, rc_final, quiet);
-
-  // finished with hashcat, clean up
-
-  const time_t proc_stop = time (NULL);
-
-  goodbye_screen (hashcat_ctx, proc_start, proc_stop);
+  // The two timestamps end the output, so what the user does next goes above them rather than after
+  // the last line of the run.
 
   if ((restore_left != NULL) && (quiet == false))
   {
-    event_log_advice (hashcat_ctx, NULL);
-
     if (restore_named == true)
     {
       event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --restore-file-path %s --restore, which prints the command for it.", restore_left);
@@ -2461,9 +2466,19 @@ int main (int argc, char **argv)
     {
       event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --session %s --restore, which prints the command for it.", user_options->session);
     }
+
+    event_log_advice (hashcat_ctx, NULL);
   }
 
   hcfree (restore_left);
+
+  main_error_banner (hashcat_ctx, rc_final, quiet);
+
+  // finished with hashcat, clean up
+
+  const time_t proc_stop = time (NULL);
+
+  goodbye_screen (hashcat_ctx, proc_start, proc_stop);
 
   main_timing_report (hashcat_ctx, timing_report_enabled, rc_final);
 

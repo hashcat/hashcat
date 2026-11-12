@@ -26,6 +26,8 @@
 #define RESTORE_VERSION_MIN 720
 #define RESTORE_VERSION_CUR 720
 
+void restore_keep_earlier (hashcat_ctx_t *hashcat_ctx);
+
 int cycle_restore (hashcat_ctx_t *hashcat_ctx);
 
 void unlink_restore (hashcat_ctx_t *hashcat_ctx);

@@ -620,19 +620,27 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
 // A new session takes the restore file name of an earlier one of the same name, and its first
 // update would replace what that session left. The earlier file is moved aside instead, named after
-// the time it was last written, so a run started again by mistake costs nothing. Answers false when
-// it could not be moved, and then this run writes no restore file at all rather than replace it.
+// the time it was last written, so a run started again by mistake loses nothing of the session it
+// interrupted. This runs once during startup rather than at the first update, which was a point in
+// the middle of the run that moved with the speed of the attack. A file that cannot be moved aside
+// turns the restore file off for this run rather than being replaced.
 
-static bool restore_keep_earlier (hashcat_ctx_t *hashcat_ctx)
+void restore_keep_earlier (hashcat_ctx_t *hashcat_ctx)
 {
-  const restore_ctx_t  *restore_ctx  = hashcat_ctx->restore_ctx;
+  restore_ctx_t        *restore_ctx  = hashcat_ctx->restore_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (restore_ctx->enabled == false) return;
+
+  // A run under --restore-position continues the file it read, so that is the one it replaces.
+
+  if (user_options->restore_position == true) return;
 
   const char *eff_restore_file = restore_ctx->eff_restore_file;
 
   struct stat st;
 
-  if (stat (eff_restore_file, &st) == -1) return true;
+  if (stat (eff_restore_file, &st) == -1) return;
 
   struct tm tm;
 
@@ -661,7 +669,9 @@ static bool restore_keep_earlier (hashcat_ctx_t *hashcat_ctx)
 
     hcfree (kept);
 
-    return false;
+    restore_ctx->enabled = false;
+
+    return;
   }
 
   event_log_warning (hashcat_ctx, "Moved the restore file of an earlier session %s to %s.", user_options->session, kept);
@@ -669,14 +679,11 @@ static bool restore_keep_earlier (hashcat_ctx_t *hashcat_ctx)
   event_log_warning (hashcat_ctx, NULL);
 
   hcfree (kept);
-
-  return true;
 }
 
 int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 {
-  restore_ctx_t        *restore_ctx  = hashcat_ctx->restore_ctx;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
   if (restore_ctx->enabled == false) return 0;
 
@@ -708,20 +715,6 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   restore_ctx->masks_pos_prev = mask_ctx->masks_pos;
   restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
   restore_ctx->words_cur_prev = status_ctx->words_cur;
-
-  // A run under --restore-position continues the file it read, so that is the one it replaces.
-
-  if ((restore_ctx->written == false) && (user_options->restore_position == false) && (hc_path_exist (eff_restore_file) == true))
-  {
-    if (restore_keep_earlier (hashcat_ctx) == false)
-    {
-      unlink (new_restore_file);
-
-      restore_ctx->enabled = false;
-
-      return -1;
-    }
-  }
 
   if (hc_path_exist (eff_restore_file) == true)
   {
