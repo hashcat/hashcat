@@ -138,7 +138,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[3]     = '$';
     token.len_min[3] = 0;
-    token.len_max[3] = 512;
+    token.len_max[3] = MAX_KDC_SALT_LEN;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[4]     = '$';

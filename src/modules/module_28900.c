@@ -238,9 +238,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    const int ai_words = (kdc_salt_len + 3) / 4;
+    const int kdc_salt_words = (kdc_salt_len + 3) / 4;
 
-    for (int i = 0; i < ai_words; i++)
+    for (int i = 0; i < kdc_salt_words; i++)
       salt->salt_buf[i] = krb5db->kdc_salt[i];
 
     salt->salt_len = kdc_salt_len;
