@@ -1,5 +1,9 @@
 FROM nvidia/cuda:13.3.1-devel-ubuntu26.04
 
+# RUN hands its line to /bin/sh, which reports only the last command of a pipeline, so a download
+# piped into a shell passes even when the download failed. bash with pipefail fails the step instead.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ENV HASHCAT_VERSION=8.0.0
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -13,7 +17,9 @@ apt-get update && apt-get upgrade -y && \
 apt-get install -y curl wget unzip tar 7zip libjudy-dev libpcre2-dev libmhash-dev vim screen git make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
 apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN removeopencl=$(dpkg --list | awk '/opencl/ && $2 ~ /^cuda-opencl-/ {print $2; exit}') && \
+# awk reads to the end rather than exiting at the first match: with pipefail an early exit can
+# kill dpkg with SIGPIPE and fail the step.
+RUN removeopencl=$(dpkg --list | awk '/opencl/ && $2 ~ /^cuda-opencl-/ && n == 0 {print $2; n = 1}') && \
 apt-get remove -y $removeopencl && \
 apt-get clean && rm -rf /var/lib/apt/lists/*
 
