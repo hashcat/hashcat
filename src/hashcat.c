@@ -670,6 +670,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (round_continues == false) EVENT (EVENT_CRACKER_STARTING);
 
+  // This round prints a final status of its own, so the one the round before it held back is no
+  // longer due.
+
+  status_ctx->finished_pending = false;
+
   status_ctx->devices_status = STATUS_RUNNING;
 
   // A status snapshot taken between rounds borrows its strings from hashcat_status_final, and
@@ -875,15 +880,22 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   // crack that finished the hash list, an abort and a quit all end the run here, and each of them
   // wants the final status printed rather than swallowed.
   //
-  // inner1_loop is what actually decides to run the next round, and it decides on run_main_level3.
-  // Asking the same question the same way is what keeps a round from being the last one silently.
+  // A queue of rounds, the masks of --increment or of a mask file as much as the phases of -a 9
+  // splitting its own hash file, is one run and ends with one final status, as those phases always
+  // did. A wrapper reading --machine-readable otherwise saw STATUS 5 after the first length of an
+  // --increment run and took the task for finished. The status is held rather than dropped, because
+  // the next round may never start: --limit can end the window inside the queue, and a mask can be
+  // passed over for its length.
+  //
+  // inner1_loop and outer_loop decide on run_main_level3 and run_main_level2 whether to run the next
+  // round. Asking the same question the same way is what keeps a round from being the last one silently.
 
-  bool round_follows = false;
+  const bool dict_follows = (straight_ctx->dicts_pos + 1 < straight_ctx->dicts_cnt);
+  const bool mask_follows = (mask_ctx->masks_pos     + 1 < mask_ctx->masks_cnt);
 
-  if (user_options_extra->association_autosplit == true)
-  {
-    round_follows = ((status_ctx->run_main_level3 == true) && (status_ctx->devices_status == STATUS_EXHAUSTED) && (straight_ctx->dicts_pos + 1 < straight_ctx->dicts_cnt));
-  }
+  const bool round_follows = (status_ctx->run_main_level3 == true) && (status_ctx->run_main_level2 == true) && (status_ctx->devices_status == STATUS_EXHAUSTED) && ((dict_follows == true) || (mask_follows == true));
+
+  status_ctx->finished_pending = round_follows;
 
   if (round_follows == false) EVENT (EVENT_CRACKER_FINISHED);
 
@@ -1992,6 +2004,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_ctx->words_walk_base = 0;
   status_ctx->words_walk_cnt  = 0;
 
+  status_ctx->finished_pending = false;
+
   // Restored into a later round of a queue: the rounds before it ran in the session being
   // restored, and what they held is part of the queue's progress. The walk that measures the
   // queue starts at this round, so the sum of the rounds before it is seeded here, the same sum
@@ -2025,6 +2039,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   else
   {
     if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
+  }
+
+  // A round held its final status back for one that never started, because --limit ended the window
+  // or the remaining masks were passed over. That round was the last, so its status is due now.
+
+  if (status_ctx->finished_pending == true)
+  {
+    status_ctx->finished_pending = false;
+
+    EVENT (EVENT_CRACKER_FINISHED);
   }
 
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest

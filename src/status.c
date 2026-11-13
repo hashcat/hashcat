@@ -1979,6 +1979,18 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) words_cnt  *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    words_cnt  *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       words_cnt  *= mask_ctx->bfs_cnt;
+
+      // What a salt has done is counted in candidates, so a limit left in base words is smaller than
+      // that and the subtraction below wraps as soon as the device engine cracks a salt.
+
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        u64 amplifier = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+        if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) amplifier *= straight_ctx->kernel_rules_cnt;
+
+        words_cnt *= amplifier;
+      }
     }
   }
   // Important for ETA only
@@ -2163,6 +2175,19 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
+
+      // The restored progress books a skipped base word of the device engine as its mean cell, times
+      // the ruleset where the engine applies the rules itself. Taking it off in base words left almost
+      // the whole skipped stream in the progress, so -a 4 --skip started far above zero.
+
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        u64 amplifier = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+        if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) amplifier *= straight_ctx->kernel_rules_cnt;
+
+        progress_skip *= amplifier;
+      }
     }
   }
 

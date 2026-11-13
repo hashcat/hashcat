@@ -467,7 +467,9 @@ KERNEL_FQ KERNEL_FA void m17040_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   //   printf("\n");
   // }
 
-  u32 decoded_data[384];
+  // One word more than the data fills, because check_decoded_data () reads the word after the
+  // checksum's last one, which at the maximum of 1536 bytes is word 384.
+  u32 decoded_data[385];
   const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
 
   cast128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data,

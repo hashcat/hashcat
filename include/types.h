@@ -4120,6 +4120,11 @@ typedef struct status_ctx
 
   u32  devices_status;
 
+  // An exhausted round with more of the queue after it holds its final status back, and the next
+  // round to start takes the job over. outer_loop prints it if no later round starts.
+
+  bool finished_pending;
+
   /**
    * full (final) status snapshot
    */

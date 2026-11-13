@@ -44,6 +44,7 @@ int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
   cpt_ctx->curve_xbar          = 0;
   cpt_ctx->curve_sxx           = 0;
   cpt_ctx->curve_n             = 0;
+  cpt_ctx->curve_bounded       = false;
   cpt_ctx->curve_never_lo      = 0;
   cpt_ctx->curve_never_hi      = 0;
 
@@ -86,6 +87,7 @@ void cpt_ctx_reset (hashcat_ctx_t *hashcat_ctx)
   cpt_ctx->curve_xbar          = 0;
   cpt_ctx->curve_sxx           = 0;
   cpt_ctx->curve_n             = 0;
+  cpt_ctx->curve_bounded       = false;
   cpt_ctx->curve_never_lo      = 0;
   cpt_ctx->curve_never_hi      = 0;
 }
