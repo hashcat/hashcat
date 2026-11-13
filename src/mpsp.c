@@ -2119,21 +2119,33 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       if (user_options->increment == INCREMENT_INVERSED)
       {
-        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated)) == -1)
+        char *mask_reversed = reverseMask (mask, "");
+
+        const int rc_truncated = mp_get_truncated_mask (hashcat_ctx, mask_reversed, strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated));
+
+        hcfree (mask_reversed);
+
+        if (rc_truncated == -1)
         {
           hcfree (mask_truncated);
 
           break;
         }
 
+        char *mask_restored = NULL;
+
         if (prepend)
         {
-          mask_truncated = reverseMask (mask_truncated, prepend);
+          mask_restored = reverseMask (mask_truncated, prepend);
         }
         else
         {
-         mask_truncated = reverseMask (mask_truncated, "");
+          mask_restored = reverseMask (mask_truncated, "");
         }
+
+        hcfree (mask_truncated);
+
+        mask_truncated = mask_restored;
       }
       else
       {
