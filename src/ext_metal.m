@@ -3012,16 +3012,19 @@ int hc_mtlEncodeComputeCommand_abort (void *hashcat_ctx, void *device_param_ptr,
 // that includes nothing but the compiler's own headers, such as <metal_stdlib>. Where the compiler
 // still reads the files, it gets the same text it would have read, so the result is the same there.
 //
-// A kernel names a file in one of three ways: M2S(INCLUDE_PATH/inc_x) from a kernel, "inc_x" from one
-// header to another, and a macro defined as M2S(INCLUDE_PATH/inc_x) further up, such as COMPARE_M.
-// Each is replaced by the contents of the file, framed in #line, so that a build error still names the
-// file and the line it is in. An #include in a block the preprocessor skips takes its closing #line
-// with it, so the line count is given again after each #else, #elif and #endif as well, which is what
-// clang's -frewrite-includes does for the same reason. A file is expanded wherever it is included,
-// since its include guard decides what it adds there, but not inside its own expansion: the guard
-// would leave it empty there anyway, and the expansion would not end. An #include in a block comment
-// is left alone, and so is an include in angle brackets, a name that is not a plain file name, and a
-// file that cannot be read, so that the compiler reports those as before.
+// A kernel names a file in one of three ways: M2S(INCLUDE_PATH/inc_x) from a kernel, "inc_x" from
+// one header to another, and a macro defined as M2S(INCLUDE_PATH/inc_x) further up, such as
+// COMPARE_M. Each is replaced by the contents of the file, framed in #line, so that a build error
+// still names the file and the line it is in. An #include in a block the preprocessor skips takes
+// its closing #line with it, so the line count is given again after each #else, #elif and #endif as
+// well, which is what clang's -frewrite-includes does for the same reason.
+//
+// A file is expanded wherever it is included, since its include guard decides what it adds there,
+// but not inside its own expansion: the guard would leave it empty there anyway, and the expansion
+// would not end. An #include in a comment or on a line that a backslash splices with another is
+// left alone, and so is an include in angle brackets, a name that is not a plain file name, a macro
+// defined as two different files, and a file that cannot be read or holds a NUL byte, so that the
+// compiler reports those as before.
 
 #define MTL_INCLUDE_DEPTH_MAX  32
 #define MTL_INCLUDE_MACROS_MAX 64
@@ -3078,7 +3081,9 @@ static const char *hc_mtlIncludeWord (const char *p, const char *end, const char
 {
   const size_t word_len = strlen (word);
 
-  if ((size_t) (end - p) < word_len) return NULL;
+  // p past end would turn the length left into a huge one
+
+  if ((p > end) || ((size_t) (end - p) < word_len)) return NULL;
 
   if (memcmp (p, word, word_len) != 0) return NULL;
 
@@ -3148,15 +3153,21 @@ static const char *hc_mtlIncludeM2S (const char *p, const char *end, char *out, 
   return hc_mtlIncludeFile (p, end, ')', out, out_sz);
 }
 
+// A name defined as two different files is not resolved at all: which of the two is in force can
+// depend on a condition only the preprocessor decides, so an #include of it is left to the compiler.
+
 static void hc_mtlIncludeDefine (mtl_include_t *inc, const char *name, const char *file)
 {
   for (int i = 0; i < inc->macro_cnt; i++)
   {
     if (strcmp (inc->macro_name[i], name) != 0) continue;
 
-    hcfree (inc->macro_file[i]);
+    if ((inc->macro_file[i] != NULL) && (strcmp (inc->macro_file[i], file) != 0))
+    {
+      hcfree (inc->macro_file[i]);
 
-    inc->macro_file[i] = hcstrdup (file);
+      inc->macro_file[i] = NULL;
+    }
 
     return;
   }
@@ -3230,6 +3241,8 @@ static bool hc_mtlIncludeTarget (mtl_include_t *inc, const char *line, const cha
 
     if (i == inc->macro_cnt) return false;
 
+    if (inc->macro_file[i] == NULL) return false;
+
     if (strlen (inc->macro_file[i]) >= file_sz) return false;
 
     strcpy (file, inc->macro_file[i]);
@@ -3269,19 +3282,43 @@ static bool hc_mtlIncludeEndsBlock (const char *line, const char *end)
   return false;
 }
 
-// Whether a block comment is still open at the end of the line, given whether it was at the start
+// Whether the line ends in a backslash, which splices the next line onto it: the next line then
+// continues this one and starts no directive of its own, and nothing can be put after this one
+// without being spliced onto it. Blanks after the backslash still splice, with a warning, in clang
+// and gcc alike.
 
-static bool hc_mtlIncludeInComment (const char *p, const char *end, bool in_comment)
+static bool hc_mtlIncludeSpliced (const char *line, const char *end)
 {
+  while ((end > line) && ((end[-1] == '\r') || (end[-1] == ' ') || (end[-1] == '\t'))) end--;
+
+  return (end > line) && (end[-1] == '\\');
+}
+
+// The comments a line leaves open for the next one: a block comment, or a line comment that a
+// backslash at its end carries on to the next line. Both come in as what the line before left open.
+
+static void hc_mtlIncludeComments (const char *p, const char *end, bool *block_comment, bool *line_comment)
+{
+  const bool spliced = hc_mtlIncludeSpliced (p, end);
+
+  if (*line_comment == true)
+  {
+    // the whole line belongs to the line comment of the line before it
+
+    *line_comment = spliced;
+
+    return;
+  }
+
   char quote = 0;
 
   while (p < end)
   {
-    if (in_comment == true)
+    if (*block_comment == true)
     {
       if (((end - p) >= 2) && (p[0] == '*') && (p[1] == '/'))
       {
-        in_comment = false;
+        *block_comment = false;
 
         p += 2;
       }
@@ -3292,7 +3329,10 @@ static bool hc_mtlIncludeInComment (const char *p, const char *end, bool in_comm
     }
     else if (quote != 0)
     {
-      if (*p == '\\') p++;
+      // an escape takes the character after it along, if the line has one, so that p never goes
+      // past end
+
+      if ((*p == '\\') && ((end - p) >= 2)) p++;
       else if (*p == quote) quote = 0;
 
       p++;
@@ -3303,11 +3343,13 @@ static bool hc_mtlIncludeInComment (const char *p, const char *end, bool in_comm
     }
     else if (((end - p) >= 2) && (p[0] == '/') && (p[1] == '/'))
     {
-      break;
+      *line_comment = spliced;
+
+      return;
     }
     else if (((end - p) >= 2) && (p[0] == '/') && (p[1] == '*'))
     {
-      in_comment = true;
+      *block_comment = true;
 
       p += 2;
     }
@@ -3316,8 +3358,6 @@ static bool hc_mtlIncludeInComment (const char *p, const char *end, bool in_comm
       p++;
     }
   }
-
-  return in_comment;
 }
 
 static char *hc_mtlIncludeRead (const char *include_path, const char *file)
@@ -3345,11 +3385,20 @@ static char *hc_mtlIncludeRead (const char *include_path, const char *file)
 
   char *buf = (char *) hcmalloc (len + 1);
 
+  if (buf == NULL)
+  {
+    fclose (fp);
+
+    return NULL;
+  }
+
   const size_t num_read = fread (buf, 1, len, fp);
 
   fclose (fp);
 
-  if (num_read != len)
+  // a NUL byte would end the source there without a word, so such a file is left to the compiler
+
+  if ((num_read != len) || (memchr (buf, 0, len) != NULL))
   {
     hcfree (buf);
 
@@ -3372,11 +3421,21 @@ static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const cha
 
   inc->stack[inc->depth++] = name;
 
-  bool in_comment = false;
+  bool block_comment = false;
+  bool line_comment  = false;
+
+  // whether the line before ended in a backslash
+
+  bool spliced = false;
 
   // the line count only drifts once a file has been expanded into this one
 
   bool expanded = false;
+
+  // a #line owed by an #else, #elif or #endif, given once the directive and any comment it opened
+  // have ended, so that it is neither spliced onto the directive nor put inside the comment
+
+  bool line_due = false;
 
   u32 line_nr = 0;
 
@@ -3393,11 +3452,22 @@ static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const cha
 
     char file[MTL_INCLUDE_NAME_LEN];
 
-    const bool is_include = (in_comment == false) && (hc_mtlIncludeTarget (inc, line, eol, file, sizeof (file)) == true);
+    // A directive is only looked for on a line that starts a line of its own: not in a comment and
+    // not spliced onto the line before it. An #include is only resolved where the line is not
+    // spliced with the line after it either: that line belongs to the #include, its comment for
+    // instance, and would become a line of its own once the #include is replaced.
 
-    const bool ends_block = (in_comment == false) && (expanded == true) && (hc_mtlIncludeEndsBlock (line, eol) == true);
+    const bool splices_next = hc_mtlIncludeSpliced (line, eol);
 
-    in_comment = hc_mtlIncludeInComment (line, eol, in_comment);
+    const bool starts = (block_comment == false) && (line_comment == false) && (spliced == false);
+
+    const bool is_include = (starts == true) && (splices_next == false) && (hc_mtlIncludeTarget (inc, line, eol, file, sizeof (file)) == true);
+
+    if ((starts == true) && (expanded == true) && (hc_mtlIncludeEndsBlock (line, eol) == true)) line_due = true;
+
+    hc_mtlIncludeComments (line, eol, &block_comment, &line_comment);
+
+    spliced = splices_next;
 
     bool in_stack = false;
 
@@ -3423,8 +3493,10 @@ static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const cha
     {
       rc = hc_mtlIncludeAppend (inc, line, next - line);
 
-      if ((rc == 0) && (ends_block == true))
+      if ((rc == 0) && (line_due == true) && (splices_next == false) && (block_comment == false))
       {
+        line_due = false;
+
         char *marker = NULL;
 
         // a last line without a newline gets one before the #line
