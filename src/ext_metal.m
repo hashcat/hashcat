@@ -3015,11 +3015,13 @@ int hc_mtlEncodeComputeCommand_abort (void *hashcat_ctx, void *device_param_ptr,
 // A kernel names a file in one of three ways: M2S(INCLUDE_PATH/inc_x) from a kernel, "inc_x" from one
 // header to another, and a macro defined as M2S(INCLUDE_PATH/inc_x) further up, such as COMPARE_M.
 // Each is replaced by the contents of the file, framed in #line, so that a build error still names the
-// file and the line it is in. A file is expanded wherever it is included, since its include guard
-// decides what it adds there, but not inside its own expansion: the guard would leave it empty there
-// anyway, and the expansion would not end. An #include in a block comment is left alone, and so is an
-// include in angle brackets, a name that is not a plain file name, and a file that cannot be read, so
-// that the compiler reports those as before.
+// file and the line it is in. An #include in a block the preprocessor skips takes its closing #line
+// with it, so the line count is given again after each #else, #elif and #endif as well, which is what
+// clang's -frewrite-includes does for the same reason. A file is expanded wherever it is included,
+// since its include guard decides what it adds there, but not inside its own expansion: the guard
+// would leave it empty there anyway, and the expansion would not end. An #include in a block comment
+// is left alone, and so is an include in angle brackets, a name that is not a plain file name, and a
+// file that cannot be read, so that the compiler reports those as before.
 
 #define MTL_INCLUDE_DEPTH_MAX  32
 #define MTL_INCLUDE_MACROS_MAX 64
@@ -3242,6 +3244,31 @@ static bool hc_mtlIncludeTarget (mtl_include_t *inc, const char *line, const cha
   return true;
 }
 
+// Whether the line is an #else, #elif or #endif. The #line that follows an expanded file is skipped
+// with it when the #include is in a block the preprocessor skips, so the line count is given again
+// after each of these, where a skipped block ends.
+
+static bool hc_mtlIncludeEndsBlock (const char *line, const char *end)
+{
+  const char *p = hc_mtlIncludeSkipSpace (line, end);
+
+  if ((p = hc_mtlIncludeWord (p, end, "#")) == NULL) return false;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  char name[MTL_INCLUDE_NAME_LEN];
+
+  if (hc_mtlIncludeIdent (p, end, name, sizeof (name)) == NULL) return false;
+
+  if (strcmp (name, "else")     == 0) return true;
+  if (strcmp (name, "elif")     == 0) return true;
+  if (strcmp (name, "elifdef")  == 0) return true;
+  if (strcmp (name, "elifndef") == 0) return true;
+  if (strcmp (name, "endif")    == 0) return true;
+
+  return false;
+}
+
 // Whether a block comment is still open at the end of the line, given whether it was at the start
 
 static bool hc_mtlIncludeInComment (const char *p, const char *end, bool in_comment)
@@ -3347,6 +3374,10 @@ static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const cha
 
   bool in_comment = false;
 
+  // the line count only drifts once a file has been expanded into this one
+
+  bool expanded = false;
+
   u32 line_nr = 0;
 
   const char *line = source;
@@ -3363,6 +3394,8 @@ static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const cha
     char file[MTL_INCLUDE_NAME_LEN];
 
     const bool is_include = (in_comment == false) && (hc_mtlIncludeTarget (inc, line, eol, file, sizeof (file)) == true);
+
+    const bool ends_block = (in_comment == false) && (expanded == true) && (hc_mtlIncludeEndsBlock (line, eol) == true);
 
     in_comment = hc_mtlIncludeInComment (line, eol, in_comment);
 
@@ -3389,10 +3422,25 @@ static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const cha
     else if (content == NULL)
     {
       rc = hc_mtlIncludeAppend (inc, line, next - line);
+
+      if ((rc == 0) && (ends_block == true))
+      {
+        char *marker = NULL;
+
+        // a last line without a newline gets one before the #line
+
+        hc_asprintf (&marker, "%s#line %u \"%s\"\n", (eol == next) ? "\n" : "", line_nr + 1, name);
+
+        rc = hc_mtlIncludeAppend (inc, marker, strlen (marker));
+
+        hcfree (marker);
+      }
     }
     else
     {
       char *marker = NULL;
+
+      expanded = true;
 
       hc_asprintf (&marker, "#line 1 \"%s\"\n", file);
 
