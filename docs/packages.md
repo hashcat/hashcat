@@ -27,6 +27,10 @@ hashcat no longer bundles zlib or the LZMA SDK. It loads the system zlib, liblzm
 
 Installed builds no longer write to `$HOME/.hashcat`. Potfiles and sessions go to the XDG profile directory and everything hashcat can rebuild goes to the XDG cache directory. No data is migrated, and hashcat reports the old directory alongside both new ones.
 
+### Installing on Windows ###
+
+The Windows release is a portable archive that runs from wherever it is unpacked, and an unpacked copy keeps its potfile, sessions and kernel cache beside `hashcat.exe`. A copy under Program Files, the per user Programs folder (`%LOCALAPPDATA%\Programs`) or winget's packages folder (`%LOCALAPPDATA%\Microsoft\WinGet\Packages`) counts as installed. It keeps that data in `%LOCALAPPDATA%\hashcat` instead, with the sessions and the cache below it, because an upgrade or an uninstall would remove it together with the program folder. A potfile found beside `hashcat.exe` of an installed copy is reported and left where it is.
+
 ### Packaging guidance ###
 
 Distribution builds can disable host-specific CPU optimization flags by compiling with `make MAINTAINER_MODE=1` instead of plain `make`.

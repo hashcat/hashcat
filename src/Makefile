@@ -772,6 +772,8 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
+LFLAGS_NATIVE           += -lshell32
+LFLAGS_NATIVE           += -lole32
 LFLAGS_NATIVE           += $(LFLAGS_WIN_STACK)
 
 # Every library that is not part of Windows goes INTO the binary that needs it, because no runtime
@@ -893,6 +895,7 @@ LFLAGS_WIN              := $(filter-out $(LFLAGS_HOST_ONLY),$(LFLAGS))
 LFLAGS_WIN              += -lpsapi
 LFLAGS_WIN              += -lws2_32
 LFLAGS_WIN              += -lpowrprof
+LFLAGS_WIN              += -lshell32
 
 ifeq ($(CC_WIN_CLANG),0)
 LFLAGS_WIN              += -static
