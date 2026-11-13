@@ -363,9 +363,12 @@ KERNEL_FQ KERNEL_FA void m17070_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   // one word past the message, because check_decoded_data () reads six words from the start
   // of the last whole word of the payload, and at the maximum message size the sixth is one
-  // past what the payload itself occupies
+  // past what the payload itself occupies. aes256_decrypt_cfb () writes only as far as the
+  // message reaches, so that word is zeroed here rather than left for an uninitialized read.
 
   u32 decoded_data[(GPG_DATA_MAX / 4) + 1];
+
+  decoded_data[GPG_DATA_MAX / 4] = 0;
 
   const u32 digest_pos = LOOP_POS;
 

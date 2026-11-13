@@ -9,10 +9,10 @@ from lib import gpg
 
 # A GPG symmetrically encrypted message, the kind "gpg --symmetric" writes: iterated and salted
 # S2K, AES-256 in CFB, and the SHA-1 MDC that RFC 4880 5.13 puts at the end of the plaintext,
-# which is what module_17070.c check_decoded_data () verifies. The MDC is SHA-1 whatever the S2K
-# hash is.
+# which is what check_decoded_data () in OpenCL/m17070-pure.cl verifies. The MDC is SHA-1
+# whatever the S2K hash is.
 #
-# The S2K hash is what separates this mode from m17060 (SHA-1) and m17070 (SHA-256).
+# The S2K hash is what separates this mode from m17060 (SHA-1) and m17080 (SHA-512).
 # S2K_HASH_ID is the OpenPGP hash algorithm id the parser requires.
 
 S2K_HASH    = "sha256"

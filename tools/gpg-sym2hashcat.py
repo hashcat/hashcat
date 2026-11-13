@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# extract hashes from "gpg --symmetric" messages to use with hashcat modes 17060 and 17070
+# extract hashes from "gpg --symmetric" messages to use with hashcat modes 17060, 17070 and 17080
 #
 # A symmetrically encrypted message carries two packets that matter. The SKESK packet (tag 3)
 # names the cipher and the S2K that turns the passphrase into the session key, and the SEIPD
@@ -11,11 +11,11 @@
 import base64
 import sys
 
-# the S2K hash of the message selects the hash-mode, the two differ in nothing else
+# the S2K hash of the message selects the hash-mode, the three differ in nothing else
 
-HASH_MODE = {2: 17060, 8: 17070}
+HASH_MODE = {2: 17060, 8: 17070, 10: 17080}
 
-HASH_NAME = {2: "SHA-1", 8: "SHA-256"}
+HASH_NAME = {2: "SHA-1", 8: "SHA-256", 10: "SHA-512"}
 
 # what the kernels implement: iterated and salted S2K, AES-256, integrity protected packet
 
@@ -24,10 +24,16 @@ CIPHER_AES256 = 9
 TAG_SKESK = 3
 TAG_SEIPD = 18
 
-# module_17060.c and module_17070.c cap the message at GPG_DATA_MAX, because the SHA-1 that
-# decides a candidate covers the whole plaintext and so the whole of it has to reach the device
+# the m170x0 modules cap the message at GPG_DATA_MAX, because the SHA-1 that decides a candidate
+# covers the whole plaintext and so the whole of it has to reach the device
 
 GPG_DATA_MAX = 1536
+
+# RFC 4880 5.13: 16 random bytes, the 2 that repeat the last two of them, the payload, and the
+# 2 byte MDC packet header followed by its 20 byte SHA-1. An empty payload is 40 bytes, and the
+# modules refuse anything shorter.
+
+GPG_DATA_MIN = 40
 
 ARMOR_BEGIN = "-----BEGIN PGP MESSAGE-----"
 ARMOR_END = "-----END PGP MESSAGE-----"
@@ -35,6 +41,15 @@ ARMOR_END = "-----END PGP MESSAGE-----"
 
 class Unsupported(Exception):
     pass
+
+
+def require(data, pos, count, what):
+    # a file cut short inside a packet leaves a body shorter than its length octets promise, and a
+    # hash line built from such a body never cracks, so refuse it instead of writing it out
+
+    if pos + count > len(data):
+        raise Unsupported("the %s runs past the end of the file, so the message is truncated"
+                          % what)
 
 
 def dearmor(data):
@@ -75,8 +90,7 @@ def read_new_length(data, pos):
     chunks = []
 
     while True:
-        if pos >= len(data):
-            raise Unsupported("packet length runs past the end of the file")
+        require(data, pos, 1, "packet length octet")
 
         o1 = data[pos]
         pos += 1
@@ -86,17 +100,20 @@ def read_new_length(data, pos):
         if o1 < 192:
             length = o1
         elif o1 < 224:
-            if pos >= len(data):
-                raise Unsupported("truncated two octet packet length")
+            require(data, pos, 1, "two octet packet length")
 
             length = ((o1 - 192) << 8) + data[pos] + 192
             pos += 1
         elif o1 == 255:
+            require(data, pos, 4, "five octet packet length")
+
             length = int.from_bytes(data[pos:pos + 4], "big")
             pos += 4
         else:
             length = 1 << (o1 & 0x1F)
             partial = True
+
+        require(data, pos, length, "packet body")
 
         chunks.append(data[pos:pos + length])
         pos += length
@@ -126,17 +143,29 @@ def read_packets(data):
 
             length_type = tag_byte & 0x03
 
-            if length_type == 0:
-                length = data[pos]
-                pos += 1
-            elif length_type == 1:
-                length = int.from_bytes(data[pos:pos + 2], "big")
-                pos += 2
-            elif length_type == 2:
-                length = int.from_bytes(data[pos:pos + 4], "big")
-                pos += 4
-            else:
+            if length_type == 3:
+                # RFC 4880 4.2.1 length type 3, the body is whatever is left of the file, so it
+                # cannot promise more than the file holds and needs no check
+
                 length = len(data) - pos
+            else:
+                if length_type == 0:
+                    require(data, pos, 1, "one octet packet length")
+
+                    length = data[pos]
+                    pos += 1
+                elif length_type == 1:
+                    require(data, pos, 2, "two octet packet length")
+
+                    length = int.from_bytes(data[pos:pos + 2], "big")
+                    pos += 2
+                else:
+                    require(data, pos, 4, "four octet packet length")
+
+                    length = int.from_bytes(data[pos:pos + 4], "big")
+                    pos += 4
+
+                require(data, pos, length, "packet body")
 
             body = data[pos:pos + length]
             pos += length
@@ -215,6 +244,13 @@ def parse_gpg(path):
         elif tag == TAG_SEIPD and seipd is None:
             seipd = body
 
+        # Everything after these two is of no interest, and reading on would let a packet the
+        # tool does not need refuse a message whose SKESK and SEIPD are both intact. A file with
+        # a truncated tail behind a complete message is the case that matters.
+
+        if (skesk is not None) and (seipd is not None):
+            break
+
     if skesk is None:
         raise Unsupported("no SKESK packet (tag %d). This is not a passphrase encrypted "
                           "message." % TAG_SKESK)
@@ -226,6 +262,11 @@ def parse_gpg(path):
     cipher_algo, hash_algo, salt, count = parse_skesk(skesk)
 
     ciphertext = parse_seipd(seipd)
+
+    if len(ciphertext) < GPG_DATA_MIN:
+        raise Unsupported("the message holds %d bytes of ciphertext and the modes need at least "
+                          "%d, which is what an empty payload comes to. This is not a whole "
+                          "message." % (len(ciphertext), GPG_DATA_MIN))
 
     if len(ciphertext) > GPG_DATA_MAX:
         raise Unsupported("the message holds %d bytes of ciphertext and the modes cap it at "

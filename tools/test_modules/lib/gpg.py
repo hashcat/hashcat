@@ -167,17 +167,24 @@ def aes_cfb_verify(word, fields, hashname, hash_id):
                fields["count"], fields["salt"])
 
 
-# What m17060 and m17070 share. These are symmetrically encrypted messages rather than secret
-# keys, so the string has no modulus and no IV, carries the packet tag 18 where a key carries the
-# usage octet, and the data is a whole OpenPGP message body instead of key material.
+# What m17060, m17070 and m17080 share. These are symmetrically encrypted messages rather than
+# secret keys, so the string has no modulus and no IV, carries the packet tag 18 where a key
+# carries the usage octet, and the data is a whole OpenPGP message body instead of key material.
 
 TAG_SEIPD = 18  # Sym. Encrypted and Integrity Protected Data, the packet that ends in a SHA-1
 
 SYM_CIPHER_ALGO = 9   # these modes are AES-256 only
 SYM_KEY_LEN     = 32
-SYM_PAYLOAD_LEN = 64
 
 MDC_LEN = 20
+
+# The message is 18 bytes of random prefix, the payload, and the 22 byte MDC packet, so the payload
+# length decides the message length and these two bounds are GPG_DATA_MIN and GPG_DATA_MAX in the
+# modules. Drawing it per hash is what covers the range: a fixed payload would put every message at
+# one length, where the SHA-1 the kernel checks always starts on the same word boundary.
+
+SYM_PAYLOAD_MIN = 0
+SYM_PAYLOAD_MAX = 1496
 
 
 def build_sym(data, hash_id, count, salt):
@@ -223,6 +230,23 @@ def parse_sym(hash_in):
   return fields
 
 
+def sym_payload_len():
+  # Drawn uniformly, either end of the range would come up about once in 1500 hashes where a run
+  # draws a few hundred, so the two ends are picked outright one time in eight each. The maximum
+  # matters: GPG_DATA_MAX is the only message size that reaches the word past the payload which
+  # the comp kernels size their decoded_data for.
+
+  pick = random_number(0, 7)
+
+  if pick == 0:
+    return SYM_PAYLOAD_MIN
+
+  if pick == 1:
+    return SYM_PAYLOAD_MAX
+
+  return random_number(SYM_PAYLOAD_MIN, SYM_PAYLOAD_MAX)
+
+
 def _sym_cfb(key):
   # a symmetrically encrypted message carries no IV. CFB starts on zero and the random prefix of
   # the plaintext is what the IV would otherwise be.
@@ -249,7 +273,7 @@ def sym_mdc_generate(word, hashname, hash_id):
   count = random_number(1024, 65536)
 
   key   = s2k_iterated(word, salt, count, SYM_KEY_LEN, hashname)
-  plain = sym_mdc_plaintext(random_bytes(SYM_PAYLOAD_LEN))
+  plain = sym_mdc_plaintext(random_bytes(sym_payload_len()))
 
   return build_sym(_sym_cfb(key).encrypt(plain), hash_id, count, salt)
 

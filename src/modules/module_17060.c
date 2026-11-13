@@ -131,8 +131,9 @@ static u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig,
 }
 
 // One cipher, so the kernel never varies. The mode still goes through the deep comp kernel,
-// because that is what walks the digests of one salt, and two messages built with the same
-// passphrase share their S2K salt and iteration count.
+// because that is what walks the digests of one salt. gpg draws a fresh salt for every message
+// it writes, so its own output lands one digest per salt, but src/hashes.c refuses a file that
+// does hold several messages on one S2K salt and count unless the mode asks for this.
 
 static u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
 {
