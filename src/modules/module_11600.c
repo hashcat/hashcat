@@ -11,7 +11,6 @@
 #include "shared.h"
 #include "parser.h"
 #include "memory.h"
-#include "thread.h"
 #include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
@@ -61,20 +60,11 @@ typedef struct seven_zip_tmp
 
 } seven_zip_tmp_t;
 
-// one hook item can carry a match for every archive that shares the salt; archives past the cap
-// crack on the next run, once the potfile has removed the ones already found
-
-#define SEVEN_ZIP_MATCH_MAX 64
-
 typedef struct seven_zip_hook
 {
   u32 ukey[8];
 
   u32 hook_success;
-
-  u32 matches_cnt;
-
-  u32 matches[SEVEN_ZIP_MATCH_MAX];
 
 } seven_zip_hook_t;
 
@@ -91,7 +81,7 @@ typedef struct seven_zip
 
   u8  data_type;
 
-  u32 data_idx; // index into seven_zip_datas
+  u32 *data_buf; // payload, host-side heap, owned by this esalt
 
   u32 data_len;
 
@@ -116,23 +106,6 @@ typedef struct seven_zip_hook_extra
   void **flt;
 
 } seven_zip_hook_extra_t;
-
-// payloads are up to 8 MiB, too large for the per-digest esalt, so they stay on the host and the
-// esalt carries an index. The registry lives as long as the process.
-
-typedef struct seven_zip_data
-{
-  u32 *buf;
-
-  u32  len;
-
-} seven_zip_data_t;
-
-static seven_zip_data_t *seven_zip_datas     = NULL;
-static u32               seven_zip_datas_cnt = 0;
-
-static hc_thread_mutex_t seven_zip_datas_mux;
-static bool              seven_zip_datas_mux_ready = false;
 
 static const char *SIGNATURE_SEVEN_ZIP = "$7z$";
 
@@ -184,24 +157,6 @@ static char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   }
 
   return jit_build_options;
-}
-
-static u32 seven_zip_data_add (u32 *buf, const u32 len)
-{
-  hc_thread_mutex_lock (seven_zip_datas_mux);
-
-  const u32 data_idx = seven_zip_datas_cnt;
-
-  seven_zip_datas = (seven_zip_data_t *) hcrealloc (seven_zip_datas, seven_zip_datas_cnt * sizeof (seven_zip_data_t), sizeof (seven_zip_data_t));
-
-  seven_zip_datas[data_idx].buf = buf;
-  seven_zip_datas[data_idx].len = len;
-
-  seven_zip_datas_cnt++;
-
-  hc_thread_mutex_unlock (seven_zip_datas_mux);
-
-  return data_idx;
 }
 
 static bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
@@ -471,25 +426,21 @@ static void module_hook23 (hc_device_param_t *device_param, const void *hook_ext
   seven_zip_hook_t *hook_item = &hook_items[pw_pos];
 
   hook_item->hook_success = 0;
-  hook_item->matches_cnt  = 0;
 
   const seven_zip_hook_extra_t *seven_zip_hook_extra = (const seven_zip_hook_extra_t *) hook_extra_param;
 
   hashcat_ctx_t *hashcat_ctx = seven_zip_hook_extra->hashcat_ctx;
 
-  const hashes_t     *hashes     = hashcat_ctx->hashes;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
-  // every digest of this salt has to be tried with this candidate; the self test parses its hash
-  // into the st buffers instead of the real ones
+  // the backend calls this hook once per digest of the salt (deep-comp loop); the current
+  // digest is loop_pos. The self test parses its hash into the st buffers instead.
 
   const seven_zip_t *esalts_buf = (const seven_zip_t *) hashes->esalts_buf;
 
-  u32 digest_cur  = 0;
-  u32 digest_end  = 1;
-  u32 digest_base = 0;
-
-  const u32 *digests_shown = NULL;
+  u32 digest_cur = 0;
 
   if (status_ctx->devices_status == STATUS_SELFTEST)
   {
@@ -499,16 +450,23 @@ static void module_hook23 (hc_device_param_t *device_param, const void *hook_ext
   {
     const salt_t *salt_buf = hashes->salts_buf + salt_pos;
 
-    digest_base = salt_buf->digests_offset;
-    digest_cur  = salt_buf->digests_offset;
-    digest_end  = digest_cur + salt_buf->digests_cnt;
+    // association mode never groups digests (one archive per salt) and its hook runs
+    // once per salt, outside the deep-comp loop
 
-    digests_shown = hashes->digests_shown;
+    const u32 loop_pos = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? 0 : device_param->kernel_param.loop_pos;
+
+    digest_cur = salt_buf->digests_offset + loop_pos;
+
+    // an archive that is already cracked (or listed in the potfile) needs no check again
+
+    if (hashes->digests_shown[digest_cur] != 0) return;
   }
 
-  const u32 *ukey = (const u32 *) hook_item->ukey;
+  const seven_zip_t *seven_zip = esalts_buf + digest_cur;
 
-  // init AES, the key depends only on the candidate and is shared by all digests of the salt
+  if (seven_zip->data_buf == NULL) return;
+
+  const u32 *ukey = (const u32 *) hook_item->ukey;
 
   AES_KEY aes_key;
 
@@ -516,36 +474,11 @@ static void module_hook23 (hc_device_param_t *device_param, const void *hook_ext
 
   aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
 
-  for ( ; digest_cur < digest_end; digest_cur++)
-  {
-    // an archive that is already cracked (or listed in the potfile) needs no check again
+  const bool match = seven_zip_check_crc (seven_zip_hook_extra, device_param->device_id, &aes_key, seven_zip, seven_zip->data_buf);
 
-    if (digests_shown != NULL)
-    {
-      if (digests_shown[digest_cur] != 0) continue;
-    }
+  if (match == false) return;
 
-    const seven_zip_t *seven_zip = esalts_buf + digest_cur;
-
-    if (seven_zip->data_idx >= seven_zip_datas_cnt) continue;
-
-    const u32 *data_buf = seven_zip_datas[seven_zip->data_idx].buf;
-
-    const bool match = seven_zip_check_crc (seven_zip_hook_extra, device_param->device_id, &aes_key, seven_zip, data_buf);
-
-    if (match == false) continue;
-
-    hook_item->hook_success = 1;
-
-    if (hook_item->matches_cnt < SEVEN_ZIP_MATCH_MAX)
-    {
-      // the digest index inside the salt, matched against LOOP_POS in the comp kernel
-
-      hook_item->matches[hook_item->matches_cnt] = digest_cur - digest_base;
-
-      hook_item->matches_cnt++;
-    }
-  }
+  hook_item->hook_success = 1;
 }
 
 static u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -831,6 +764,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (data_len > 0x200000 * 4) return (PARSER_SALT_VALUE);
 
+  if (data_len == 0) return (PARSER_SALT_VALUE); // the digest and the CRC check read the payload
+
   if (unpack_size > data_len) return (PARSER_SALT_VALUE);
 
   if (is_compressed == true)
@@ -996,7 +931,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   seven_zip->aes_len = aes_len;
 
-  seven_zip->data_idx = seven_zip_data_add (data_buf, data_len);
+  // the payload stays with its digest; a probe decode reuses its esalt, so free the old one
+
+  if (seven_zip->data_buf != NULL) hcfree (seven_zip->data_buf);
+
+  seven_zip->data_buf = data_buf;
 
   // archives that agree on NumCyclesPower share one salt now, so the KDF runs once per candidate
   // for the whole group; the digest (CRC32 + payload prefix) tells them apart
@@ -1030,7 +969,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   const u32 data_len = seven_zip->data_len;
 
-  const u32 *data_words = seven_zip_datas[seven_zip->data_idx].buf;
+  const u32 *data_words = seven_zip->data_buf;
 
   char *data_buf = (char *) hcmalloc ((data_len * 2) + 1);
 
@@ -1122,13 +1061,6 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
-
-  if (seven_zip_datas_mux_ready == false)
-  {
-    hc_thread_mutex_init (seven_zip_datas_mux);
-
-    seven_zip_datas_mux_ready = true;
-  }
 
   module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_esalt_size               = module_esalt_size;

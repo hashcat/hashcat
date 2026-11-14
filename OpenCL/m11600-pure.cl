@@ -24,17 +24,11 @@ typedef struct seven_zip_tmp
 
 } seven_zip_tmp_t;
 
-#define SEVEN_ZIP_MATCH_MAX 64
-
 typedef struct
 {
   u32 ukey[8];
 
   u32 hook_success;
-
-  u32 matches_cnt;
-
-  u32 matches[SEVEN_ZIP_MATCH_MAX];
 
 } seven_zip_hook_t;
 
@@ -343,21 +337,13 @@ KERNEL_FQ KERNEL_FA void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, sev
 
   if (hooks[gid].hook_success == 0) return;
 
-  // the host hook recorded the salt-relative index of every digest this candidate verifies
+  // one comp pass answers for one digest of the salt (LOOP_POS); the host hook ran for
+  // exactly this digest before the pass
 
-  const u32 matches_cnt = hooks[gid].matches_cnt;
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + LOOP_POS;
 
-  for (u32 i = 0; i < matches_cnt; i++)
+  if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
   {
-    if (hooks[gid].matches[i] != LOOP_POS) continue;
-
-    const u32 digest_cur = DIGESTS_OFFSET_HOST + LOOP_POS;
-
-    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, LOOP_POS, digest_cur, gid, 0, 0, 0);
-    }
-
-    return;
+    mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, LOOP_POS, digest_cur, gid, 0, 0, 0);
   }
 }
