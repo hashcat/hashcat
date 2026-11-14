@@ -1,17 +1,20 @@
 /**
- * Jaxx Liberty "mnemonic" record (22.10):
- *
- *   key = PBKDF2-HMAC-SHA256($pass, sb, 5000 iters, 32B)
- *   et  = AES-256-GCM(key, iv).Seal(entropy-hex) = ct || 16B tag
- *   pt  = BIP39 entropy as lowercase hex ASCII
- *
- * sb 12..128B, iv 12..16B (canonical 12/12 - the 96-bit GCM fast path),
- * fixed 5000 iterations (bundle constant, no rounds field in the line).
- * Tag oracle: GHASH over the full ct + GCTR - FP ~= 2^-128.
- *
- * Hash format: $jaxx$<sb_b64>$<iv_b64>$<ct+tag_b64>
- * License: MIT
+ * Author......: See docs/credits.txt
+ * License.....: MIT
  */
+
+// Jaxx Liberty "mnemonic" record:
+//
+//   key = PBKDF2-HMAC-SHA256($pass, sb, 5000 iters, 32B)
+//   et  = AES-256-GCM(key, iv).Seal(entropy-hex) = ct || 16B tag
+//   pt  = BIP39 entropy as lowercase hex ASCII
+//
+// sb 12..128B, iv 12..16B (canonical 12/12 - the 96-bit GCM fast path),
+// fixed 5000 iterations (bundle constant, no rounds field in the line).
+// Tag oracle: GHASH over the full ct + GCTR - FP ~= 2^-128.
+//
+// Hash format: $jaxx$<sb_b64>$<iv_b64>$<ct+tag_b64>
+
 
 #define NEW_SIMD_CODE
 

@@ -11,6 +11,8 @@ import os
 
 from Crypto.Cipher import AES
 
+from lib.test_helpers import random_number
+
 
 # Jaxx Liberty wallet record: key = PBKDF2-HMAC-SHA256(password, sb, 5000, 32),
 # et = AES-256-GCM(key, iv) over the BIP39 entropy hex. A crack is the GCM tag
@@ -23,8 +25,8 @@ def _make_hash(word, salt):
   if isinstance(word, str):
     word = word.encode()
 
-  sb = salt[:16]
-  iv = os.urandom(12)
+  sb = salt[:random_number(12, 128)]
+  iv = os.urandom(random_number(12, 16))
 
   key = hashlib.pbkdf2_hmac("sha256", word, sb, ROUNDS, 32)
 

@@ -41,8 +41,8 @@ def extract(raw):
   if not (12 <= len(iv) <= 16):
     raise ValueError("iv length %d out of range" % len(iv))
 
-  if len(et) < 17:
-    raise ValueError("et too short for ct || tag")
+  if len(et) < 32:
+    raise ValueError("et too short: need at least 16 ct + 16 tag bytes")
 
   return "$jaxx$%s$%s$%s" % (
     base64.b64encode(sb).decode(),
