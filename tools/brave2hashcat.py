@@ -6,7 +6,7 @@
 ##
 
 # Extracts the crackable material from a Brave Browser profile's Preferences
-# file into the $brave$ hash line accepted by hashcat mode 79630.
+# file into the $brave$ hash line accepted by hashcat mode 45800.
 #
 # The Brave Wallet vault lives in two Preferences keys:
 #   brave.wallet.encrypted_mnemonic = {"ciphertext": b64, "nonce": b64}

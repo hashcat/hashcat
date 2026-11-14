@@ -140,7 +140,7 @@ DECLSPEC void polyval_mul_128 (PRIVATE_AS const u32 *a, PRIVATE_AS const u32 *b,
   }
 }
 
-KERNEL_FQ KERNEL_FA void m79630_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, brave_t))
+KERNEL_FQ KERNEL_FA void m45800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, brave_t))
 {
   /**
    * base
@@ -224,7 +224,7 @@ KERNEL_FQ KERNEL_FA void m79630_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t,
   }
 }
 
-KERNEL_FQ KERNEL_FA void m79630_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, brave_t))
+KERNEL_FQ KERNEL_FA void m45800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, brave_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -330,7 +330,7 @@ KERNEL_FQ KERNEL_FA void m79630_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t,
   }
 }
 
-KERNEL_FQ KERNEL_FA void m79630_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, brave_t))
+KERNEL_FQ KERNEL_FA void m45800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, brave_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
