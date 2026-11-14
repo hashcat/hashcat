@@ -112,7 +112,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -T, --kernel-threads           | Num  | Manual workload tuning, set thread count to X        | -T 64
      --backend-vector-width     | Num  | Manually override backend vector-width to X          | --backend-vector-width=4
      --length-sort-disable      |      | Disable ordering candidates by password length       |
-     --spin-damp                | Num  | Use CPU for device synchronization, in percent       | --spin-damp=10
      --hwmon-disable            |      | Disable temperature and fanspeed reads and triggers  |
      --hwmon-temp-abort         | Num  | Abort if temperature reaches X degrees Celsius       | --hwmon-temp-abort=100
  -s, --skip                     | Num  | Skip X words from the start                          | -s 1000000
