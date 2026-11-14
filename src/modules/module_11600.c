@@ -30,6 +30,7 @@ static const bool  LENGTH_SORT    = true;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_SUGGEST_KG;
 static const u64   KERN_BITS      = KERN_BIT_HOOK23;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -67,7 +68,7 @@ typedef struct seven_zip_hook
 
 } seven_zip_hook_t;
 
-typedef struct seven_zip_hook_salt
+typedef struct seven_zip
 {
   u32 iv_buf[4];
   u32 iv_len;
@@ -80,7 +81,8 @@ typedef struct seven_zip_hook_salt
 
   u8  data_type;
 
-  u32 data_buf[0x200000];
+  u32 *data_buf; // payload, host-side heap, owned by this esalt
+
   u32 data_len;
 
   u32 unpack_size;
@@ -93,10 +95,12 @@ typedef struct seven_zip_hook_salt
 
   int aes_len; // pre-computed length of the maximal (subset of) data we need for AES-CBC
 
-} seven_zip_hook_salt_t;
+} seven_zip_t;
 
 typedef struct seven_zip_hook_extra
 {
+  hashcat_ctx_t *hashcat_ctx;
+
   void **aes;
   void **unp;
   void **flt;
@@ -125,6 +129,11 @@ static u64 seven_zip_filter_id (const u32 filter)
   return HC_LZMA_VLI_UNKNOWN;
 }
 
+static u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
+}
+
 static char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
@@ -150,9 +159,13 @@ static char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   return jit_build_options;
 }
 
-static bool module_hook_extra_param_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
+static bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
   seven_zip_hook_extra_t *seven_zip_hook_extra = (seven_zip_hook_extra_t *) hook_extra_param;
+
+  // the hook walks the digests of a salt through hashes_t, which only hashcat_ctx reaches
+
+  seven_zip_hook_extra->hashcat_ctx = hashcat_ctx;
 
   #define AESSIZE 8 * 1024 * 1024
   #define UNPSIZE 9999999
@@ -225,7 +238,7 @@ static bool module_hook_extra_param_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
 #define SEVEN_ZIP_FILTER_LOOKAHEAD 16
 
-static bool seven_zip_filtered_crc (const seven_zip_hook_salt_t *seven_zip, const u32 coder, const u64 filter, const u8 *compressed_data, size_t compressed_data_len, u8 *decompressed_data, u8 *filtered_data)
+static bool seven_zip_filtered_crc (const seven_zip_t *seven_zip, const u32 coder, const u64 filter, const u8 *compressed_data, size_t compressed_data_len, u8 *decompressed_data, u8 *filtered_data)
 {
   const u32 crc_len = seven_zip->crc_len;
 
@@ -258,32 +271,13 @@ static bool seven_zip_filtered_crc (const seven_zip_hook_salt_t *seven_zip, cons
   return match;
 }
 
-static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *hook_extra_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pw_pos)
+// decrypts the payload of one archive with the candidate key and answers whether the CRC32
+// of the result is the one the archive records
+
+static bool seven_zip_check_crc (const seven_zip_hook_extra_t *seven_zip_hook_extra, const int device_id, AES_KEY *aes_key, const seven_zip_t *seven_zip, const u32 *data_buf)
 {
-  seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
-
-  const seven_zip_hook_salt_t *seven_zips = (const seven_zip_hook_salt_t *) hook_salts_buf;
-  const seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
-
-  const seven_zip_hook_extra_t *seven_zip_hook_extra = (const seven_zip_hook_extra_t *) hook_extra_param;
-
-  u8   data_type   = seven_zip->data_type;
-  const u32 *data_buf    = seven_zip->data_buf;
-  u32  unpack_size = seven_zip->unpack_size;
-
-  // this hook data needs to be updated (the "hook_success" variable):
-
-  seven_zip_hook_t *hook_item = &hook_items[pw_pos];
-
-  const u32 *ukey = (const u32 *) hook_item->ukey;
-
-  // init AES
-
-  AES_KEY aes_key;
-
-  memset (&aes_key, 0, sizeof (aes_key));
-
-  aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
+  const u8  data_type   = seven_zip->data_type;
+  const u32 unpack_size = seven_zip->unpack_size;
 
   int aes_len = seven_zip->aes_len;
 
@@ -296,7 +290,7 @@ static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const v
   iv[2] = seven_zip->iv_buf[2];
   iv[3] = seven_zip->iv_buf[3];
 
-  u32 *out_full = (u32 *) seven_zip_hook_extra->aes[device_param->device_id];
+  u32 *out_full = (u32 *) seven_zip_hook_extra->aes[device_id];
 
   // if aes_len > 16 we need to loop
 
@@ -310,7 +304,7 @@ static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const v
     data[2] = data_buf[j + 2];
     data[3] = data_buf[j + 3];
 
-    aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
+    aes256_decrypt (aes_key->rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
@@ -335,7 +329,7 @@ static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const v
   data[2] = data_buf[j + 2];
   data[3] = data_buf[j + 3];
 
-  aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
+  aes256_decrypt (aes_key->rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
   out[0] ^= iv[0];
   out[1] ^= iv[1];
@@ -351,7 +345,7 @@ static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const v
    * check the CRC32 "hash"
    */
 
-  u32 seven_zip_crc = seven_zip->crc;
+  const u32 seven_zip_crc = seven_zip->crc;
 
   u32 crc;
 
@@ -378,17 +372,15 @@ static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const v
 
     // output buffers and length
 
-    unsigned char *decompressed_data = (unsigned char *) seven_zip_hook_extra->unp[device_param->device_id];
+    unsigned char *decompressed_data = (unsigned char *) seven_zip_hook_extra->unp[device_id];
 
     if (filter != HC_LZMA_VLI_UNKNOWN)
     {
-      unsigned char *filtered_data = (unsigned char *) seven_zip_hook_extra->flt[device_param->device_id];
+      unsigned char *filtered_data = (unsigned char *) seven_zip_hook_extra->flt[device_id];
 
-      const bool match = seven_zip_filtered_crc (seven_zip, coder, filter, compressed_data, compressed_data_len, decompressed_data, filtered_data);
+      const bool filtered_match = seven_zip_filtered_crc (seven_zip, coder, filter, compressed_data, compressed_data_len, decompressed_data, filtered_data);
 
-      hook_item->hook_success = (match == true) ? 1 : 0;
-
-      return;
+      return filtered_match;
     }
 
     size_t decompressed_data_len = crc_len;
@@ -414,22 +406,79 @@ static void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const v
 
     if (ok == false)
     {
-      hook_item->hook_success = 0;
-
-      return;
+      return false;
     }
 
     crc = cpu_crc32_buffer (decompressed_data, crc_len);
   }
 
-  if (crc == seven_zip_crc)
+  const bool match = (crc == seven_zip_crc);
+
+  return match;
+}
+
+static void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_param, MAYBE_UNUSED const void *hook_salts_buf, const u32 salt_pos, const u64 pw_pos)
+{
+  seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
+
+  // this hook data needs to be updated (the "hook_success" variable):
+
+  seven_zip_hook_t *hook_item = &hook_items[pw_pos];
+
+  hook_item->hook_success = 0;
+
+  const seven_zip_hook_extra_t *seven_zip_hook_extra = (const seven_zip_hook_extra_t *) hook_extra_param;
+
+  hashcat_ctx_t *hashcat_ctx = seven_zip_hook_extra->hashcat_ctx;
+
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // the backend calls this hook once per digest of the salt (deep-comp loop); the current
+  // digest is loop_pos. The self test parses its hash into the st buffers instead.
+
+  const seven_zip_t *esalts_buf = (const seven_zip_t *) hashes->esalts_buf;
+
+  u32 digest_cur = 0;
+
+  if (status_ctx->devices_status == STATUS_SELFTEST)
   {
-    hook_item->hook_success = 1;
+    esalts_buf = (const seven_zip_t *) hashes->st_esalts_buf;
   }
   else
   {
-    hook_item->hook_success = 0;
+    const salt_t *salt_buf = hashes->salts_buf + salt_pos;
+
+    // association mode never groups digests (one archive per salt) and its hook runs
+    // once per salt, outside the deep-comp loop
+
+    const u32 loop_pos = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? 0 : device_param->kernel_param.loop_pos;
+
+    digest_cur = salt_buf->digests_offset + loop_pos;
+
+    // an archive that is already cracked (or listed in the potfile) needs no check again
+
+    if (hashes->digests_shown[digest_cur] != 0) return;
   }
+
+  const seven_zip_t *seven_zip = esalts_buf + digest_cur;
+
+  if (seven_zip->data_buf == NULL) return;
+
+  const u32 *ukey = (const u32 *) hook_item->ukey;
+
+  AES_KEY aes_key;
+
+  memset (&aes_key, 0, sizeof (aes_key));
+
+  aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
+
+  const bool match = seven_zip_check_crc (seven_zip_hook_extra, device_param->device_id, &aes_key, seven_zip, seven_zip->data_buf);
+
+  if (match == false) return;
+
+  hook_item->hook_success = 1;
 }
 
 static u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -437,13 +486,6 @@ static u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   const u64 hook_size = (const u64) sizeof (seven_zip_hook_t);
 
   return hook_size;
-}
-
-static u64 module_hook_salt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_salt_size = (const u64) sizeof (seven_zip_hook_salt_t);
-
-  return hook_salt_size;
 }
 
 static u64 module_hook_extra_param_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -458,6 +500,13 @@ static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   const u64 tmp_size = (const u64) sizeof (seven_zip_tmp_t);
 
   return tmp_size;
+}
+
+static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 esalt_size = (const u64) sizeof (seven_zip_t);
+
+  return esalt_size;
 }
 
 static u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -506,7 +555,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   u32 *digest = (u32 *) digest_buf;
 
-  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hook_salt_buf;
+  seven_zip_t *seven_zip = (seven_zip_t *) esalt_buf;
 
   hc_token_t token;
 
@@ -643,6 +692,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const int unpack_size  = hc_strtoul ((const char *) unpack_size_pos,    NULL, 10);
   const int data_len     = hc_strtoul ((const char *) data_len_pos,       NULL, 10);
 
+  // 7-Zip NumCyclesPower can be 0-63 per spec, but salt_iter is u32
+  // and the kernel dispatch loop is u32-bound, so we cannot support > 31.
+
+  if (iter > 31) return (PARSER_SALT_ITERATION);
+
   // if neither uncompressed nor truncated, then we need the length for crc and coder attributes
 
   int crc_len = 0;
@@ -710,6 +764,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (data_len > 0x200000 * 4) return (PARSER_SALT_VALUE);
 
+  if (data_len == 0) return (PARSER_SALT_VALUE); // the digest and the CRC check read the payload
+
   if (unpack_size > data_len) return (PARSER_SALT_VALUE);
 
   if (is_compressed == true)
@@ -773,13 +829,19 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   // hex_to_u32 reading the characters that follow the token. The tail is padded instead. Real 7-Zip
   // data is a whole number of AES blocks, so no hash that parses today reaches the second branch.
 
+  // round up to whole AES blocks: the CBC loop always reads full 16-byte blocks
+
+  const u32 data_words = ((data_len + 15) / 16) * 4;
+
+  u32 *data_buf = (u32 *) hccalloc (data_words, sizeof (u32));
+
   for (int i = 0, j = 0; j < data_buf_len; i += 1, j += 8)
   {
     const int rem = data_buf_len - j;
 
     if (rem >= 8)
     {
-      seven_zip->data_buf[i] = hex_to_u32 (data_buf_pos + j);
+      data_buf[i] = hex_to_u32 (data_buf_pos + j);
 
       continue;
     }
@@ -788,7 +850,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     memcpy (tmp_buf, data_buf_pos + j, rem);
 
-    seven_zip->data_buf[i] = hex_to_u32 (tmp_buf);
+    data_buf[i] = hex_to_u32 (tmp_buf);
   }
 
   seven_zip->data_len = data_len;
@@ -803,7 +865,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (is_compressed == 1)
   {
-    if (is_valid_hex_string (coder_attributes_pos, coder_attributes_len) == false) return (PARSER_SALT_ENCODING);
+    if (is_valid_hex_string (coder_attributes_pos, coder_attributes_len) == false)
+    {
+      hcfree (data_buf);
+
+      return (PARSER_SALT_ENCODING);
+    }
 
     for (u32 i = 0, j = 0; j < coder_attributes_len; i += 1, j += 2)
     {
@@ -819,7 +886,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (filter_attributes_len > 0)
   {
-    if (is_valid_hex_string (filter_attributes_pos, filter_attributes_len) == false) return (PARSER_SALT_ENCODING);
+    if (is_valid_hex_string (filter_attributes_pos, filter_attributes_len) == false)
+    {
+      hcfree (data_buf);
+
+      return (PARSER_SALT_ENCODING);
+    }
 
     for (u32 i = 0, j = 0; j < filter_attributes_len; i += 1, j += 2)
     {
@@ -859,21 +931,21 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   seven_zip->aes_len = aes_len;
 
-  // real salt
+  // the payload stays with its digest; a probe decode reuses its esalt, so free the old one
 
-  salt->salt_buf[0] = seven_zip->data_buf[0];
-  salt->salt_buf[1] = seven_zip->data_buf[1];
-  salt->salt_buf[2] = seven_zip->data_buf[2];
-  salt->salt_buf[3] = seven_zip->data_buf[3];
+  if (seven_zip->data_buf != NULL) hcfree (seven_zip->data_buf);
 
-  salt->salt_len = 16;
+  seven_zip->data_buf = data_buf;
 
-  salt->salt_sign[0] = data_type;
+  // archives that agree on NumCyclesPower share one salt now, so the KDF runs once per candidate
+  // for the whole group; the digest (CRC32 + payload prefix) tells them apart
 
-  // 7-Zip NumCyclesPower can be 0-63 per spec, but salt_iter is u32
-  // and the kernel dispatch loop is u32-bound, so we cannot support > 31.
+  salt->salt_buf[0] = 0;
+  salt->salt_buf[1] = 0;
+  salt->salt_buf[2] = 0;
+  salt->salt_buf[3] = 0;
 
-  if (iter > 31) return (PARSER_SALT_ITERATION);
+  salt->salt_len = 0;
 
   salt->salt_iter = 1u << iter;
 
@@ -881,25 +953,29 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
    * digest
    */
 
+  // the CRC32 alone does not set one archive of a salt apart from the next, add a payload prefix
+
   digest[0] = crc;
-  digest[1] = 0;
-  digest[2] = 0;
-  digest[3] = 0;
+  digest[1] = data_buf[0];
+  digest[2] = data_buf[1];
+  digest[3] = data_buf[2];
 
   return (PARSER_OK);
 }
 
 static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const seven_zip_hook_salt_t *seven_zip = (const seven_zip_hook_salt_t *) hook_salt_buf;
+  const seven_zip_t *seven_zip = (const seven_zip_t *) esalt_buf;
 
   const u32 data_len = seven_zip->data_len;
+
+  const u32 *data_words = seven_zip->data_buf;
 
   char *data_buf = (char *) hcmalloc ((data_len * 2) + 1);
 
   for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
   {
-    const u8 *ptr = (const u8 *) seven_zip->data_buf;
+    const u8 *ptr = (const u8 *) data_words;
 
     snprintf (data_buf + j, (data_len * 2) + 1 - j, "%02x", ptr[i]);
   }
@@ -924,7 +1000,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int bytes_written = snprintf (line_buf, line_size, "%s%u$%u$%u$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
     SIGNATURE_SEVEN_ZIP,
-    salt->salt_sign[0],
+    seven_zip->data_type,
     cost,
     seven_zip->salt_len,
     (const char *) seven_zip->salt_buf,
@@ -986,13 +1062,14 @@ void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
 
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
+  module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hook_extra_param_size    = module_hook_extra_param_size;
   module_ctx->module_hook_extra_param_init    = module_hook_extra_param_init;
   module_ctx->module_hook_extra_param_term    = module_hook_extra_param_term;
   module_ctx->module_hook23                   = module_hook23;
-  module_ctx->module_hook_salt_size           = module_hook_salt_size;
   module_ctx->module_hook_size                = module_hook_size;
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;

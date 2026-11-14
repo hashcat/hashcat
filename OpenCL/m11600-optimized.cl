@@ -243,13 +243,15 @@ KERNEL_FQ KERNEL_FA void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, sev
 
   if (gid >= GID_CNT) return;
 
-  if (hooks[gid].hook_success == 1)
-  {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
-    }
+  if (hooks[gid].hook_success == 0) return;
 
-    return;
+  // one comp pass answers for one digest of the salt (LOOP_POS); the host hook ran for
+  // exactly this digest before the pass
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + LOOP_POS;
+
+  if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+  {
+    mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, LOOP_POS, digest_cur, gid, 0, 0, 0);
   }
 }

@@ -62,6 +62,8 @@ static const u32 full80 = 0x80808080;
 // the combinator kernels have no host side index to permute, or rebuild the base word from the work
 // item id, and outfile.c reads that id back unmapped.
 
+static int run_hook23_host (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt);
+
 static bool length_sort_possible (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -2849,55 +2851,18 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) return -1;
 
-            const int hook_threads = (int) user_options->hook_threads;
+            // a deep-comp mode answers one digest per comp pass, so its host hook runs inside
+            // that loop (below), once per digest, instead of once here
 
-            hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hcmalloc (hook_threads * sizeof (hook_thread_param_t));
-            hc_thread_t         *c_threads          = (hc_thread_t *)         hcmalloc (hook_threads * sizeof (hc_thread_t));
+            const bool hook_per_digest = (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
+                                      && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION);
 
-            int hook_threads_live = 0;
-
-            for (int i = 0; i < hook_threads; i++)
+            if (hook_per_digest == false)
             {
-              hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+              if (run_hook23_host (hashcat_ctx, device_param, salt_pos, pws_cnt) == -1) return -1;
 
-              hook_thread_param->tid = i;
-              hook_thread_param->tsz = hook_threads;
-
-              hook_thread_param->module_ctx = module_ctx;
-              hook_thread_param->status_ctx = status_ctx;
-
-              hook_thread_param->device_param = device_param;
-
-              hook_thread_param->hook_extra_param = module_ctx->hook_extra_params[i];
-              hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
-
-              hook_thread_param->salt_pos = salt_pos;
-
-              hook_thread_param->salt_per_pw = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
-              hook_thread_param->pws_pos     = device_param->kernel_param.pws_pos;
-
-              hook_thread_param->pws_cnt = pws_cnt;
-
-              // this runs on every kernel launch for a mode with a hook, so a failed create must
-              // not leave an unset handle for hc_thread_wait () to join. Run the hook here and
-              // keep the handles that started packed at the front.
-
-              if ((hook_threads > 1) && (hc_thread_create_ok (c_threads[hook_threads_live], hook23_thread, hook_thread_param) == true))
-              {
-                hook_threads_live++;
-              }
-              else
-              {
-                hook23_thread (hook_thread_param);
-              }
+              if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_HOOKS], 0, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
             }
-
-            hc_thread_wait (hook_threads_live, c_threads);
-
-            hcfree (c_threads);
-            hcfree (hook_threads_param);
-
-            if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_HOOKS], 0, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
           }
         }
       }
@@ -3109,6 +3074,16 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           {
             device_param->kernel_param.loop_pos = loops_pos;
             device_param->kernel_param.loop_cnt = loops_cnt;
+
+            // a hook that answers one digest per comp pass runs on the host once per digest,
+            // so each pass only carries the verdict for its own digest
+
+            if (hashconfig->kern_bits & KERN_BIT_HOOK23)
+            {
+              if (run_hook23_host (hashcat_ctx, device_param, salt_pos, pws_cnt) == -1) return -1;
+
+              if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_HOOKS], 0, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
+            }
 
             const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
 
@@ -19205,6 +19180,65 @@ HC_THREAD_FUNC hook23_thread (void *p)
       module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
     }
   }
+
+  return 0;
+}
+
+// runs the host part of hook23 for one batch of candidates, fanned out over the
+// configured hook threads
+
+static int run_hook23_host (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt)
+{
+  module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  const int hook_threads = (int) user_options->hook_threads;
+
+  hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hcmalloc (hook_threads * sizeof (hook_thread_param_t));
+  hc_thread_t         *c_threads          = (hc_thread_t *)         hcmalloc (hook_threads * sizeof (hc_thread_t));
+
+  int hook_threads_live = 0;
+
+  for (int i = 0; i < hook_threads; i++)
+  {
+    hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+    hook_thread_param->tid = i;
+    hook_thread_param->tsz = hook_threads;
+
+    hook_thread_param->module_ctx = module_ctx;
+    hook_thread_param->status_ctx = status_ctx;
+
+    hook_thread_param->device_param = device_param;
+
+    hook_thread_param->hook_extra_param = module_ctx->hook_extra_params[i];
+    hook_thread_param->hook_salts_buf   = hashes->hook_salts_buf;
+
+    hook_thread_param->salt_pos = salt_pos;
+
+    hook_thread_param->salt_per_pw = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+    hook_thread_param->pws_pos     = device_param->kernel_param.pws_pos;
+
+    hook_thread_param->pws_cnt = pws_cnt;
+
+    // a failed create must not leave an unset handle for hc_thread_wait () to join
+
+    if ((hook_threads > 1) && (hc_thread_create_ok (c_threads[hook_threads_live], hook23_thread, hook_thread_param) == true))
+    {
+      hook_threads_live++;
+    }
+    else
+    {
+      hook23_thread (hook_thread_param);
+    }
+  }
+
+  hc_thread_wait (hook_threads_live, c_threads);
+
+  hcfree (c_threads);
+  hcfree (hook_threads_param);
 
   return 0;
 }
