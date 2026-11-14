@@ -299,6 +299,8 @@ RUN if [ "${USE_CLANG}" = "1" ]; then \
             mv "$f" /root/out/"${f}-clang"; \
           elif [ "${f##*.}" = "7z" ]; then \
             mv "$f" /root/out/"${f%.7z}-clang.7z"; \
+          elif [ "${f##*.}" = "zip" ]; then \
+            mv "$f" /root/out/"${f%.zip}-clang.zip"; \
           fi; \
         done; \
       fi; \
@@ -317,6 +319,8 @@ RUN if [ "${USE_GCC}" = "1" ]; then \
             mv "$f" /root/out/"${f}-gcc"; \
           elif [ "${f##*.}" = "7z" ]; then \
             mv "$f" /root/out/"${f%.7z}-gcc.7z"; \
+          elif [ "${f##*.}" = "zip" ]; then \
+            mv "$f" /root/out/"${f%.zip}-gcc.zip"; \
           fi; \
         done; \
       fi; \
