@@ -2343,8 +2343,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   device_param->exec_pos = 0;
 
-  memset (device_param->exec_msec,    0, sizeof (device_param->exec_msec));
-  memset (device_param->exec_us_prev, 0, sizeof (device_param->exec_us_prev));
+  memset (device_param->exec_msec, 0, sizeof (device_param->exec_msec));
+
+  memset (device_param->exec_us_prev,       0, sizeof (device_param->exec_us_prev));
+  memset (device_param->exec_loops_prev,    0, sizeof (device_param->exec_loops_prev));
+  memset (device_param->exec_us_prev_shape, 0, sizeof (device_param->exec_us_prev_shape));
 
   // store
 
