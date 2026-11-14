@@ -6,7 +6,7 @@
 ##
 
 # Extracts the crackable material from a Jaxx Liberty "mnemonic" record into
-# the $jaxx$ hash line accepted by hashcat mode 79610.
+# the $jaxx$ hash line accepted by hashcat mode 45700.
 #
 # Jaxx Liberty stores the wallet in the browser/extension IndexedDB (leveldb).
 # The record is JSON: {"et":"<b64>","iv":"<b64>","sb":"<b64>"}
