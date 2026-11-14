@@ -658,7 +658,7 @@ static char *status_get_guess_feed (const hashcat_ctx_t *hashcat_ctx)
 
   if (global_ctx->segments_cnt > 1)
   {
-    const u64 words_cur = status_get_words_cur_furthest (hashcat_ctx);
+    const u64 words_cur = status_get_base_word (hashcat_ctx, status_get_words_cur_furthest (hashcat_ctx));
 
     u64 segment_idx = 0;
 
@@ -1328,6 +1328,34 @@ u64 status_get_amplifier_cnt (const hashcat_ctx_t *hashcat_ctx)
   if (user_options_extra->attack_kern == ATTACK_KERN_BF)       return mask_ctx->bfs_cnt;
 
   return 1;
+}
+
+// A run position as a base word, for everything that compares it with the lines of the feed's
+// sources. --slow-candidates expands the amplifier on the host, so there a position counts the
+// candidates of every base word.
+
+u64 status_get_base_word (const hashcat_ctx_t *hashcat_ctx, const u64 pos)
+{
+  if (hashcat_ctx->user_options->slow_candidates == false) return pos;
+
+  const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+  const u64 word = (amplifier > 1) ? (pos / amplifier) : pos;
+
+  return word;
+}
+
+// and back, the run position of the first candidate of a base word
+
+u64 status_get_base_pos (const hashcat_ctx_t *hashcat_ctx, const u64 word)
+{
+  if (hashcat_ctx->user_options->slow_candidates == false) return word;
+
+  const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+  const u64 pos = (amplifier > 1) ? (word * amplifier) : word;
+
+  return pos;
 }
 
 u32 status_get_iteration_cnt (const hashcat_ctx_t *hashcat_ctx, const int salt_pos)

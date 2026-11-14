@@ -1870,8 +1870,16 @@ static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
   // base from the mask. Which kernel it will be is decided inside hashconfig_init, which has not run,
   // so the answer given here is the pure one and user_options_extra_init_late () upgrades it once the
   // kernel type is known.
+  //
+  // --slow-candidates builds every candidate on the host, which can put the mask in front. It has no
+  // producer for a mask base, so there the dictionary is the base whatever the kernel.
 
-  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2) return BASE_SOURCE_MASK;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2)
+  {
+    if (user_options->slow_candidates == true) return BASE_SOURCE_FEED;
+
+    return BASE_SOURCE_MASK;
+  }
 
   return BASE_SOURCE_FEED;
 }

@@ -118,7 +118,11 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
                               || (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
                               || (hashconfig->opts_type & OPTS_TYPE_COMBI_PURE_SWAP);
 
-    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && kernel_can_swap && (words1_cnt < words2_cnt);
+    // --slow-candidates builds every candidate on the host, where hybrid_assemble () always puts the
+    // base word in front. No kernel assembles anything there, so there is nothing to gain from the
+    // swap and a swapped run would try every pair the wrong way round.
+
+    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && (user_options->slow_candidates == false) && (kernel_can_swap == true) && (words1_cnt < words2_cnt);
 
     if (swap == true)
     {

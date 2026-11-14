@@ -42,7 +42,6 @@ def main():
   modes = [int(mode) for mode in os.environ.get('HC_MODES', '500,22400').split(',')]
   wanted = set(os.environ.get('HC_CASES', '').split(',')) - {''}
   checks = 0
-  excluded = 0
 
   with tempfile.TemporaryDirectory(prefix='salt_inner_') as directory:
     work = Path(directory)
@@ -172,14 +171,6 @@ def main():
           for host in (False, True):
             label = str(mode) + '-' + item['name'] + ('-rules' if rules else '') + ('-host' if host else '-device')
             optimized = (mode == 500) and (('-O' in backend) or ('--optimized-kernel-enable' in backend))
-            if (host == True) and (rules == False) and (item['name'] == 'combi-swapped'):
-              print(label + ': excluded (inherited -S swapped-source defect)', flush=True)
-              excluded += 1
-              continue
-            if (host == True) and (rules == False) and (item['name'] == 'prefix') and (optimized == False):
-              print(label + ': excluded (inherited -S typed-prefix null source)', flush=True)
-              excluded += 1
-              continue
             options = [*item['options']]
             if host:
               options.append('-S')
@@ -241,8 +232,7 @@ def main():
             passed(name)
 
   assert checks > 0, 'No test cases selected'
-  print(str(checks) + '/' + str(checks) + ' salt-inner checks passed, ' +
-        str(excluded) + ' inherited cases excluded')
+  print(str(checks) + '/' + str(checks) + ' salt-inner checks passed')
 
 
 if __name__ == '__main__':
