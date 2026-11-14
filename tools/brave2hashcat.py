@@ -8,12 +8,12 @@
 # Extracts the crackable material from a Brave Browser profile's Preferences
 # file into the $brave$ hash line accepted by hashcat mode 45800.
 #
-# The Brave Wallet vault lives in two Preferences keys:
-#   brave.wallet.encrypted_mnemonic = {"ciphertext": b64, "nonce": b64}
-#   brave.wallet.encryptor_salt     = b64 (32 bytes)
+# The Brave Wallet vault lives in the profile's Preferences:
+#   current: brave.wallet.encrypted_mnemonic + encryptor_salt (310000 iterations)
+#   legacy:  brave.wallet.keyrings.default with password_encryptor_nonce and
+#            password_encryptor_salt (100000, or 310000 once migrated)
 #
-# Iterations are not stored: 310000 since 2022-08 (brave-core PR #14523),
-# 100000 before. Emit both; the wrong one simply does not crack.
+# Each layout yields exactly one hash line.
 
 import base64
 import json
@@ -26,14 +26,38 @@ def extract(path):
 
   wallet = prefs.get("brave", {}).get("wallet", {})
 
+  # current layout (PasswordEncryptor::CreateEncryptor, always 310000 iterations)
   em = wallet.get("encrypted_mnemonic")
   salt_b64 = wallet.get("encryptor_salt")
 
-  if not em or not salt_b64:
-    raise ValueError("brave.wallet.encrypted_mnemonic / encryptor_salt not found")
+  if em and salt_b64:
+    ct_b64 = em["ciphertext"]
+    nonce_b64 = em["nonce"]
 
-  ct = base64.b64decode(em["ciphertext"])
-  nonce = base64.b64decode(em["nonce"])
+    iterations = [310000]
+  else:
+    # legacy layout (100000 iterations), kept by wallets never unlocked after the
+    # migration landed: keyrings.default with its own nonce/salt fields
+    keyrings = wallet.get("keyrings", {}).get("default", {})
+
+    em2 = keyrings.get("encrypted_mnemonic")
+    nonce_b64 = keyrings.get("password_encryptor_nonce")
+    salt_b64 = keyrings.get("password_encryptor_salt")
+
+    if not em2 or not nonce_b64 or not salt_b64:
+      raise ValueError("no brave wallet vault found (neither layout)")
+
+    ct_b64 = em2["ciphertext"] if isinstance(em2, dict) else em2
+
+    # the migration re-encrypts into the current layout only after a successful
+    # unlock, so an unmigrated legacy vault still costs 100000
+
+    migrated = wallet.get("keyring_encryption_keys_migrated", False)
+
+    iterations = [310000] if migrated else [100000]
+
+  ct = base64.b64decode(ct_b64)
+  nonce = base64.b64decode(nonce_b64)
   salt = base64.b64decode(salt_b64)
 
   if len(nonce) != 12:
@@ -47,7 +71,7 @@ def extract(path):
 
   lines = []
 
-  for iters in (310000, 100000):
+  for iters in iterations:
     lines.append("$brave$*%d*%s*%s*%s" % (iters, salt.hex(), nonce.hex(), ct.hex()))
 
   return lines

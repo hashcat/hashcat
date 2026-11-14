@@ -1,20 +1,23 @@
 /**
- * Brave Wallet vault (Preferences: brave.wallet.encrypted_mnemonic):
- *
- *   key = PBKDF2-HMAC-SHA256($pass, salt32, iterations, 32B)
- *   out = AES-256-GCM-SIV(key, nonce12).Seal(mnemonic) = ct || 16B tag
- *
- * iterations: 310000 current, 100000 legacy (pre 18.08.2022) - carried in
- * the hash line. AAD empty. Crack = tag match (RFC 8452 sec. 4):
- *
- *   (auth_k, enc_k) = per-nonce keys: AES256_K(LE32(i) || nonce)[:8], i=0..5
- *   S_s  = POLYVAL(auth_k, pad(ct) || LE64(0) || LE64(ct_bits))  // dot mul
- *   S_s ^= nonce || 0^32; clear msb of last byte
- *   tag  = AES256_enc_k(S_s)
- *
- * Hash format: $brave$*<iterations>*<salt_hex64>*<nonce_hex24>*<ct+tag_hex>
- * License: MIT
+ * Author......: See docs/credits.txt
+ * License.....: MIT
  */
+
+// Brave Wallet vault (Preferences: brave.wallet.encrypted_mnemonic):
+//
+//   key = PBKDF2-HMAC-SHA256($pass, salt32, iterations, 32B)
+//   out = AES-256-GCM-SIV(key, nonce12).Seal(mnemonic) = ct || 16B tag
+//
+// iterations: 310000 current, 100000 legacy (pre 18.08.2022) - carried in
+// the hash line. AAD empty. Crack = tag match (RFC 8452 sec. 4):
+//
+//   (auth_k, enc_k) = per-nonce keys: AES256_K(LE32(i) || nonce)[:8], i=0..5
+//   S_s  = POLYVAL(auth_k, pad(ct) || LE64(0) || LE64(ct_bits))  // dot mul
+//   S_s ^= nonce || 0^32; clear msb of last byte
+//   tag  = AES256_enc_k(S_s)
+//
+// Hash format: $brave$*<iterations>*<salt_hex64>*<nonce_hex24>*<ct+tag_hex>
+
 
 #define NEW_SIMD_CODE
 
