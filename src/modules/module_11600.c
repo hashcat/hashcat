@@ -850,10 +850,6 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   // hex_to_u32 reading the characters that follow the token. The tail is padded instead. Real 7-Zip
   // data is a whole number of AES blocks, so no hash that parses today reaches the second branch.
 
-  // round up to whole AES blocks: the CBC loop always reads full 16-byte blocks
-
-  const u32 data_words = ((data_len + 15) / 16) * 4;
-
   seven_zip_payload_t *payload = (seven_zip_payload_t *) hook_salt_buf;
 
   u32 *data_buf = payload->data_buf;
@@ -888,12 +884,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (is_compressed == 1)
   {
-    if (is_valid_hex_string (coder_attributes_pos, coder_attributes_len) == false)
-    {
-      hcfree (data_buf);
-
-      return (PARSER_SALT_ENCODING);
-    }
+    if (is_valid_hex_string (coder_attributes_pos, coder_attributes_len) == false) return (PARSER_SALT_ENCODING);
 
     for (u32 i = 0, j = 0; j < coder_attributes_len; i += 1, j += 2)
     {
@@ -909,12 +900,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (filter_attributes_len > 0)
   {
-    if (is_valid_hex_string (filter_attributes_pos, filter_attributes_len) == false)
-    {
-      hcfree (data_buf);
-
-      return (PARSER_SALT_ENCODING);
-    }
+    if (is_valid_hex_string (filter_attributes_pos, filter_attributes_len) == false) return (PARSER_SALT_ENCODING);
 
     for (u32 i = 0, j = 0; j < filter_attributes_len; i += 1, j += 2)
     {
