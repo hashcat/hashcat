@@ -21,7 +21,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME      = "SubWallet / polkadot-js keyring (scrypt + XSalsa20-Poly1305)";
-static const u64   KERN_TYPE      = 79100;
+static const u64   KERN_TYPE      = 45600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
@@ -39,7 +39,7 @@ static const char *SIGNATURE_SUBWALLET = "$subwallet$";
 
 static const u32 SCRYPT_THREADS = 4;
 
-// MUST match m79100-pure.cl field-for-field
+// MUST match m45600-pure.cl field-for-field
 typedef struct subwallet_scrypt
 {
   u32 nonce[6];         // 24 bytes
@@ -190,10 +190,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   const subwallet_scrypt_t *sw = (const subwallet_scrypt_t *) esalt_buf;
 
-  #define SALT_LEN_BASE64   ((32 * 8) / 6) + 3
-  #define NONCE_LEN_BASE64  ((24 * 8) / 6) + 3
-  #define TAG_LEN_BASE64    ((16 * 8) / 6) + 4 // 24 chars + NUL; +3 undershoots by one
-    u8 salt_buf[SALT_LEN_BASE64] = { 0 };
+  u8 salt_buf[SALT_LEN_BASE64] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) salt->salt_buf, (const int) salt->salt_len, salt_buf);
 

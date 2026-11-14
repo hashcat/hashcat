@@ -7,7 +7,7 @@
 
 # Extracts the crackable material from a Polkadot.js/SubWallet/Talisman keyring
 # export JSON (or the vault record held by the browser extension) into the
-# $subwallet$ hash line accepted by hashcat mode 79100.
+# $subwallet$ hash line accepted by hashcat mode 45600.
 #
 # The exported JSON carries a base64 "encoded" blob:
 #
@@ -45,7 +45,7 @@ def extract(path):
     raise ValueError("unexpected blob layout (len %d)" % len(blob))
 
   if len(ct) > 512:
-    raise ValueError("ciphertext too long for mode 79100 (%d > 512 bytes)" % len(ct))
+    raise ValueError("ciphertext too long for mode 45600 (%d > 512 bytes)" % len(ct))
 
   return "$subwallet$%d,%d,%d$%s$%s$%s$%s" % (
     n, r, p,

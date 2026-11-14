@@ -12,6 +12,7 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_salsa20.cl)
 #endif
 
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
@@ -33,35 +34,6 @@ typedef struct sollet
   u32 ct[4];
 
 } sollet_t;
-
-#define SALSA20_C0 0x61707865
-#define SALSA20_C1 0x3320646e
-#define SALSA20_C2 0x79622d32
-#define SALSA20_C3 0x6b206574
-
-#define SALSA20_QR(a,b,c,d)          \
-{                                    \
-  b ^= hc_rotl32_S ((a) + (d),  7);  \
-  c ^= hc_rotl32_S ((b) + (a),  9);  \
-  d ^= hc_rotl32_S ((c) + (b), 13);  \
-  a ^= hc_rotl32_S ((d) + (c), 18);  \
-}
-
-DECLSPEC void salsa20_20 (PRIVATE_AS u32 *x)
-{
-  for (int i = 0; i < 10; i++)
-  {
-    SALSA20_QR (x[ 0], x[ 4], x[ 8], x[12]);
-    SALSA20_QR (x[ 5], x[ 9], x[13], x[ 1]);
-    SALSA20_QR (x[10], x[14], x[ 2], x[ 6]);
-    SALSA20_QR (x[15], x[ 3], x[ 7], x[11]);
-
-    SALSA20_QR (x[ 0], x[ 1], x[ 2], x[ 3]);
-    SALSA20_QR (x[ 5], x[ 6], x[ 7], x[ 4]);
-    SALSA20_QR (x[10], x[11], x[ 8], x[ 9]);
-    SALSA20_QR (x[15], x[12], x[13], x[14]);
-  }
-}
 
 DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
