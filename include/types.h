@@ -1149,7 +1149,6 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
-  SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
   PIPELINE_STATS           = false,
@@ -1300,7 +1299,6 @@ typedef enum user_options_map
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
   IDX_SPEED_ONLY                = 0xff48,
-  IDX_SPIN_DAMP                 = 0xff49,
   IDX_STATUS                    = 0xff4a,
   IDX_STATUS_JSON               = 0xff4b,
   IDX_STATUS_TIMER              = 0xff4c,
@@ -2206,6 +2204,11 @@ typedef struct hc_device_param
   u32     exec_loops_prev[HC_DEV_KERN_CNT][EXPECTED_ITERATIONS];
   kernel_exec_shape_t exec_us_prev_shape[HC_DEV_KERN_CNT];
 
+  // the last launch of each kernel in the current shape
+
+  float   exec_us_last[HC_DEV_KERN_CNT];
+  u32     exec_loops_last[HC_DEV_KERN_CNT];
+
   // the salt inner order predicts from the salt itself, see launch_salt_t
 
   launch_salt_t *launch_salt;
@@ -2257,8 +2260,6 @@ typedef struct hc_device_param
   bool    has_bfe;
   bool    has_lop3;
   bool    has_shfw;
-
-  double  spin_damp;
 
   // How early the launch wait wakes up before a launch is expected to end, and the pinned host
   // memory a cracking launch uploads its parameters from and copies the crack count back into.
@@ -3095,7 +3096,6 @@ typedef struct user_options
   bool         kernel_accel_chgd;
   bool         kernel_loops_chgd;
   bool         kernel_threads_chgd;
-  bool         spin_damp_chgd;
   bool         backend_vector_width_chgd;
   bool         outfile_chgd;
   bool         outfile_format_chgd;
@@ -3255,7 +3255,6 @@ typedef struct user_options
   u32          kernel_loops;
   u32          kernel_threads;
   u32          markov_threshold;
-  u32          spin_damp;
   u32          backend_vector_width;
   u32          outfile_check_timer;
   u32          outfile_format;

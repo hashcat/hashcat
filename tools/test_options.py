@@ -102,7 +102,7 @@ TYPE_DEFAULT = {
 # hcstat2 sample is the default file, and no plain or word needs $HEX[].
 FAMILIES = {
   "hwmon":         ["hwmon-disable", "hwmon-temp-abort"],
-  "tuning":        ["workload-profile", "kernel-accel", "kernel-loops", "kernel-threads", "spin-damp", "backend-vector-width", "multiply-accel-disable", "hook-threads", "cpu-affinity", "scrypt-tmto", "bitmap-min", "bitmap-max", "backend-devices-virtmulti", "backend-devices-virthost"],
+  "tuning":        ["workload-profile", "kernel-accel", "kernel-loops", "kernel-threads", "backend-vector-width", "multiply-accel-disable", "hook-threads", "cpu-affinity", "scrypt-tmto", "bitmap-min", "bitmap-max", "backend-devices-virtmulti", "backend-devices-virthost"],
   "timer":         ["status-timer", "outfile-check-timer", "remove-timer", "bypass-delay", "bypass-threshold", "stdin-timeout-abort", "runtime", "metal-compiler-runtime", "brain-server-timer"],
   "mode-specific": ["hex-salt", "eapol-message-pair", "nonce-error-corrections", "keyboard-layout-mapping", "truecrypt-keyfiles", "veracrypt-keyfiles", "veracrypt-pim-start", "veracrypt-pim-stop", "bridge-parameter1", "bridge-parameter2", "bridge-parameter3", "bridge-parameter4", "dynamic-x", "username", "hash-copy"],
   "periodic":      ["status", "pipeline-stats", "restore-disable", "restore-file-path"],
@@ -1872,7 +1872,7 @@ OPTION_FAMILIES = collections.OrderedDict([
   ("benchmark",     ["benchmark-min", "benchmark-max"]),
   ("output",        ["outfile", "outfile-format", "outfile-json", "outfile-autohex-disable", "outfile-check-dir", "outfile-check-timer", "potfile-disable", "potfile-path", "json", "machine-readable", "status", "status-json", "status-timer", "quiet", "pipeline-stats", "task-time-breakdown", "debug-file", "debug-mode", "color-cracked", "remove", "remove-timer", "keep-guessing", "encrypt-with-pubkey"]),
   ("device",        ["backend-devices", "backend-devices-virtmulti", "backend-devices-virthost", "backend-ignore-cuda", "backend-ignore-hip", "backend-ignore-opencl", "backend-ignore-metal", "opencl-device-types", "hwmon-disable", "hwmon-temp-abort", "cache-path", "metal-compiler-runtime"]),
-  ("tuning",        ["optimized-kernel-enable", "multiply-accel-disable", "kernel-accel", "kernel-loops", "kernel-threads", "backend-vector-width", "spin-damp", "bitmap-min", "bitmap-max", "hook-threads", "scrypt-tmto", "cpu-affinity", "length-sort-disable", "self-test-disable", "bypass-delay", "bypass-threshold", "runtime"]),
+  ("tuning",        ["optimized-kernel-enable", "multiply-accel-disable", "kernel-accel", "kernel-loops", "kernel-threads", "backend-vector-width", "bitmap-min", "bitmap-max", "hook-threads", "scrypt-tmto", "cpu-affinity", "length-sort-disable", "self-test-disable", "bypass-delay", "bypass-threshold", "runtime"]),
   ("session",       ["session", "restore-disable", "restore-file-path", "restore-position", "logfile-disable", "force", "advice-disable", "deprecated-check-disable", "workload-profile"]),
   ("mode-specific", ["hash-type", "hash-recipe", "hash-copy", "hex-salt", "eapol-message-pair", "nonce-error-corrections", "keyboard-layout-mapping", "truecrypt-keyfiles", "veracrypt-keyfiles", "veracrypt-pim-start", "veracrypt-pim-stop", "bridge-parameter1", "bridge-parameter2", "bridge-parameter3", "bridge-parameter4", "dynamic-x", "username", "separator"]),
 ])

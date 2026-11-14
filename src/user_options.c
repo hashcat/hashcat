@@ -180,7 +180,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->skip                       = SKIP;
   user_options->slow_candidates            = SLOW_CANDIDATES;
   user_options->speed_only                 = SPEED_ONLY;
-  user_options->spin_damp                  = SPIN_DAMP;
   user_options->status                     = STATUS;
   user_options->status_json                = STATUS_JSON;
   user_options->pipeline_stats             = PIPELINE_STATS;
@@ -489,8 +488,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->kernel_loops_chgd         = true;                            break;
       case IDX_KERNEL_THREADS:            user_options->kernel_threads            = hc_strtoul (optarg, NULL, 10);
                                           user_options->kernel_threads_chgd       = true;                            break;
-      case IDX_SPIN_DAMP:                 user_options->spin_damp                 = hc_strtoul (optarg, NULL, 10);
-                                          user_options->spin_damp_chgd            = true;                            break;
       case IDX_HWMON_DISABLE:             user_options->hwmon                     = false;                           break;
       case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_LOGFILE_DISABLE:           user_options->logfile                   = false;                           break;
@@ -1254,7 +1251,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hwmon               = false;
     user_options->left                = false;
     user_options->logfile             = false;
-    user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile             = false;
     user_options->restore_enable      = false;
@@ -1306,7 +1302,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     //user_options->hwmon               = false;
     user_options->left                = false;
     user_options->logfile             = false;
-    user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile             = false;
     user_options->restore_enable      = false;
@@ -1343,7 +1338,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->increment           = INCREMENT_NONE;
     user_options->left                = false;
     user_options->logfile             = false;
-    user_options->spin_damp           = 0;
     user_options->potfile             = false;
     user_options->progress_only       = false;
     user_options->restore_enable      = false;
@@ -3556,7 +3550,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);
-  logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
   logfile_top_uint   (user_options->json);
   logfile_top_uint   (user_options->status_json);

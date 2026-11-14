@@ -386,10 +386,6 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
   device_param->kernel_threads = device_param->kernel_threads_min;
 
-  const double spin_damp_sav = device_param->spin_damp;
-
-  device_param->spin_damp = 0;
-
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
@@ -757,8 +753,6 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0, false) == -1) return -1;
     }
   }
-
-  device_param->spin_damp = spin_damp_sav;
 
   device_param->kernel_threads = kernel_threads_sav;
 

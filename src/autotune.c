@@ -136,10 +136,6 @@ static double try_run_kern (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
   device_param->kernel_threads = kernel_threads;
 
-  const double spin_damp_sav = device_param->spin_damp;
-
-  device_param->spin_damp = 0;
-
   // when a bridge replaced the loop kernel, that kernel is empty and timing it measures
   // nothing. time the bridge instead, which is the unit that actually does the work.
 
@@ -151,8 +147,6 @@ static double try_run_kern (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
   {
     run_kernel (hashcat_ctx, device_param, kern_run, 0, kernel_power_try, true, 0, true);
   }
-
-  device_param->spin_damp = spin_damp_sav;
 
   device_param->kernel_threads = kernel_threads_sav;
 
@@ -753,15 +747,12 @@ static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
-  const u32    threads_sav   = device_param->kernel_threads;
-  const double spin_damp_sav = device_param->spin_damp;
+  const u32 threads_sav = device_param->kernel_threads;
 
   device_param->kernel_threads = threads;
-  device_param->spin_damp      = 0;
 
   run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 0, kernel_power, true, 0, true);
 
-  device_param->spin_damp      = spin_damp_sav;
   device_param->kernel_threads = threads_sav;
 
   const double msec = get_avg_exec_time (device_param, 1);
@@ -784,15 +775,12 @@ static double autotune2_loop3_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
-  const u32    threads_sav   = device_param->kernel_threads;
-  const double spin_damp_sav = device_param->spin_damp;
+  const u32 threads_sav = device_param->kernel_threads;
 
   device_param->kernel_threads = threads;
-  device_param->spin_damp      = 0;
 
   run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3, 0, kernel_power, true, 0, true);
 
-  device_param->spin_damp      = spin_damp_sav;
   device_param->kernel_threads = threads_sav;
 
   const double msec = get_avg_exec_time (device_param, 1);

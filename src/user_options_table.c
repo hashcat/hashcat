@@ -1223,14 +1223,6 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .selects      = ACT_SPEED_ONLY,
     .actions      = ACT_SPEED_ONLY,
   },
-  [OPT_SPIN_DAMP] =
-  {
-    .type         = OPTION_TYPE_U32,
-    .flags        = OPTION_FLAG_MAX,
-    .max          = 100,
-    .def          = SPIN_DAMP,
-    .actions      = ACT_CRACK,
-  },
   [OPT_STATUS] =
   {
     .type         = OPTION_TYPE_FLAG,
@@ -2471,7 +2463,6 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_SKIP:                      count = ((uo->skip_chgd == true) || (uo->skip != SKIP));  *value = uo->skip;                                  break;
     case OPT_SLOW_CANDIDATES:           count = (uo->slow_candidates           == true);                                                      break;
     case OPT_SPEED_ONLY:                count = (uo->speed_only                == true);                                                      break;
-    case OPT_SPIN_DAMP:                 count = ((uo->spin_damp_chgd == true) || (uo->spin_damp != SPIN_DAMP));  *value = uo->spin_damp;                             break;
     case OPT_STATUS:                    count = (uo->status                    == true);                                                      break;
     case OPT_STATUS_JSON:               count = (uo->status_json               == true);                                                      break;
     case OPT_PIPELINE_STATS:            count = (uo->pipeline_stats            == true);                                                      break;

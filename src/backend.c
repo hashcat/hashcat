@@ -4147,6 +4147,18 @@ static void launch_salt_record (hc_device_param_t *device_param, const u32 slot,
 // full time would wake the host after a short launch has ended, and the device would sit idle until
 // then. Until the longest launch has been seen, a longer one sleeps for the recorded time and polls
 // for the rest.
+//
+// On CUDA a loop position this shape has not reached yet takes the last loop launch of the same kernel
+// instead, scaled the same way. cuda_event_done has no blocking sync, so a launch without a prediction
+// spins in cuEventSynchronize () for as long as it runs. Without the borrowed time, every loop launch
+// of the first salt after a shape change would do so, and with it only the first one does.
+//
+// A launch without a loop count, which includes every fast hash launch, borrows nothing, because there
+// is no count to scale the borrowed time by. Neither does the loop extended kernel, whose time does not
+// follow its loop count: VeraCrypt runs the header check only in a launch that crosses a PIM boundary.
+// HIP and OpenCL keep the recorded times alone. HIP sleeps in its synchronize
+// (hipDeviceScheduleBlockingSync), and OpenCL leaves the wait to the runtime. On both, a borrowed
+// prediction under twice the margin would be polled to its end instead, which costs CPU time.
 
 static double launch_expected_us (const hc_device_param_t *device_param, const u32 slot, const u32 iterationm, const u32 loops)
 {
@@ -4155,6 +4167,12 @@ static double launch_expected_us (const hc_device_param_t *device_param, const u
   u32 recorded_loops = device_param->exec_loops_prev[slot][iterationm];
 
   launch_salt_expected (device_param, slot, &recorded_us, &recorded_loops);
+
+  if ((recorded_us == 0) && (loops > 0) && (slot != HC_DEV_KERN_2E) && (device_param->is_cuda == true))
+  {
+    recorded_us    = device_param->exec_us_last[slot];
+    recorded_loops = device_param->exec_loops_last[slot];
+  }
 
   if (loops >= recorded_loops) return recorded_us;
 
@@ -4166,6 +4184,9 @@ static double launch_expected_us (const hc_device_param_t *device_param, const u
 static void launch_record (hc_device_param_t *device_param, const u32 slot, const u32 iterationm, const u32 loops, const double exec_us)
 {
   launch_salt_record (device_param, slot, loops, exec_us);
+
+  device_param->exec_us_last[slot]    = (float) exec_us;
+  device_param->exec_loops_last[slot] = loops;
 
   if (device_param->exec_loops_prev[slot][iterationm] > loops) return;
 
@@ -4322,14 +4343,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     memset (device_param->exec_us_prev[slot],    0, sizeof (device_param->exec_us_prev[slot]));
     memset (device_param->exec_loops_prev[slot], 0, sizeof (device_param->exec_loops_prev[slot]));
 
+    device_param->exec_us_last[slot]    = 0;
+    device_param->exec_loops_last[slot] = 0;
+
     device_param->exec_us_prev_shape[slot] = exec_shape;
   }
 
-  // Only a launch with event_update has a loop count of its own: a loop kernel of a slow hash runs
-  // loop_cnt loops. A fast hash kernel ignores loop_cnt, which keeps whatever autotune left in it for
-  // every launch, and for every other launch it is stale.
+  // Only the loop launches of a slow hash run loop_cnt loops. A fast hash kernel ignores loop_cnt, which
+  // keeps whatever autotune left in it. A slow hash launch that passes no event_update is not a loop
+  // launch either. Every other launch therefore counts as having none.
 
-  const u32 launch_loops = (event_update == 0) ? 0 : (u32) device_param->kernel_param.loop_cnt;
+  const bool has_loops = (event_update != 0) && (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL);
+
+  const u32 launch_loops = (has_loops == true) ? (u32) device_param->kernel_param.loop_cnt : 0;
 
   device_param->kernel_param.pws_pos = pws_pos;
   device_param->kernel_param.gid_max = num;
@@ -4826,9 +4852,9 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, i, sizeof (cl_mem), device_param->kernel_params[i]) == -1) return -1;
     }
 
-    // --spin-damp keeps the wait it asked for, and a CPU device has no idle device to wait for.
+    // A CPU device has no idle device to wait for.
 
-    const bool pinned = (is_autotune == false) && (status_ctx->devices_status == STATUS_RUNNING) && (device_param->spin_damp == 0) && ((device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) == 0) && (device_param->launch_param_host != NULL) && (device_param->launch_result_host != NULL);
+    const bool pinned = (is_autotune == false) && (status_ctx->devices_status == STATUS_RUNNING) && ((device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) == 0) && (device_param->launch_param_host != NULL) && (device_param->launch_result_host != NULL);
 
     if (pinned == true)
     {
@@ -4963,51 +4989,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       device_param->launch_result_valid = true;
     }
 
-    // spin damper section
-
-    if (device_param->spin_damp > 0)
-    {
-      cl_int opencl_event_status;
-
-      size_t param_value_size_ret;
-
-      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
-
-      if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
-
-      double spin_total = device_param->spin_damp;
-
-      const double expected_us = launch_expected_us (device_param, slot, iterationm, launch_loops);
-
-      while (opencl_event_status != CL_COMPLETE)
-      {
-        if (status_ctx->devices_status == STATUS_RUNNING)
-        {
-          if (expected_us > 0) usleep ((useconds_t) (expected_us * device_param->spin_damp));
-        }
-        else
-        {
-          // we were told to be nice
-
-          sleep (0);
-        }
-
-        if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
-
-        spin_total += device_param->spin_damp;
-
-        if (spin_total > 1)
-        {
-          if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
-
-          break;
-        }
-      }
-    }
-    else
-    {
-      if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
-    }
+    if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
 
     cl_ulong time_start;
     cl_ulong time_end;
@@ -5017,7 +4999,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     const double exec_us = (double) (time_end - time_start) / 1000;
 
-    if ((device_param->spin_damp > 0) || (pinned == true))
+    if (pinned == true)
     {
       if (status_ctx->devices_status == STATUS_RUNNING)
       {
@@ -8630,13 +8612,6 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
         backend_ctx->need_nvml = true;
       }
 
-      // CPU burning loop damper
-      // Value is given as number between 0-100
-      // By default 8%
-      // in theory not needed with CUDA
-
-      device_param->spin_damp = (double) user_options->spin_damp / 100;
-
       // common driver check
 
       if (device_param->skipped == false)
@@ -9211,12 +9186,6 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
          backend_ctx->need_sysfs_amdgpu = true;
          #endif
       }
-      // CPU burning loop damper
-      // Value is given as number between 0-100
-      // By default 8%
-      // in theory not needed with HIP
-
-      device_param->spin_damp = (double) user_options->spin_damp / 100;
 
       // common driver check
 
@@ -9710,13 +9679,6 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       {
         backend_ctx->need_iokit = true;
       }
-
-      // CPU burning loop damper
-      // Value is given as number between 0-100
-      // By default 8%
-      // in theory not needed with Metal
-
-      device_param->spin_damp = 0;
 
       // common driver check
       /*
@@ -11027,12 +10989,6 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
             }
 
             device_param->kernel_exec_timeout = kernel_exec_timeout;
-
-            // CPU burning loop damper
-            // Value is given as number between 0-100
-            // By default 8%
-
-            device_param->spin_damp = (double) user_options->spin_damp / 100;
 
             if (user_options->stdout_flag == false)
             {
