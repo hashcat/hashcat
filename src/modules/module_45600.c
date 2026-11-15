@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#include <inttypes.h>
 #include "common.h"
 #include "types.h"
 #include "modules.h"
@@ -12,6 +11,8 @@
 #include "shared.h"
 #include "parser.h"
 #include "memory.h"
+
+#include <inttypes.h>
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;

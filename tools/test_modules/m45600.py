@@ -142,7 +142,12 @@ def _make_hash(word, salt, pt_len):
   key = hashlib.scrypt(word, salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P, dklen=32,
                        maxmem=256 * 1024 * 1024)
 
-  ct = _seal(key, nonce, os.urandom(pt_len))  # tag(16) || ct
+  pt = os.urandom(pt_len)
+
+  if HAVE_NACL:
+    ct = nacl.secret.SecretBox(key).encrypt(pt, nonce).ciphertext  # tag(16) || ct
+  else:
+    ct = _seal(key, nonce, pt)
 
   return "$subwallet$%d,%d,%d$%s$%s$%s$%s" % (
     SCRYPT_N, SCRYPT_R, SCRYPT_P,
@@ -208,7 +213,10 @@ def module_verify_hash(line):
     key = hashlib.scrypt(word, salt=salt, n=n, r=r, p=p, dklen=32,
                          maxmem=256 * 1024 * 1024)
 
-    _open(key, nonce, tag + ct)
+    if HAVE_NACL:
+      nacl.secret.SecretBox(key).decrypt(tag + ct, nonce)
+    else:
+      _open(key, nonce, tag + ct)
   except Exception:
     return None
 

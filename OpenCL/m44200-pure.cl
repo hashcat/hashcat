@@ -294,61 +294,34 @@ KERNEL_FQ KERNEL_FA void m44200_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t,
 
   // HSalsa20 of the key and the first 16 bytes of the nonce gives the subkey
 
-  u32 x[16];
+  u32 nonce[6];
 
-  x[ 0] = SALSA20_C0;
-  x[ 1] = k[0];
-  x[ 2] = k[1];
-  x[ 3] = k[2];
-  x[ 4] = k[3];
-  x[ 5] = SALSA20_C1;
-  x[ 6] = sollet->nonce[0];
-  x[ 7] = sollet->nonce[1];
-  x[ 8] = sollet->nonce[2];
-  x[ 9] = sollet->nonce[3];
-  x[10] = SALSA20_C2;
-  x[11] = k[4];
-  x[12] = k[5];
-  x[13] = k[6];
-  x[14] = k[7];
-  x[15] = SALSA20_C3;
+  for (int i = 0; i < 6; i++) nonce[i] = sollet->nonce[i];
 
-  salsa20_20 (x);
+  u32 subkey[8];
+
+  hsalsa20 (k, nonce, subkey);
 
   // Salsa20 block 0 under the subkey and the last 8 bytes of the nonce. Its first 32 bytes are the
   // Poly1305 key, and the next 16 encrypt the start of the message.
 
-  u32 y[16];
+  u32 sn[2];
 
-  y[ 0] = SALSA20_C0;
-  y[ 1] = x[ 0];
-  y[ 2] = x[ 5];
-  y[ 3] = x[10];
-  y[ 4] = x[15];
-  y[ 5] = SALSA20_C1;
-  y[ 6] = sollet->nonce[4];
-  y[ 7] = sollet->nonce[5];
-  y[ 8] = 0;
-  y[ 9] = 0;
-  y[10] = SALSA20_C2;
-  y[11] = x[ 6];
-  y[12] = x[ 7];
-  y[13] = x[ 8];
-  y[14] = x[ 9];
-  y[15] = SALSA20_C3;
+  sn[0] = nonce[4];
+  sn[1] = nonce[5];
+
+  u32 ctr[2] = { 0, 0 };
 
   u32 z[16];
 
-  for (int i = 0; i < 16; i++) z[i] = y[i];
-
-  salsa20_20 (z);
+  salsa20_block (subkey, sn, ctr, z);
 
   u32 pt[4];
 
-  pt[0] = sollet->ct[0] ^ (z[ 8] + y[ 8]);
-  pt[1] = sollet->ct[1] ^ (z[ 9] + y[ 9]);
-  pt[2] = sollet->ct[2] ^ (z[10] + y[10]);
-  pt[3] = sollet->ct[3] ^ (z[11] + y[11]);
+  pt[0] = sollet->ct[0] ^ z[ 8];
+  pt[1] = sollet->ct[1] ^ z[ 9];
+  pt[2] = sollet->ct[2] ^ z[10];
+  pt[3] = sollet->ct[3] ^ z[11];
 
   // {"mnemonic":" and the first 3 letters of a BIP39 word
 

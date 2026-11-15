@@ -1,16 +1,17 @@
 /**
- * SubWallet (polkadot-js keyring) - m45600-pure.cl
- *
- *   key = scrypt(password, salt32, N, r, p, 32)
- *   mac = Poly1305(XSalsa20block0(key, nonce24), ct)   [NaCl secretbox]
- *
- * The scrypt pipeline (PBKDF2 -> BlockMix -> ROMix -> PBKDF2) is the stock
- * hashcat implementation from inc_hash_scrypt.cl; the secretbox verify uses
- * the shared Salsa20/XSalsa20 and Poly1305 primitives from
- * inc_cipher_salsa20.cl and inc_auth_poly1305.cl.
- *
- * License: MIT
+ * Author......: See docs/credits.txt
+ * License.....: MIT
  */
+
+// SubWallet (polkadot-js keyring)
+//
+//   key = scrypt(password, salt32, N, r, p, 32)
+//   mac = Poly1305(XSalsa20block0(key, nonce24), ct)   [NaCl secretbox]
+//
+// The scrypt pipeline (PBKDF2 -> BlockMix -> ROMix -> PBKDF2) is the stock
+// hashcat implementation from inc_hash_scrypt.cl; the secretbox verify uses
+// the shared Salsa20/XSalsa20 and Poly1305 primitives from
+// inc_cipher_salsa20.cl and inc_auth_poly1305.cl.
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)

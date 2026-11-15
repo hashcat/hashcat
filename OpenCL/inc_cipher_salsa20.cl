@@ -129,26 +129,23 @@ DECLSPEC void xsalsa20_stream (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_A
   ctr[0] = 0;
   ctr[1] = 0;
 
-  u32 words = out_len / 4;
+  const u32 words = out_len / 4;
 
-  while (words >= 16)
-  {
-    salsa20_block (subkey, sn, ctr, out);
-
-    ctr[0]++;
-
-    if (ctr[0] == 0) ctr[1]++;
-
-    out   += 16;
-    words -= 16;
-  }
-
-  if (words)
+  for (u32 off = 0; off < words; off += 16)
   {
     u32 block[16];
 
     salsa20_block (subkey, sn, ctr, block);
 
-    for (u32 i = 0; i < words; i++) out[i] = block[i];
+    ctr[0]++;
+
+    if (ctr[0] == 0) ctr[1]++;
+
+    for (u32 i = 0; i < 16; i++)
+    {
+      if (off + i >= words) break;
+
+      out[off + i] = block[i];
+    }
   }
 }
