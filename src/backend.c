@@ -4371,6 +4371,12 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     device_param->kernel_param.run_mask = mask_ctx->bfs_run_mask;
   }
 
+  // Only a pinned launch below copies the crack count back to the host and marks the copy valid. Any
+  // other launch, such as one issued while paused or stopping, leaves the copy stale. check_cracked ()
+  // then reads the count from the device.
+
+  device_param->launch_result_valid = false;
+
   u64 num_elements = num;
 
   if (device_param->is_cuda == true)
@@ -4500,8 +4506,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (pinned == true)
     {
-      device_param->launch_result_valid = false;
-
       if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->launch_result_host, device_param->d_buf[HC_DEV_BUF_RESULT].cuda, sizeof (u32), device_param->cuda_stream) == -1) return -1;
 
       if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event_done, device_param->cuda_stream) == -1) return -1;
@@ -4641,8 +4645,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (pinned == true)
     {
-      device_param->launch_result_valid = false;
-
       if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->launch_result_host, device_param->d_buf[HC_DEV_BUF_RESULT].hip, sizeof (u32), device_param->hip_stream) == -1) return -1;
 
       if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event_done, device_param->hip_stream) == -1) return -1;
@@ -4972,8 +4974,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (pinned == true)
     {
-      device_param->launch_result_valid = false;
-
       cl_event read_event = NULL;
 
       if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_RESULT].opencl, CL_FALSE, 0, sizeof (u32), device_param->launch_result_host, 0, NULL, &read_event) == -1) return -1;
