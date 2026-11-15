@@ -5375,20 +5375,33 @@ static HC_THREAD_FUNC hashes_group_thread (void *p)
       salt_buf->digests_done   = 0;
       salt_buf->digests_offset = offsets[salt_idx];
 
-      if (hook_salt_size > 0)
-      {
-        memcpy (param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size), hashes_buf[i].hook_salt, hook_salt_size);
-      }
-
       hashes_buf[i].salt = salt_buf;
-
-      if (hook_salt_size > 0) hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size);
     }
     else if (hashconfig->is_salted == true)
     {
       hashes_buf[i].salt = &salts_buf_new[salt_idx];
+    }
 
-      if (hook_salt_size > 0) hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size);
+    if (hook_salt_size > 0)
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT_PER_DIGEST)
+      {
+        // the slot stays with the digest, not the salt: digests that share a salt keep
+        // their own hook data
+
+        memcpy (param->hook_salts_buf_new + ((u64) i * hook_salt_size), hashes_buf[i].hook_salt, hook_salt_size);
+
+        hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) i * hook_salt_size);
+      }
+      else
+      {
+        if (i == offsets[salt_idx])
+        {
+          memcpy (param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size), hashes_buf[i].hook_salt, hook_salt_size);
+        }
+
+        hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size);
+      }
     }
 
     if (param->digests_buf_new != NULL)

@@ -816,6 +816,7 @@ typedef enum opts_type
   OPTS_TYPE_BINARY_HASHFILE_OPTIONAL = (1ULL << 46), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06                 = (1ULL << 47),
   OPTS_TYPE_KEYBOARD_MAPPING         = (1ULL << 48),
+  OPTS_TYPE_HOOK_SALT_PER_DIGEST     = (1ULL << 44), // hook_salt slots stay one per digest after salt grouping (default: one per salt)
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
 
   // The single-hash brute-force kernels have a sibling, m<type>_r04 to _r16, for a mask whose right
