@@ -146,6 +146,34 @@ static int plain_pw (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return rc;
 }
 
+// The longest plain build_plain () reports in this run. --encrypt-with-pubkey checks its key against
+// it, so the two cannot drift apart.
+//
+// A combinator candidate is a base word plus an amplifier, and pw_max bounds the base word alone. The
+// amplifier is held to PW_MAX, so an optimized kernel's candidate is at most the sum, and a cap at
+// pw_max itself, 55 there, reported a truncated password that does not hash to the digest beside it.
+// A pure kernel's plain stops at twice pw_max. PW_MAX * 2 is what the callers are sized for. With
+// --slow-candidates the host joins the two words into a pw_t, which holds PW_MAX.
+
+u32 build_plain_max (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  const u32 pw_max = hashconfig->pw_max;
+
+  if (user_options_extra->attack_kern != ATTACK_KERN_COMBI) return pw_max;
+
+  const u32 combi_max = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? (pw_max + PW_MAX) : (pw_max * 2);
+
+  const u32 room_max = (user_options->slow_candidates == true) ? PW_MAX : PW_MAX * 2;
+
+  const u32 plain_max = MIN (combi_max, room_max);
+
+  return plain_max;
+}
+
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -372,7 +400,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       if (device_param->combs_on_host == true)
       {
-        plain_len = (int) hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, (const u8 *) pw.i, pw.pw_len);
+        plain_len = (int) hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, PW_MAX * 2, (const u8 *) pw.i, pw.pw_len);
       }
       else
       {
@@ -382,7 +410,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
         hybrid_amp_mask (hashcat_ctx, off, mask_buf);
 
-        plain_len = (int) hybrid_assemble (hashcat_ctx, plain_ptr, mask_buf, (const u8 *) pw.i, pw.pw_len, NULL, 0);
+        plain_len = (int) hybrid_assemble_max (hashcat_ctx, plain_ptr, PW_MAX * 2, mask_buf, (const u8 *) pw.i, pw.pw_len, NULL, 0);
       }
     }
     if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -419,28 +447,9 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
-  int pw_max = (const int) hashconfig->pw_max;
+  const int plain_max = (int) build_plain_max (hashcat_ctx);
 
-  // A combinator candidate is a base word plus an amplifier, and pw_max bounds the base word alone.
-  // The cap at 55 reported a truncated password, which does not hash to the digest beside it.
-  // PW_MAX * 2 is what the callers are sized for.
-
-  if (plain_len > pw_max)
-  {
-    if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        pw_max = PW_MAX * 2;
-      }
-      else
-      {
-        pw_max = MIN ((pw_max * 2), PW_MAX * 2);
-      }
-    }
-  }
-
-  if (plain_len > pw_max) plain_len = MIN (plain_len, pw_max);
+  plain_len = MIN (plain_len, plain_max);
 
   plain_ptr[plain_len] = 0;
 

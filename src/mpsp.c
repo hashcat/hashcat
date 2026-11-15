@@ -1843,14 +1843,14 @@ static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig,
   snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
 }
 
-// Copy one piece of a -a 12 candidate without running past the end of the buffer, and report how much
-// was taken.
+// Copy one piece of a -a 12 candidate without running past out_max, the size of the buffer it goes
+// into, and report how much was taken.
 
-static u32 hybrid_append (u8 *out_buf, const u32 out_len, const u8 *src, const u32 src_len)
+static u32 hybrid_append (u8 *out_buf, const u32 out_len, const u32 out_max, const u8 *src, const u32 src_len)
 {
-  if (out_len >= PW_MAX) return 0;
+  if (out_len >= out_max) return 0;
 
-  const u32 copy_len = MIN (src_len, PW_MAX - out_len);
+  const u32 copy_len = MIN (src_len, out_max - out_len);
 
   // an absent piece is passed as NULL with a length of 0, and memcpy () must not be handed NULL even
   // for 0 bytes
@@ -1897,7 +1897,7 @@ u32 hybrid_amp_mask (hashcat_ctx_t *hashcat_ctx, const u64 off, char *mask_buf)
 // its item, so everything the fill accepted after it has moved up, and only the fill knows by how
 // much. The buffer is the record of what it decided.
 
-u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 il_pos, u8 *out_buf, const u8 *base_buf, const u32 base_len)
+u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 il_pos, u8 *out_buf, const u32 out_max, const u8 *base_buf, const u32 base_len)
 {
   const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
@@ -1910,11 +1910,11 @@ u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *dev
     const pw_t *word_ptr = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_WORD];
     const pw_t *post_ptr = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_POST];
 
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) pre_ptr->i,  pre_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, base_buf,                 base_len);
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) mid_ptr->i,  mid_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) word_ptr->i, word_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) post_ptr->i, post_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) pre_ptr->i,  pre_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                 base_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) mid_ptr->i,  mid_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) word_ptr->i, word_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) post_ptr->i, post_ptr->pw_len);
 
     return out_len;
   }
@@ -1926,22 +1926,23 @@ u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *dev
 
   if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) one_ptr->i, one_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, base_buf,                base_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) one_ptr->i, one_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                base_len);
 
     return out_len;
   }
 
-  out_len += hybrid_append (out_buf, out_len, base_buf,                base_len);
-  out_len += hybrid_append (out_buf, out_len, (const u8 *) one_ptr->i, one_ptr->pw_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                base_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) one_ptr->i, one_ptr->pw_len);
 
   return out_len;
 }
 
 // Put one -a 12 candidate together from its pieces, in the one order the amplifier kernel also uses:
-// mask, base word, mask, second word, mask. Any of the five may be empty.
+// mask, base word, mask, second word, mask. Any of the five may be empty. out_max is the size of
+// out_buf.
 
-u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
+u32 hybrid_assemble_max (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const u32 out_max, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
 {
   const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -1953,11 +1954,20 @@ u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_b
 
   u32 out_len = 0;
 
-  out_len += hybrid_append (out_buf, out_len, mask_ptr,                     pre_len);
-  out_len += hybrid_append (out_buf, out_len, base_buf,                     base_len);
-  out_len += hybrid_append (out_buf, out_len, mask_ptr + pre_len,           mid_len);
-  out_len += hybrid_append (out_buf, out_len, word_buf,                     word_len);
-  out_len += hybrid_append (out_buf, out_len, mask_ptr + pre_len + mid_len, post_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, mask_ptr,                     pre_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                     base_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, mask_ptr + pre_len,           mid_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, word_buf,                     word_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, mask_ptr + pre_len + mid_len, post_len);
+
+  return out_len;
+}
+
+// A candidate the host builds goes into a pw_t, so it is cut at PW_MAX.
+
+u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
+{
+  const u32 out_len = hybrid_assemble_max (hashcat_ctx, out_buf, PW_MAX, mask_buf, base_buf, base_len, word_buf, word_len);
 
   return out_len;
 }

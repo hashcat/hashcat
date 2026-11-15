@@ -1692,6 +1692,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
 
   /**
+   * the key of --encrypt-with-pubkey, against the longest password this hash mode and attack report
+   */
+
+  if (pubkey_ctx_check_size (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
+  /**
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 

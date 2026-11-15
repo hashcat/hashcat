@@ -30,9 +30,10 @@
 
 #define PUBKEY_HEADER_MAX     96
 
-int  pubkey_ctx_init      (hashcat_ctx_t *hashcat_ctx);
-void pubkey_ctx_destroy   (hashcat_ctx_t *hashcat_ctx);
+int  pubkey_ctx_init       (hashcat_ctx_t *hashcat_ctx);
+int  pubkey_ctx_check_size (hashcat_ctx_t *hashcat_ctx);
+void pubkey_ctx_destroy    (hashcat_ctx_t *hashcat_ctx);
 
-int  pubkey_encrypt_plain (hashcat_ctx_t *hashcat_ctx, const u8 *hash_buf, const int hash_len, const u8 *plain_buf, const int plain_len, u8 *out_buf, const size_t out_size, int *out_len);
+int  pubkey_encrypt_plain  (hashcat_ctx_t *hashcat_ctx, const u8 *hash_buf, const int hash_len, const u8 *plain_buf, const int plain_len, u8 *out_buf, const size_t out_size, int *out_len);
 
 #endif // HC_PUBKEY_H

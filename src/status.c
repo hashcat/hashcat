@@ -1158,9 +1158,9 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   // build_plain returns up to PW_MAX * 2 bytes for a combinator candidate, and hexifying doubles it
   // again, so both buffers have to hold twice the longest candidate plus the terminator.
   //
-  // exec_hexify stops reading at PW_MAX, so a candidate longer than that is shown only as far as it
-  // got. The terminator goes where exec_hexify says it stopped rather than where the whole candidate
-  // would have ended, because the bytes in between were never written.
+  // exec_hexify stops reading at PW_MAX * 2, which build_plain never exceeds. The terminator goes where
+  // exec_hexify says it stopped rather than where the whole candidate would have ended, because the
+  // bytes in between would never have been written.
 
   u32 plain_buf1[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
   u32 plain_buf2[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };

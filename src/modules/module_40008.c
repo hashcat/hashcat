@@ -17,7 +17,7 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_DATABASE_SERVER;
 static const char *HASH_NAME      = "Oracle o5logon (AUTH_SESSKEY padding check)";
 static const char *HASH_RECIPE    = "pt = aes_cbc_decrypt_bin(pad(sha1_bin(pass . cut(fromhex(salt), 48, 10)), 24), cut(fromhex(salt), 16, 16), cut(fromhex(salt), 32, 16)); cut(pt, 8, 8) == fromhex('0808080808080808')";
 static const u64   KERN_TYPE      = 40008;

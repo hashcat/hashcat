@@ -22,7 +22,7 @@ writing RSA key
 
 The customer keeps `private.pem` and never sends it anywhere. They send you `public.pem` together with the hash. The public key is not secret. It can encrypt a result but cannot decrypt one.
 
-Use a 4096-bit key. hashcat needs at least 3344 bits for its largest possible payload and recommends the common 4096-bit size. The error message reports the required minimum if the key is too small.
+Use a 4096-bit key. It carries every password hashcat can report, except from a combinator or hybrid attack (`-a 1`, `-a 6`, `-a 7` or `-a 12`) with pure kernels on a hash mode that takes passwords longer than 175 bytes. Two words then make a password of up to 512 bytes, which needs 5392 bits, so use an 8192-bit key there. hashcat checks the key when the attack starts and reports the required minimum if it is too small.
 
 ### Step 2: The operator cracks the hash
 
@@ -146,9 +146,9 @@ __Some options are refused.__ These would write a password, its source word, or 
 | `--show` | Prints the potfile as it is, and plains from unprotected runs are in it in the clear. Run `--show` without the option to get the encrypted entries |
 | `--stdout` | Prints every candidate in the clear |
 
-__The key must be RSA and large enough for every payload.__ Elliptic-curve and Ed25519 keys are rejected. hashcat checks the key size at startup before beginning the attack. With the current 256-byte password limit and 96-byte binding header, RSA-OAEP with SHA-256 requires at least 3344 bits, and a 4096-bit key is recommended.
+__The key must be RSA and large enough for every payload.__ Elliptic-curve and Ed25519 keys are rejected. hashcat checks the key size before beginning the attack, against the longest password the hash mode, its kernel and the attack can report, plus the 96-byte binding header. With RSA-OAEP and SHA-256, a password of up to 256 bytes requires at least 3344 bits, and a 4096-bit key is recommended. A combinator or hybrid attack with pure kernels on such a mode joins two words into passwords of up to 512 bytes, which requires at least 5392 bits, and an 8192-bit key is recommended. A mode that limits passwords to fewer bytes needs less.
 
-A 2048-bit key can carry only 190 bytes after OAEP overhead. hashcat rejects it rather than risk reaching a password that cannot be encrypted. If encryption fails during a run, hashcat aborts instead of writing the password in clear text.
+A 2048-bit key can carry only 190 bytes after OAEP overhead, and the binding header takes 79 of them. hashcat rejects a key that is too small for the attack rather than risk reaching a password that cannot be encrypted. With `--force` it runs anyway and cuts a longer password to fit, with a warning. The encrypted result is the only copy of the password hashcat writes, so the rest of a cut password is lost. If encryption fails during a run, hashcat aborts instead of writing the password in clear text.
 
 __OpenSSL 3 is required at runtime.__ hashcat loads it only when this option is used and does not link against it. A machine without OpenSSL can therefore run hashcat normally and reports the missing library only when encryption is requested.
 

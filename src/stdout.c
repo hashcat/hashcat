@@ -509,7 +509,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
             if (device_param->combs_on_host == true)
             {
-              plain_len = hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, pw, pw_idx->len);
+              plain_len = hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, PW_MAX, pw, pw_idx->len);
             }
             else
             {
