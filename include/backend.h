@@ -98,8 +98,6 @@ u64 gidvid_to_word_pos                      (const hc_device_param_t *device_par
 
 bool is_opti_kernel_no_pcfg                 (const hashcat_ctx_t *hashcat_ctx);
 
-int choose_kernel                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune);
-
 // The device primitives. Each of these is the one place a backend is chosen for the operation it
 // names, so code above them works in slots and sizes rather than in four runtimes.
 
@@ -122,6 +120,7 @@ int run_kernel_memset32                     (hashcat_ctx_t *hashcat_ctx, hc_devi
 
 int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration, const bool is_autotune);
 bool run_kernels_wanted                     (hashcat_ctx_t *hashcat_ctx);
+u32  salts_in_turn                          (const hashcat_ctx_t *hashcat_ctx);
 hc_dev_kern_t run_kernel_slot               (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 kern_run);
 int run_bridge_loop                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt, const u32 loop_pos, const u32 loop_cnt, const u32 event_update);
 int run_kernel_mp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);

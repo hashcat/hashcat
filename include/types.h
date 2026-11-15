@@ -1877,14 +1877,15 @@ typedef struct kernel_exec_shape
 
 } kernel_exec_shape_t;
 
-// The first init, loop and comp launch of one salt in a chunk of the salt inner order, and the loop
-// count of the loop launch. num is the launch size they were taken at.
+// The first init, loop and comp launch of one salt in a chunk, which for a fast hash is its one launch,
+// and the loop count of the loop launch. A salt keeps one for a chunk of the full step and one for a
+// shorter chunk.
 
 #define LAUNCH_SALT_KERNS 3
+#define LAUNCH_SALT_KINDS 2
 
 typedef struct launch_salt
 {
-  u64   num;
   float us[LAUNCH_SALT_KERNS];
   u32   loops;
 
@@ -2178,10 +2179,6 @@ typedef struct hc_device_param
   double  outerloop_msec;
   u64     outerloop_progress;
 
-  // The running total the pair above is made from.
-
-  double  outerloop_words;
-
   u64     innerloop_pos;
   u64     innerloop_left;
 
@@ -2209,11 +2206,17 @@ typedef struct hc_device_param
   float   exec_us_last[HC_DEV_KERN_CNT];
   u32     exec_loops_last[HC_DEV_KERN_CNT];
 
-  // the salt inner order predicts from the salt itself, see launch_salt_t
+  // a launch predicted from its salt, see launch_salt_t, and the launch size the records of each kind of
+  // chunk were taken at, in work items and in amplifier items per work item
 
   launch_salt_t *launch_salt;
 
+  u32     launch_salt_cnt;
+  u64     launch_salt_num[LAUNCH_SALT_KINDS];
+  u32     launch_salt_il[LAUNCH_SALT_KINDS];
+
   u32     launch_chunk;
+  u32     launch_chunk_kind;
   float   launch_factor[LAUNCH_SALT_KERNS];
   u32     launch_factor_chunk[LAUNCH_SALT_KERNS];
 
@@ -2224,11 +2227,13 @@ typedef struct hc_device_param
   u32     launch_last_loops[LAUNCH_SALT_KERNS];
   float   launch_last_us[LAUNCH_SALT_KERNS];
 
-  // this is "current" speed
+  // this is "current" speed. speed_words holds the base words of each launch in the ring, which
+  // --progress-only reports beside its time.
 
   u32     speed_pos;
   u64     speed_cnt[SPEED_CACHE];
   double  speed_msec[SPEED_CACHE];
+  double  speed_words[SPEED_CACHE];
   bool    speed_only_finish;
 
   hc_timer_t timer_speed;

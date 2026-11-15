@@ -1546,9 +1546,7 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
       {
         const u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
-        // Salts are worked one after another, so a live salt can pass --stdin-count before a cracked
-        // salt later in the order is credited with the words it skipped. The work ignored is then more
-        // than the work left, and there is no estimate to give.
+        // The work ignored can be more than the work left, and there is then no estimate to give.
 
         if (progress_ignore > progress_left_relative_skip) return 0;
 
@@ -2339,7 +2337,13 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
       rate_best = MAX (rate_best, rate);
     }
 
-    const double rate_floor = rate_best * BENCHMARK_SLOT_FRACTION;
+    // The fastest launches stand for the device when every launch does the same work, as with the one
+    // hash of the benchmark. The salts of a list take turns in the speed ring and can cost different
+    // amounts, so there the fastest launches are only the cheapest salts, and every launch counts.
+
+    const bool salts_take_turns = (salts_in_turn (hashcat_ctx) > 1);
+
+    const double rate_floor = (salts_take_turns == true) ? 0 : rate_best * BENCHMARK_SLOT_FRACTION;
 
     for (u32 i = 0; i < speed_pos; i++)
     {
