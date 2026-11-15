@@ -2121,9 +2121,28 @@ static void table_module_rule (option_table_t *table, const u32 idx)
   rule->requires[0] = option_by_name (table, row->requires);
 }
 
+static bool table_alloc_failed (const option_table_t *table)
+{
+  if (table->module_rules == NULL) return true;
+  if (table->long_options == NULL) return true;
+  if (table->given        == NULL) return true;
+  if (table->value        == NULL) return true;
+  if (table->numbers      == NULL) return true;
+  if (table->order        == NULL) return true;
+  if (table->ignored      == NULL) return true;
+  if (table->implied      == NULL) return true;
+  if (table->implied_by   == NULL) return true;
+
+  return false;
+}
+
+static void table_destroy (option_table_t *table);
+
 static option_table_t *table_create (module_options_t *module_options)
 {
   option_table_t *table = (option_table_t *) hccalloc (1, sizeof (option_table_t));
+
+  if (table == NULL) return NULL;
 
   const char *env = getenv ("HASHCAT_OPTION_DEBUG");
 
@@ -2145,6 +2164,13 @@ static option_table_t *table_create (module_options_t *module_options)
   table->ignored      = (bool *)            hccalloc (table->count,             sizeof (bool));
   table->implied      = (bool *)            hccalloc (table->count,             sizeof (bool));
   table->implied_by   = (option_id_t *)     hccalloc (table->count,             sizeof (option_id_t));
+
+  if (table_alloc_failed (table) == true)
+  {
+    table_destroy (table);
+
+    return NULL;
+  }
 
   memcpy (table->long_options, option_table_long, core_cnt * sizeof (struct option));
 
@@ -3396,6 +3422,8 @@ int option_table_parse (hashcat_ctx_t *hashcat_ctx, const int argc, char **argv)
 
   user_options->option_table = table;
 
+  if (table == NULL) return -1;
+
   option_verdict_t v;
 
   memset (&v, 0, sizeof (v));
@@ -3457,6 +3485,8 @@ int option_table_check (hashcat_ctx_t *hashcat_ctx)
 
     user_options->option_table = table;
 
+    if (table == NULL) return -1;
+
     table->checked = true;
 
     table_struct_verdict (hashcat_ctx, table, &v);
@@ -3497,6 +3527,8 @@ int option_table_check (hashcat_ctx_t *hashcat_ctx)
   if (table->debug > 0)
   {
     option_table_t *table_struct = table_create (user_options->module_options);
+
+    if (table_struct == NULL) return -1;
 
     option_verdict_t v_struct;
 

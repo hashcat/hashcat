@@ -2270,10 +2270,13 @@ int main (int argc, char **argv)
   // parse commandline parameters and check them
 
   // getopt and sanity reject a wrong command line, so they exit with -2
+  // getopt leaves no option table only when the table could not be allocated, and that exits with -1.
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
-    main_error_banner (hashcat_ctx, RC_FINAL_ERROR_COMMAND, hashcat_ctx->user_options->quiet);
+    const rc_final_t rc_getopt = (hashcat_ctx->user_options->option_table == NULL) ? RC_FINAL_ERROR : RC_FINAL_ERROR_COMMAND;
+
+    main_error_banner (hashcat_ctx, rc_getopt, hashcat_ctx->user_options->quiet);
 
     user_options_destroy (hashcat_ctx);
 
@@ -2281,7 +2284,7 @@ int main (int argc, char **argv)
 
     hcfree (hashcat_ctx);
 
-    return RC_FINAL_ERROR_COMMAND;
+    return rc_getopt;
   }
 
   if (user_options_sanity (hashcat_ctx) == -1)
