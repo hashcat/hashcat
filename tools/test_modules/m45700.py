@@ -25,7 +25,7 @@ def _make_hash(word, salt):
   if isinstance(word, str):
     word = word.encode()
 
-  sb = salt[:random_number(12, 128)]
+  sb = salt
   iv = os.urandom(random_number(12, 16))
 
   key = hashlib.pbkdf2_hmac("sha256", word, sb, ROUNDS, 32)
@@ -46,7 +46,7 @@ def module_test_properties():
     'constraints': {
       'pure': {
         'password_length': [0, 256],
-        'salt_length': [16, 16],
+        'salt_length': [12, 128],
       },
       'optimized': None,
       'combined_length': None,
@@ -56,13 +56,10 @@ def module_test_properties():
 
 def module_generate_hash(word, salt=None):
   if salt is None:
-    salt = os.urandom(16)
+    salt = os.urandom(random_number(12, 128))
 
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
-
-  if len(salt) < 16:
-    salt = salt + os.urandom(16 - len(salt))
 
   return _make_hash(word, salt)
 
