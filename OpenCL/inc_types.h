@@ -25,6 +25,7 @@
 #define GID_CNT             kernel_param->gid_max
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #define MODULE_TUNE         kernel_param->module_tune
+#define SALTS_CNT           kernel_param->salts_cnt
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
 #define PCFG_POOL_AT1       kernel_param->pcfg_pool_at1
@@ -44,6 +45,7 @@
 #define GID_CNT             kernel_param->gid_max
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #define MODULE_TUNE         kernel_param->module_tune
+#define SALTS_CNT           kernel_param->salts_cnt
 #endif
 
 #ifdef IS_CUDA
@@ -1994,6 +1996,12 @@ typedef enum xxh32_constants
 
 } xxh32_constants_t;
 
+typedef enum lookup8_constants
+{
+  LOOKUP8_GOLDEN=0x9e3779b97f4a7c13UL
+
+} lookup8_constants_t;
+
 typedef enum combinator_mode
 {
   COMBINATOR_MODE_BASE_LEFT   = 10001,
@@ -2129,6 +2137,19 @@ typedef struct kernel_param
   // read at run time so that one build serves them all. Zero for a module without that hook.
 
   u32 module_tune;          // 43
+
+  // For the run kernels of a mode: how many consecutive right words share the low bytes of w0,
+  // where in its run the first right word of this launch sits, and which bits those are.
+
+  u32 run_len;              // 44
+  u32 run_pos;              // 45
+  u32 run_mask;             // 46
+
+  // The salts in salt_bufs: every salt of the list, or the one salt of the self-test. A kernel that
+  // tests every salt in one launch (module_salt_sweep ()) walks salts 0 to salts_cnt - 1, and its
+  // launch sets digests_cnt to every digest of the list and digests_offset_host to 0.
+
+  u32 salts_cnt;            // 47
 
 } kernel_param_t;
 

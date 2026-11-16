@@ -2099,7 +2099,7 @@ static bool feed_gpu_run_opencl (feed_gpu_t *gp, const u32 blocks, const feed_gp
 // The stream is the feed's own and never hashcat's. hashcat's cuda_stream does not exist when
 // thread_init () runs and is already destroyed when thread_term () runs, and sharing it would put
 // these launches inside the cuEventRecord pair run_kernel () uses to time the cracking kernel, which
-// is the Exec column, --spin-damp and the TDR abort.
+// is the Exec column, the launch time prediction and the TDR abort.
 //
 // A launch is refused while autotune is measuring. Nothing can reach here during that window today,
 // because autotune joins its own threads before any calc thread exists and every producer thread is

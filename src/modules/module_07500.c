@@ -23,19 +23,26 @@ static const u64   KERN_TYPE      = 7500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5pa$23$user$realm$salt$5cbb0c882a2b26956e81644edbdb746326f4f5f0e947144fb3095dffe4b4b03e854fc1d631323632303636373330383333353630";
 
 #include "hooks_common.c"
 
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_RAW_TOKEN_LEN 256
+#define MAX_ENC_TS_LEN 64
+
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
-  u32 salt[64];
-  u32 timestamp[16];
+  u32 user[128];
+  u32 realm[128];
+  u32 raw_token[64];
+  u32 enc_timestamp[MAX_ENC_TS_LEN / 4];
   u32 checksum[4];
   u32 enc_timestamp_len;
   u32 format;
@@ -114,17 +121,17 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[1]     = '$';
   token.len_min[1] = 0;
-  token.len_max[1] = 253;
+  token.len_max[1] = MAX_USER_LEN;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
   token.len_min[2] = 0;
-  token.len_max[2] = 253;
+  token.len_max[2] = MAX_REALM_LEN;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]     = '$';
   token.len_min[3] = 0;
-  token.len_max[3] = 128;
+  token.len_max[3] = MAX_RAW_TOKEN_LEN - 1;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[4] = 90;
@@ -152,7 +159,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     memcpy (krb5pa->user,  user_pos,  token.len[1]);
     memcpy (krb5pa->realm, realm_pos, token.len[2]);
-    memcpy (krb5pa->salt,  salt_pos,  token.len[3]);
+    memcpy (krb5pa->raw_token,  salt_pos,  token.len[3]);
 
     timestamp_hex_len = data_hex_len - 32;
     timestamp_pos = token.buf[4];
@@ -176,12 +183,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 0;
-    token.len_max[1] = 253;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 0;
-    token.len_max[2] = 253;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -209,7 +216,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
       memcpy (krb5pa->user,  user_pos,  token.len[1]);
       memcpy (krb5pa->realm, realm_pos, token.len[2]);
-      memset (krb5pa->salt, 0, sizeof (krb5pa->salt));
+      memset (krb5pa->raw_token, 0, sizeof (krb5pa->raw_token));
 
       checksum_pos      = token.buf[3];
       timestamp_pos     = token.buf[4];
@@ -234,12 +241,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 0;
-    token.len_max[1] = 253;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 0;
-    token.len_max[2] = 253;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.len_min[3] = 90;
@@ -262,14 +269,14 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     memcpy (krb5pa->user,  user_pos,  token.len[1]);
     memcpy (krb5pa->realm, realm_pos, token.len[2]);
-    memset (krb5pa->salt, 0, sizeof (krb5pa->salt));
+    memset (krb5pa->raw_token, 0, sizeof (krb5pa->raw_token));
 
     timestamp_hex_len = data_hex_len - 32;
     timestamp_pos = token.buf[3];
     checksum_pos  = token.buf[3] + timestamp_hex_len;
   }
 
-  u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
+  u8 *timestamp_ptr = (u8 *) krb5pa->enc_timestamp;
 
   for (int i = 0; i < timestamp_hex_len; i += 2)
   {
@@ -297,15 +304,15 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
    * copy some data to generic buffers to make sorting happy
    */
 
-  salt->salt_buf[0] = krb5pa->timestamp[0];
-  salt->salt_buf[1] = krb5pa->timestamp[1];
-  salt->salt_buf[2] = krb5pa->timestamp[2];
-  salt->salt_buf[3] = krb5pa->timestamp[3];
-  salt->salt_buf[4] = krb5pa->timestamp[4];
-  salt->salt_buf[5] = krb5pa->timestamp[5];
-  salt->salt_buf[6] = krb5pa->timestamp[6];
-  salt->salt_buf[7] = krb5pa->timestamp[7];
-  salt->salt_buf[8] = krb5pa->timestamp[8];
+  salt->salt_buf[0] = krb5pa->enc_timestamp[0];
+  salt->salt_buf[1] = krb5pa->enc_timestamp[1];
+  salt->salt_buf[2] = krb5pa->enc_timestamp[2];
+  salt->salt_buf[3] = krb5pa->enc_timestamp[3];
+  salt->salt_buf[4] = krb5pa->enc_timestamp[4];
+  salt->salt_buf[5] = krb5pa->enc_timestamp[5];
+  salt->salt_buf[6] = krb5pa->enc_timestamp[6];
+  salt->salt_buf[7] = krb5pa->enc_timestamp[7];
+  salt->salt_buf[8] = krb5pa->enc_timestamp[8];
 
   salt->salt_len = 36;
 
@@ -321,7 +328,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   const krb5pa_t *krb5pa = (const krb5pa_t *) esalt_buf;
 
-  const u8 *ptr_timestamp = (const u8 *) krb5pa->timestamp;
+  const u8 *ptr_timestamp = (const u8 *) krb5pa->enc_timestamp;
   const u8 *ptr_checksum  = (const u8 *) krb5pa->checksum;
 
   char checksum_hex[64] = { 0 };
@@ -345,7 +352,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
       SIGNATURE_KRB5PA,
       (const char *) krb5pa->user,
       (const char *) krb5pa->realm,
-      (const char *) krb5pa->salt,
+      (const char *) krb5pa->raw_token,
       encrypted_hex,
       checksum_hex);
   }

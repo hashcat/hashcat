@@ -486,6 +486,13 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .actions      = ACT_CRACK,
     .requires     = { OPT_BYPASS_DELAY },
   },
+  [OPT_BYPASS_ETA] =
+  {
+    .type         = OPTION_TYPE_U32,
+    .flags        = OPTION_FLAG_MIN,
+    .min          = 1,
+    .actions      = ACT_CRACK,
+  },
   [OPT_BENCHMARK_ALL] =
   {
     .type         = OPTION_TYPE_FLAG,
@@ -627,9 +634,15 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .type         = OPTION_TYPE_FLAG,
     .actions      = ACT_SESSION,
   },
+  // A generated rule is written into a buffer of RP_RULE_SIZE bytes, up to three for each function,
+  // and a kernel rule holds MAX_KERNEL_RULES functions. Bounding the count by the second keeps the
+  // first, and every generated rule then converts.
+
   [OPT_RP_GEN_FUNC_MAX] =
   {
     .type         = OPTION_TYPE_U32,
+    .flags        = OPTION_FLAG_MAX,
+    .max          = MAX_KERNEL_RULES,
     .def          = RP_GEN_FUNC_MAX,
     .actions      = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE | ACT_SPEED_ONLY,
   },
@@ -1210,14 +1223,6 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .selects      = ACT_SPEED_ONLY,
     .actions      = ACT_SPEED_ONLY,
   },
-  [OPT_SPIN_DAMP] =
-  {
-    .type         = OPTION_TYPE_U32,
-    .flags        = OPTION_FLAG_MAX,
-    .max          = 100,
-    .def          = SPIN_DAMP,
-    .actions      = ACT_CRACK,
-  },
   [OPT_STATUS] =
   {
     .type         = OPTION_TYPE_FLAG,
@@ -1267,6 +1272,14 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   {
     .type         = OPTION_TYPE_U32,
     .def          = STDIN_TIMEOUT_ABORT,
+    .actions      = ACT_CRACK | ACT_STDOUT,
+    .attack_modes = AM (0),
+    .late         = LATE_INPUT_STDIN,
+  },
+  [OPT_STDIN_TIMEOUT_FLUSH] =
+  {
+    .type         = OPTION_TYPE_U32,
+    .def          = STDIN_TIMEOUT_FLUSH,
     .actions      = ACT_CRACK | ACT_STDOUT,
     .attack_modes = AM (0),
     .late         = LATE_INPUT_STDIN,
@@ -1372,6 +1385,12 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   [OPT_BRAIN_SESSION_WHITELIST] =
   {
     .type         = OPTION_TYPE_STR,
+    .actions      = ACT_BRAIN_SERVER,
+  },
+  [OPT_BRAIN_SERVER_DUMP_DIR] =
+  {
+    .type         = OPTION_TYPE_STR,
+    .flags        = OPTION_FLAG_NONEMPTY,
     .actions      = ACT_BRAIN_SERVER,
   },
   #endif
@@ -2102,9 +2121,28 @@ static void table_module_rule (option_table_t *table, const u32 idx)
   rule->requires[0] = option_by_name (table, row->requires);
 }
 
+static bool table_alloc_failed (const option_table_t *table)
+{
+  if (table->module_rules == NULL) return true;
+  if (table->long_options == NULL) return true;
+  if (table->given        == NULL) return true;
+  if (table->value        == NULL) return true;
+  if (table->numbers      == NULL) return true;
+  if (table->order        == NULL) return true;
+  if (table->ignored      == NULL) return true;
+  if (table->implied      == NULL) return true;
+  if (table->implied_by   == NULL) return true;
+
+  return false;
+}
+
+static void table_destroy (option_table_t *table);
+
 static option_table_t *table_create (module_options_t *module_options)
 {
   option_table_t *table = (option_table_t *) hccalloc (1, sizeof (option_table_t));
+
+  if (table == NULL) return NULL;
 
   const char *env = getenv ("HASHCAT_OPTION_DEBUG");
 
@@ -2126,6 +2164,13 @@ static option_table_t *table_create (module_options_t *module_options)
   table->ignored      = (bool *)            hccalloc (table->count,             sizeof (bool));
   table->implied      = (bool *)            hccalloc (table->count,             sizeof (bool));
   table->implied_by   = (option_id_t *)     hccalloc (table->count,             sizeof (option_id_t));
+
+  if (table_alloc_failed (table) == true)
+  {
+    table_destroy (table);
+
+    return NULL;
+  }
 
   memcpy (table->long_options, option_table_long, core_cnt * sizeof (struct option));
 
@@ -2340,6 +2385,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_BACKEND_INFO:              count = uo->backend_info;                                                                             break;
     case OPT_BACKEND_VECTOR_WIDTH:      count = ((uo->backend_vector_width_chgd == true) || (uo->backend_vector_width != BACKEND_VECTOR_WIDTH));  *value = uo->backend_vector_width;                  break;
     case OPT_BYPASS_DELAY:              count = ((uo->bypass_delay_chgd == true) || (uo->bypass_delay != 0));  *value = uo->bypass_delay;                          break;
+    case OPT_BYPASS_ETA:                count = ((uo->bypass_eta_chgd == true) || (uo->bypass_eta != 0));  *value = uo->bypass_eta;                                break;
     case OPT_BYPASS_THRESHOLD:          count = ((uo->bypass_threshold_chgd == true) || (uo->bypass_threshold != 0));  *value = uo->bypass_threshold;                      break;
     case OPT_BENCHMARK_ALL:             count = (uo->benchmark_all             == true);                                                      break;
     case OPT_BENCHMARK_JSON:            count = (uo->benchmark_json            == true);                                                      break;
@@ -2443,7 +2489,6 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_SKIP:                      count = ((uo->skip_chgd == true) || (uo->skip != SKIP));  *value = uo->skip;                                  break;
     case OPT_SLOW_CANDIDATES:           count = (uo->slow_candidates           == true);                                                      break;
     case OPT_SPEED_ONLY:                count = (uo->speed_only                == true);                                                      break;
-    case OPT_SPIN_DAMP:                 count = ((uo->spin_damp_chgd == true) || (uo->spin_damp != SPIN_DAMP));  *value = uo->spin_damp;                             break;
     case OPT_STATUS:                    count = (uo->status                    == true);                                                      break;
     case OPT_STATUS_JSON:               count = (uo->status_json               == true);                                                      break;
     case OPT_PIPELINE_STATS:            count = (uo->pipeline_stats            == true);                                                      break;
@@ -2452,6 +2497,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_STDOUT_FLAG:               count = (uo->stdout_flag               == true);                                                      break;
     case OPT_STDIN_COUNT:               count = ((uo->stdin_count_chgd == true) || (uo->stdin_count != STDIN_COUNT));  *value = uo->stdin_count;                           break;
     case OPT_STDIN_TIMEOUT_ABORT:       count = ((uo->stdin_timeout_abort_chgd == true) || (uo->stdin_timeout_abort != STDIN_TIMEOUT_ABORT));  *value = uo->stdin_timeout_abort;                   break;
+    case OPT_STDIN_TIMEOUT_FLUSH:       count = ((uo->stdin_timeout_flush_chgd == true) || (uo->stdin_timeout_flush != STDIN_TIMEOUT_FLUSH));  *value = uo->stdin_timeout_flush;                   break;
     case OPT_USERNAME:                  count = (uo->username                  == true);                                                      break;
     case OPT_VERSION:                   count = (uo->version                   == true);                                                      break;
     case OPT_MODULE_CACHE_REBUILD:      count = (uo->module_cache_rebuild      == true);                                                      break;
@@ -2467,6 +2513,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_BRAIN_PASSWORD:            count = ((uo->brain_password_chgd == true) || (uo->brain_password != NULL));  *arg   = uo->brain_password;                        break;
     case OPT_BRAIN_SESSION:             count = (uo->brain_session             != BRAIN_SESSION); *value = uo->brain_session;                 break;
     case OPT_BRAIN_SESSION_WHITELIST:   count = (uo->brain_session_whitelist   != NULL);  *arg   = uo->brain_session_whitelist;               break;
+    case OPT_BRAIN_SERVER_DUMP_DIR:     count = (uo->brain_server_dump_dir     != NULL);  *arg   = uo->brain_server_dump_dir;                 break;
     #endif
     case OPT_COLOR_CRACKED:             count = (uo->color_cracked             == true);                                                      break;
     case OPT_ENCRYPT_WITH_PUBKEY:       count = (uo->encrypt_with_pubkey       != NULL);  *arg   = uo->encrypt_with_pubkey;                   break;
@@ -3137,6 +3184,37 @@ static u32 table_module_missing (const hashconfig_t *hashconfig, const module_ct
   return missing;
 }
 
+// kernel_accel_max bounds the work items of a launch rather than -n on its own. A launch holds
+// device_processors * kernel_threads_max * kernel_accel_max of them, so the accel that fits the
+// buffers moves inversely with the group size, and autotune3 () raises its own accel ceiling by
+// exactly that ratio whenever it settles below kernel_threads_max. A -T below kernel_threads_max is
+// a user asking for the same trade, so the ceiling moves with it here as well.
+//
+// Zero where the trade does not apply and the caller keeps the flat ceiling. Without -T there is no
+// group size to trade against, and a mode with OPTS_TYPE_THREAD_MULTI_DISABLE is sized with one
+// thread rather than with kernel_threads_max, which keeps its accel out of the product.
+
+static u32 table_accel_product_ceiling (const option_table_t *table, const hashconfig_t *hashconfig)
+{
+  if (option_given (table, OPT_KERNEL_THREADS) == false) return 0;
+
+  if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) != 0) return 0;
+
+  if (hashconfig->kernel_threads_max == 0) return 0;
+
+  const u64 threads = table->value[OPT_KERNEL_THREADS];
+
+  if (threads == 0) return 0;
+  if (threads >= hashconfig->kernel_threads_max) return 0;
+  if (threads < hashconfig->kernel_threads_min) return 0;
+
+  const u64 workitems = (u64) hashconfig->kernel_accel_max * (u64) hashconfig->kernel_threads_max;
+
+  const u64 ceiling = MIN (workitems / threads, (u64) KERNEL_ACCEL_MAX_CANDIDATES);
+
+  return (u32) ceiling;
+}
+
 static bool table_module_range (const option_table_t *table, const hashconfig_t *hashconfig, const option_id_t id, option_text_t *text)
 {
   const u32 late = option_rule (table, id)->late;
@@ -3146,6 +3224,8 @@ static bool table_module_range (const option_table_t *table, const hashconfig_t 
   u32 lo = 0;
   u32 hi = 0;
 
+  bool advise_threads = false;
+
   if ((late & LATE_MODULE_ACCEL) != 0)
   {
     // a bridge clamps -n into the range it has allocated for, which only the device side can check
@@ -3154,6 +3234,12 @@ static bool table_module_range (const option_table_t *table, const hashconfig_t 
 
     lo = hashconfig->kernel_accel_min;
     hi = hashconfig->kernel_accel_max;
+
+    const u32 product = table_accel_product_ceiling (table, hashconfig);
+
+    hi = MAX (hi, product);
+
+    if ((product == 0) && ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0)) advise_threads = true;
   }
   else if ((late & LATE_MODULE_THREADS) != 0)
   {
@@ -3168,6 +3254,11 @@ static bool table_module_range (const option_table_t *table, const hashconfig_t 
   if ((value >= lo) && (value <= hi)) return true;
 
   text_printf (text, "--%s %" PRIu64 " is outside the range %u-%u that hash-type %u allows.", option_name (table, id), value, lo, hi, hashconfig->hash_mode);
+
+  if ((advise_threads == true) && (value > hi))
+  {
+    snprintf (text->advice, sizeof (text->advice), "A launch holds kernel_threads times kernel_accel work items per multiprocessor, so a -T below %u raises what -n may be by the same ratio. Autotune makes that trade by itself.", hashconfig->kernel_threads_max);
+  }
 
   return false;
 }
@@ -3331,6 +3422,8 @@ int option_table_parse (hashcat_ctx_t *hashcat_ctx, const int argc, char **argv)
 
   user_options->option_table = table;
 
+  if (table == NULL) return -1;
+
   option_verdict_t v;
 
   memset (&v, 0, sizeof (v));
@@ -3392,6 +3485,8 @@ int option_table_check (hashcat_ctx_t *hashcat_ctx)
 
     user_options->option_table = table;
 
+    if (table == NULL) return -1;
+
     table->checked = true;
 
     table_struct_verdict (hashcat_ctx, table, &v);
@@ -3432,6 +3527,8 @@ int option_table_check (hashcat_ctx_t *hashcat_ctx)
   if (table->debug > 0)
   {
     option_table_t *table_struct = table_create (user_options->module_options);
+
+    if (table_struct == NULL) return -1;
 
     option_verdict_t v_struct;
 

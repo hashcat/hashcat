@@ -21,6 +21,7 @@
 #include "status.h"
 #include "status_rc.h"
 #include "shared.h"
+#include "path.h"
 #include "mpsp.h"
 #include "system.h"
 #include "dynloader.h"
@@ -646,6 +647,30 @@ static void main_outcheck_preflight_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   event_log_info_nn (hashcat_ctx, "Compared hashes with outfile check directory");
 }
 
+static void main_outcheck_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->quiet == true) return;
+
+  const outcheck_cracked_t *cracked = (const outcheck_cracked_t *) buf;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  event_log_info (hashcat_ctx, "Removed %u %s found in %u %s in the outfile check directory.",
+    cracked->digests, (cracked->digests == 1) ? "hash" : "hashes",
+    cracked->files,   (cracked->files   == 1) ? "file" : "files");
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  {
+    send_prompt (hashcat_ctx);
+  }
+}
+
 static void main_rulesfiles_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -721,6 +746,35 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   {
     event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in the outfile check directory.", hashes->digests_done_outcheck);
     event_log_info (hashcat_ctx, NULL);
+  }
+
+  // Where a crack ends up is a frequent question from new users, and the path depends on the profile
+  // folder and --potfile-path, so it belongs with what the lines above say the potfile already held.
+  // A benchmark and a speed or progress run crack nothing, and where the hash mode or the attack
+  // mode turns the potfile off the main screen has said so already. potfile_ctx is not the place to
+  // ask about the hash mode: potfile_init () runs before hashconfig_init (), so its enabled flag
+  // answers true for a mode that writes no potfile at all.
+
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  const bool cracks_nothing = (user_options->benchmark == true) || (user_options->speed_only == true) || (user_options->progress_only == true);
+
+  const bool said_above = (hashconfig->potfile_disable == true) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
+  if ((cracks_nothing == false) && (said_above == false))
+  {
+    const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+    if (potfile_ctx->enabled == true)
+    {
+      event_log_advice (hashcat_ctx, "Cracked hashes are saved to the potfile %s", potfile_ctx->filename);
+    }
+    else
+    {
+      event_log_advice (hashcat_ctx, "Cracked hashes are not saved to a potfile in this run.");
+    }
+
+    event_log_advice (hashcat_ctx, NULL);
   }
 }
 
@@ -1578,6 +1632,38 @@ static void main_backend_runtimes_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat
   event_log_info_nn (hashcat_ctx, "Initialized backend runtimes");
 }
 
+static void main_backend_runtime_slow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // -I turns on --quiet by itself, and a hang during -I is the case this warning is for
+
+  if ((user_options->quiet == true) && (user_options->backend_info == 0)) return;
+
+  const backend_slow_t *slow = (const backend_slow_t *) buf;
+
+  const char *runtime = NULL;
+  const char *option  = NULL;
+
+  switch (slow->phase)
+  {
+    case BACKEND_PHASE_CUDA:   runtime = "CUDA";   option = "--backend-ignore-cuda";   break;
+    case BACKEND_PHASE_HIP:    runtime = "HIP";    option = "--backend-ignore-hip";    break;
+    case BACKEND_PHASE_METAL:  runtime = "Metal";  option = "--backend-ignore-metal";  break;
+    case BACKEND_PHASE_OPENCL: runtime = "OpenCL"; option = "--backend-ignore-opencl"; break;
+    case BACKEND_PHASE_NONE:                                                           return;
+  }
+
+  // without --quiet, the line above ends on "Please be patient..." with no newline
+
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, NULL);
+
+  event_log_warning (hashcat_ctx, "The %s runtime has not answered for %u seconds.", runtime, slow->seconds);
+  event_log_warning (hashcat_ctx, "If hashcat hangs here, %s leaves %s out.", option, runtime);
+  event_log_warning (hashcat_ctx, "To fix the runtime, update or reinstall the driver the right way: https://hashcat.net/faq/wrongdriver");
+  event_log_warning (hashcat_ctx, NULL);
+}
+
 static void main_backend_devices_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -2046,6 +2132,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_AUTODETECT_STARTING:       main_autodetect_starting       (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_RUNTIMES_INIT_POST:main_backend_runtimes_init_post(hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_RUNTIMES_INIT_PRE: main_backend_runtimes_init_pre (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_RUNTIME_SLOW:      main_backend_runtime_slow      (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICES_INIT_POST: main_backend_devices_init_post (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICES_INIT_PRE:  main_backend_devices_init_pre  (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_POST:          main_bitmap_init_post          (hashcat_ctx, buf, len); break;
@@ -2097,6 +2184,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_BACKEND_DEVICE_INIT_PRE:   main_backend_device_init_pre   (hashcat_ctx, buf, len); break;
     case EVENT_OUTCHECK_PREFLIGHT_POST:   main_outcheck_preflight_post   (hashcat_ctx, buf, len); break;
     case EVENT_OUTCHECK_PREFLIGHT_PRE:    main_outcheck_preflight_pre    (hashcat_ctx, buf, len); break;
+    case EVENT_OUTCHECK_CRACKED:          main_outcheck_cracked          (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
@@ -2182,10 +2270,13 @@ int main (int argc, char **argv)
   // parse commandline parameters and check them
 
   // getopt and sanity reject a wrong command line, so they exit with -2
+  // getopt leaves no option table only when the table could not be allocated, and that exits with -1.
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
-    main_error_banner (hashcat_ctx, RC_FINAL_ERROR_COMMAND, hashcat_ctx->user_options->quiet);
+    const rc_final_t rc_getopt = (hashcat_ctx->user_options->option_table == NULL) ? RC_FINAL_ERROR : RC_FINAL_ERROR_COMMAND;
+
+    main_error_banner (hashcat_ctx, rc_getopt, hashcat_ctx->user_options->quiet);
 
     user_options_destroy (hashcat_ctx);
 
@@ -2193,7 +2284,7 @@ int main (int argc, char **argv)
 
     hcfree (hashcat_ctx);
 
-    return RC_FINAL_ERROR_COMMAND;
+    return rc_getopt;
   }
 
   if (user_options_sanity (hashcat_ctx) == -1)
@@ -2225,7 +2316,7 @@ int main (int argc, char **argv)
 
   if (user_options->brain_server == true)
   {
-    const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);
+    const int rc = brain_server_dump_folder (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer, user_options->brain_server_dump_dir);
 
     hcfree (hashcat_ctx);
 
@@ -2342,6 +2433,21 @@ int main (int argc, char **argv)
 
   const bool quiet = user_options->quiet;
 
+  // A run that stopped short leaves a restore file that continues it, and the session teardown
+  // below frees the context that knows where. Only a file this run wrote counts, so an earlier
+  // session's file is never offered as this one's.
+
+  const restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  char *restore_left = NULL;
+
+  if ((restore_ctx->enabled == true) && (restore_ctx->written == true) && (hc_path_exist (restore_ctx->eff_restore_file) == true))
+  {
+    restore_left = hcstrdup (restore_ctx->eff_restore_file);
+  }
+
+  const bool restore_named = (user_options->restore_file_path != NULL);
+
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
   main_timing_start (MAIN_TIMING_SESSION_DESTROY);
@@ -2349,6 +2455,25 @@ int main (int argc, char **argv)
   hashcat_session_destroy (hashcat_ctx);
 
   main_timing_stop (MAIN_TIMING_SESSION_DESTROY);
+
+  // The two timestamps end the output, so what the user does next goes above them rather than after
+  // the last line of the run.
+
+  if ((restore_left != NULL) && (quiet == false))
+  {
+    if (restore_named == true)
+    {
+      event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --restore-file-path %s --restore, which prints the command for it.", restore_left);
+    }
+    else
+    {
+      event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --session %s --restore, which prints the command for it.", user_options->session);
+    }
+
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
+  hcfree (restore_left);
 
   main_error_banner (hashcat_ctx, rc_final, quiet);
 

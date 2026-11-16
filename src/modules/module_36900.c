@@ -23,7 +23,8 @@ static const u64   KERN_TYPE      = 36900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_SUGGEST_KG;
+                                  | OPTS_TYPE_SUGGEST_KG
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "\xae\xa6\x84\xa6\xda\xb2\x32\x78";
 static const char *ST_HASH        = "$iclass$75e0cd15feff12e0$fcffffffffffffff00000000$adc8761a$fcffffffffffffff00000000$adc8761a";

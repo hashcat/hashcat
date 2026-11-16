@@ -47,30 +47,46 @@ KERNEL_FQ KERNEL_FA void m05100_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx = ctx0;
+    md5_ctx_t ctx;
 
-    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
-    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
-    // middle are empty unless the mask carries a ?q.
-    //
-    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
-    // attack modes that do not take them pay nothing but the compare.
+    // -a 1 may choose the larger wordlist as the base word source, which puts the amplifier word in
+    // front of the base word (BASE_RIGHT). The context that already absorbed the base word cannot be
+    // reused for that, so start from the pre-base context, feed the amplifier, then the base word.
 
-    if (COMBS_IS_MIDDLE)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      if (COMBS_PRE (il_pos).pw_len > 0)
-      {
-        ctx = ctx0_pre;
+      ctx = ctx0_pre;
 
-        md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
-        md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+      md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+      // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+      // middle are empty unless the mask carries a ?q.
+      //
+      // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+      // attack modes that do not take them pay nothing but the compare.
+
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_PRE (il_pos).pw_len > 0)
+        {
+          ctx = ctx0_pre;
+
+          md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+          md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+        }
+
+        if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+        if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
       }
 
-      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
-      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
     }
-
-    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_final (&ctx);
 
@@ -132,30 +148,46 @@ KERNEL_FQ KERNEL_FA void m05100_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx = ctx0;
+    md5_ctx_t ctx;
 
-    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
-    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
-    // middle are empty unless the mask carries a ?q.
-    //
-    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
-    // attack modes that do not take them pay nothing but the compare.
+    // -a 1 may choose the larger wordlist as the base word source, which puts the amplifier word in
+    // front of the base word (BASE_RIGHT). The context that already absorbed the base word cannot be
+    // reused for that, so start from the pre-base context, feed the amplifier, then the base word.
 
-    if (COMBS_IS_MIDDLE)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      if (COMBS_PRE (il_pos).pw_len > 0)
-      {
-        ctx = ctx0_pre;
+      ctx = ctx0_pre;
 
-        md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
-        md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+      md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+      // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+      // middle are empty unless the mask carries a ?q.
+      //
+      // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+      // attack modes that do not take them pay nothing but the compare.
+
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_PRE (il_pos).pw_len > 0)
+        {
+          ctx = ctx0_pre;
+
+          md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+          md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+        }
+
+        if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+        if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
       }
 
-      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
-      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
     }
-
-    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_final (&ctx);
 

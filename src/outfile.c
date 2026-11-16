@@ -146,6 +146,34 @@ static int plain_pw (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return rc;
 }
 
+// The longest plain build_plain () reports in this run. --encrypt-with-pubkey checks its key against
+// it, so the two cannot drift apart.
+//
+// A combinator candidate is a base word plus an amplifier, and pw_max bounds the base word alone. The
+// amplifier is held to PW_MAX, so an optimized kernel's candidate is at most the sum, and a cap at
+// pw_max itself, 55 there, reported a truncated password that does not hash to the digest beside it.
+// A pure kernel's plain stops at twice pw_max. PW_MAX * 2 is what the callers are sized for. With
+// --slow-candidates the host joins the two words into a pw_t, which holds PW_MAX.
+
+u32 build_plain_max (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  const u32 pw_max = hashconfig->pw_max;
+
+  if (user_options_extra->attack_kern != ATTACK_KERN_COMBI) return pw_max;
+
+  const u32 combi_max = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? (pw_max + PW_MAX) : (pw_max * 2);
+
+  const u32 room_max = (user_options->slow_candidates == true) ? PW_MAX : PW_MAX * 2;
+
+  const u32 plain_max = MIN (combi_max, room_max);
+
+  return plain_max;
+}
+
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -250,6 +278,19 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
           plain_len = pw.pw_len;
         }
+        else if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+        {
+          // A slow hash applies the rule in amp_a0.cl, which is apply_rules () whichever kernel hashes the
+          // candidate, and its module may admit a word longer than the 31 bytes apply_rules_optimized ()
+          // is written for (-m 400 -O takes 39). Rebuild it with the engine that built it on the device.
+
+          for (int i = 0; i < 64; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        }
         else
         {
           for (int i = 0; i < 8; i++)
@@ -318,7 +359,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       u32 r_stop = device_param->kernel_params_mp_r_buf32[4];
 
       sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
-      sp_exec (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
+      sp_exec_r (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
 
       plain_len = (int) mask_ctx->css_cnt;
     }
@@ -359,7 +400,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       if (device_param->combs_on_host == true)
       {
-        plain_len = (int) hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, (const u8 *) pw.i, pw.pw_len);
+        plain_len = (int) hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, PW_MAX * 2, (const u8 *) pw.i, pw.pw_len);
       }
       else
       {
@@ -369,7 +410,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
         hybrid_amp_mask (hashcat_ctx, off, mask_buf);
 
-        plain_len = (int) hybrid_assemble (hashcat_ctx, plain_ptr, mask_buf, (const u8 *) pw.i, pw.pw_len, NULL, 0);
+        plain_len = (int) hybrid_assemble_max (hashcat_ctx, plain_ptr, PW_MAX * 2, mask_buf, (const u8 *) pw.i, pw.pw_len, NULL, 0);
       }
     }
     if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -406,28 +447,9 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
-  int pw_max = (const int) hashconfig->pw_max;
+  const int plain_max = (int) build_plain_max (hashcat_ctx);
 
-  // A combinator candidate is a base word plus an amplifier, and pw_max bounds the base word alone.
-  // The cap at 55 reported a truncated password, which does not hash to the digest beside it.
-  // PW_MAX * 2 is what the callers are sized for.
-
-  if (plain_len > pw_max)
-  {
-    if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        pw_max = PW_MAX * 2;
-      }
-      else
-      {
-        pw_max = MIN ((pw_max * 2), PW_MAX * 2);
-      }
-    }
-  }
-
-  if (plain_len > pw_max) plain_len = MIN (plain_len, pw_max);
+  plain_len = MIN (plain_len, plain_max);
 
   plain_ptr[plain_len] = 0;
 
@@ -479,6 +501,19 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       crackpos *= mask_ctx->bfs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
+    else
+    {
+      // The three above amplify inside the launch, so a position there is the base word's times the
+      // width of that amplifier. A feed on its device engine has no width to multiply by, and counts
+      // its keyspace in base words, so the work item's own position is the position. The feed's host
+      // engine does not arrive here: it keeps ATTACK_KERN_STRAIGHT and the straight branch above
+      // already gives it the right position, with the rule count as the width.
+      //
+      // This is the last branch rather than a fourth test so that a kern with no amplifier reports
+      // its position rather than 0.
+
+      crackpos += word_pos;
+    }
   }
 
   *out_pos = crackpos;
@@ -526,6 +561,25 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   return len;
 }
 
+// A rule line of only spaces, or an AN"STR" with an empty string, compiles to no command, and
+// kernel_rule_to_cpu_rule () returns -1 for it. The word is left as it is, which is what ':' says.
+
+static int debug_rule_to_cpu_rule (u8 *debug_rule_buf, kernel_rule_t *kernel_rule)
+{
+  int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, kernel_rule);
+
+  if (len < 0)
+  {
+    debug_rule_buf[0] = RULE_OP_MANGLE_NOOP;
+
+    len = 1;
+  }
+
+  debug_rule_buf[len] = 0;
+
+  return len;
+}
+
 int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
   const debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
@@ -552,11 +606,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // save rule
     if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
-      const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[pw_base->rule_idx]);
-
-      debug_rule_buf[len] = 0;
-
-      *debug_rule_len = len;
+      *debug_rule_len = debug_rule_to_cpu_rule (debug_rule_buf, &straight_ctx->kernel_rules_buf[pw_base->rule_idx]);
     }
 
     // save plain
@@ -606,11 +656,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
       else
       {
-        const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
-
-        debug_rule_buf[len] = 0;
-
-        *debug_rule_len = len;
+        *debug_rule_len = debug_rule_to_cpu_rule (debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
       }
     }
 

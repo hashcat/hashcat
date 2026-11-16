@@ -286,6 +286,7 @@ int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (void *hashcat_ctx, nvmlDe
 int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (void *hashcat_ctx, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons);
 int hm_NVML_nvmlDeviceGetTemperatureThreshold (void *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
 int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth);
+int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkGen);
 int hm_NVML_nvmlDeviceGetPciInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci);
 int hm_NVML_nvmlDeviceGetMemoryInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlMemory_t *mem);
 

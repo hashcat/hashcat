@@ -52,6 +52,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options  = hashcat_ctx->user_options;
 
   bool runtime_check      = false;
+  bool bypass_eta_check   = false;
   bool remove_check       = false;
   bool status_check       = false;
   bool restore_check      = false;
@@ -66,6 +67,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   if (user_options->runtime)
   {
     runtime_check = true;
+  }
+
+  if (user_options->bypass_eta_chgd == true)
+  {
+    bypass_eta_check = true;
   }
 
   if (restore_ctx->enabled == true)
@@ -111,7 +117,16 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false))
+  // The curve of what is left against what has been spent is sampled on this thread's tick, because
+  // it is the only thing that ticks whether or not anyone is watching the status. A run with a single
+  // digest has no curve to speak of and no line to print it on, which is the same condition the
+  // Recovered/Time line is printed under.
+
+  bool curve_check = false;
+
+  if (hashes->digests_cnt > 1) curve_check = true;
+
+  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false) && (bypass_eta_check == false) && (curve_check == false))
   {
     return 0;
   }
@@ -134,6 +149,12 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   u32 remove_left   = user_options->remove_timer;
   u32 status_left   = user_options->status_timer;
 
+  // A long --status-timer leaves the screen empty for that long, and a run reading from stdin has
+  // no key to ask for a status. So the first one comes as soon as the attack has a speed to show,
+  // and the timer counts from there.
+
+  bool status_first = true;
+
   while (status_ctx->shutdown_inner == false)
   {
     // the loop body below counts iterations as seconds, so the cadence stays one second. Only the
@@ -149,6 +170,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if (status_ctx->shutdown_inner == true) break;
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
+
+    if (curve_check == true)
+    {
+      if (status_ctx->devices_status == STATUS_RUNNING) status_curve_sample (hashcat_ctx);
+    }
 
     if (hwmon_check == true)
     {
@@ -356,6 +382,13 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     {
       status_left--;
 
+      if ((status_first == true) && (status_ctx->devices_status == STATUS_RUNNING) && (status_get_hashes_msec_all (hashcat_ctx) > 0))
+      {
+        status_first = false;
+
+        status_left = 0;
+      }
+
       if (status_left == 0)
       {
         hc_thread_mutex_lock (status_ctx->mux_display);
@@ -365,6 +398,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         hc_thread_mutex_unlock (status_ctx->mux_display);
 
         status_left = user_options->status_timer;
+
+        status_first = false;
       }
     }
 
@@ -430,9 +465,13 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     // stdin read timeout check
     // note: we skip the stdin timeout check if it was disabled with stdin_timeout_abort set to 0
 
+    // Without --stdin-timeout-flush nothing is cracked until a batch is full, so a pipe that never
+    // started and one that is only slow differ in their progress. With it the words that came are
+    // cracked as they come, and only the idle count can decide.
+
     if (user_options->stdin_timeout_abort != 0)
     {
-      if (status_get_progress_done (hashcat_ctx) == 0)
+      if ((status_get_progress_done (hashcat_ctx) == 0) || (user_options->stdin_timeout_flush > 0))
       {
         if (status_ctx->stdin_read_timeout_cnt > 0)
         {
@@ -489,6 +528,28 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       else if (status_ctx->devices_status == STATUS_PAUSED)
       {
         status_ctx->timer_bypass_start += 1;
+      }
+    }
+
+    // --bypass-eta decides once per queue item, when the restore point first moves. Before that the
+    // speed is still settling, and the estimate is not one to drop a whole mask or wordlist over.
+
+    if ((bypass_eta_check == true) && (status_ctx->bypass_eta_checked == false) && (status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->words_cur > status_ctx->bypass_eta_words_from))
+    {
+      status_ctx->bypass_eta_checked = true;
+
+      const time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+      if (sec_etc > (time_t) user_options->bypass_eta)
+      {
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, NULL);
+
+        bypass (hashcat_ctx);
+
+        event_log_info (hashcat_ctx, "Estimated time left is above --bypass-eta. Next dictionary / mask in queue selected. Bypassing current one.");
+
+        event_log_info (hashcat_ctx, NULL);
       }
     }
   }

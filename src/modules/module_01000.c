@@ -32,7 +32,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
-                                  | OPTS_TYPE_PT_UTF16LE;
+                                  | OPTS_TYPE_PT_UTF16LE
+                                  | OPTS_TYPE_RUN_KERNEL;
 static const u32   PWDUMP_COLUMN  = PWDUMP_COLUMN_NTLM_HASH;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";

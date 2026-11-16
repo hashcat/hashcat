@@ -92,6 +92,13 @@ typedef struct feed_thread
   u64    source_idx;
   bool   source_open;
 
+  // Where the line handed out last begins, as an offset in fd_mem, so that a seek back to it is a
+  // pointer move. Valid only while nothing has moved since wordlist_next () read it, which is the
+  // case the fill loop needs when it reads a long line a second time into a larger buffer.
+
+  bool   last_valid;
+  size_t last_off;
+
   // The line scanner, fetched once for the life of the thread. hc_memchr_get () is a call into the
   // hashcat library and a feed is a shared object, so nothing inlines it away: asking for the scanner
   // per word puts one such call on every candidate this thread produces. memchr.h says the same thing

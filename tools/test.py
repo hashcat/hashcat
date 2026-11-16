@@ -123,24 +123,37 @@ FAIL_VERDICTS = ("Fault", "Error", "Compare Error")
 # pins the virtual host for a bridged mode (see bridge_opts).
 CPU_BACKEND_ID = -1
 
-# A -j worker that skips on 252 (memory hit limit) only because its share of the card was too small
-# exits with MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage
-# survives. A 252 with no cap in the environment is a genuine skip and does not set this.
+# A -j worker that ran out of memory only because its share of the card was too small exits with
+# MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage survives.
+# There are two ways to run out. hashcat sizes itself against the share, decides it does not fit and
+# exits 252, or its sizing fits and the driver refuses the allocation anyway, which exits 255. Only
+# a run with a cap in the environment sets this, because without one both are genuine.
 CAPPED_MEM_SKIP = False
 MEMSKIP_RC = 90
+
+# The text hashcat prints when an allocation fails, read off its own error paths. The CUDA and HIP
+# wrappers print the driver's string, which is "out of memory" on both, and hcmalloc and the feeds
+# word their own message the same way, so the first entry covers those three. The OpenCL wrapper
+# prints the name val2cstr_cl gives the error, and the Metal one prints the size it could not get.
+ALLOC_FAILED = (b"out of memory",
+                b"CL_MEM_OBJECT_ALLOCATION_FAILURE",
+                b"CL_OUT_OF_RESOURCES",
+                b"CL_OUT_OF_HOST_MEMORY",
+                b"failed (size: ")
 
 AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
 
 # Reasons keyed by hashcat's exit code, as rc_final in hashcat.c sets it: -3 to -11 wrap to 253 to
-# 245. The 246-253 and 30 codes are runtime skips. 1 is a clean exhaust, 4 a timeout, 10 a crack
-# whose plains were not in the output, and 245, a failed self-test, is an error.
+# 245. The 246-253 and 30 codes are runtime skips apart from 250 and 251 (see runtime_skip). 1 is a
+# clean exhaust, 4 a timeout, 10 a crack whose plains were not in the output, and 245, a failed
+# self-test, is an error, as are 250 and 251.
 REASON = {
   245: "self-test failed",
   246: "autotune failure",
   247: "skipped by runtime (mixed backend errors detected)",
   248: "skipped by runtime (Invalid module_extra_buffer_size)",
-  250: "skipped by runtime (kernel create error)",
-  251: "skipped by runtime (main kernel build error)",
+  250: "kernel create error",
+  251: "main kernel build error",
   252: "skipped by runtime (memory hit limit)",
   253: "skipped by runtime (module_unstable_warning)",
   30:  "luks test files are missing",
@@ -148,6 +161,53 @@ REASON = {
   4:   "timeout reached",
   10:  "hash:plains not matched in output",
 }
+
+
+def runtime_skip(ret):
+  # Whether an exit code is a skip: hashcat left the device out for a reason that belongs to the
+  # device or the run, not to the mode. 250 and 251 are a kernel hashcat could not create or build,
+  # which is a fault of the kernel. Counted as a skip, a kernel that no longer compiles reads as a
+  # clean run.
+  if ret in (250, 251):
+    return False
+
+  skip = (ret == 30) or (246 <= ret <= 253)
+
+  return skip
+
+
+def memskip_rc(rc):
+  # A worker squeezed by its memory share asks the parent for the uncapped re-run, whatever else the
+  # run would have returned, because the re-run's result is the one that decides. main () has an exit
+  # of its own for the self-test split, so the rule lives here rather than at one of them.
+  if CAPPED_MEM_SKIP == True:
+    return MEMSKIP_RC
+
+  return rc
+
+
+def capped_run():
+  # Whether a per-worker memory cap is in force. Only the -j breadth split sets one
+  # (export_worker_mem_shares), and either cap counts: the device one rations the card, the host one
+  # rations RAM, and a worker can run out against either.
+  if os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
+    return True
+
+  if os.environ.get("HASHCAT_HOST_MEM_LIMIT"):
+    return True
+
+  return False
+
+
+def alloc_failed(out):
+  # Whether a run died trying to allocate memory, by what it printed. CL_OUT_OF_RESOURCES is
+  # OpenCL's catch-all and is not always about memory, so this can say yes to a run that failed for
+  # another reason. That costs one re-run on the whole card, which reports the same failure again.
+  for text in ALLOC_FAILED:
+    if text in out:
+      return True
+
+  return False
 
 
 def reason_for(ret):
@@ -182,9 +242,23 @@ def work_dir(prefix):
     print("[ test.py ] > scratch directory kept: %s" % path)
     logfull_append("scratch directory kept: %s" % path)
 
+  # luks1.sh and m34100.sh build their containers and hash files under these. Unset, they fall back
+  # to /tmp/out and /tmp/mnt, where nothing removes them.
+
+  saved = {name: os.environ.get(name) for name in ("HCTEST_SCRATCH_DIR", "HCTEST_MOUNT_DIR")}
+
+  os.environ["HCTEST_SCRATCH_DIR"] = os.path.join(path, "luks_out")
+  os.environ["HCTEST_MOUNT_DIR"]   = os.path.join(path, "luks_mnt")
+
   try:
     yield path
   finally:
+    for name, value in saved.items():
+      if value is None:
+        os.environ.pop(name, None)
+      else:
+        os.environ[name] = value
+
     if not KEEP_TMP:
       shutil.rmtree(path, ignore_errors=True)
 
@@ -589,12 +663,12 @@ MASK_ONLY_MODES = {37000}
 
 MFULC_MODES = {37000}
 
-# The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
-# leaves their -a 4 list alone (test.sh); 40023 takes its hash from another field and is excluded
-# there too.
+# The LUKS modes whose oracle prints the path of the hash file it extracted from a fresh container,
+# not the hash itself. whole_word_vectors leaves their -a 4 list alone (test.sh); 40023 takes its
+# hash from another field and is excluded there too.
 
-LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
-              34100}
+LUKS_MODES = {29511, 29512, 29513, 29514, 29521, 29522, 29523, 29524,
+              29531, 29532, 29533, 29534, 29541, 29542, 29543, 29544, 34100}
 
 # The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
 # no .pm and no .py oracle, so the ground truth is the module's own example hash read from
@@ -1171,10 +1245,11 @@ def oracle_vectors(mode, optimized):
 def classify(rc, matched, c):
   # A hashcat run that exits 0 but whose output does not carry the pair is rewritten to code 10, then
   # the code is bucketed as test.sh's status() did: 1 exhausted, 4 --runtime, 10 not matched, the
-  # runtime-skip codes to skipped. The one deviation: test.sh sent every other
-  # code, 255 (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that
-  # never got its memory read the same as one that ran and missed the password. Those go to err
-  # instead, a hard error kept apart from a failed crack. The skip set is 246 to 253, 247 included:
+  # runtime-skip codes to skipped. There are two deviations. test.sh sent every other code, 255
+  # (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that never got
+  # its memory read the same as one that ran and missed the password. Those go to err instead, a
+  # hard error kept apart from a failed crack. And test.sh counted a kernel it could not create or
+  # build as a skip. The skip set is 246 to 253 without 250 and 251 (runtime_skip), 247 included:
   # every device skipped, though not all for the same one of those reasons.
 
   c["cnt"] += 1
@@ -1192,14 +1267,8 @@ def classify(rc, matched, c):
     c["to"] += 1
   elif ret == 10:
     c["nm"] += 1
-  elif ret == 30 or 246 <= ret <= 253:
+  elif runtime_skip(ret) == True:
     c["rs"] += 1
-
-    if ret == 252 and os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
-      # A memory skip while a per-worker cap is in force is a property of the -j run, not the mode, so
-      # flag it for run_parallel to retry without the cap.
-      global CAPPED_MEM_SKIP
-      CAPPED_MEM_SKIP = True
   else:
     c["err"] += 1
 
@@ -1223,7 +1292,7 @@ def verdict(c):
 
 
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
-  global LAST_CMD, LAST_STDIN
+  global LAST_CMD, LAST_STDIN, CAPPED_MEM_SKIP
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
@@ -1237,6 +1306,21 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
 
   out = proc.stdout + proc.stderr
   log_output(cmd, out)
+
+  if capped_run() == True:
+    # A worker squeezed by the -j split rather than a mode that is broken, in either of the two ways
+    # that happens. hashcat sizes itself against the share, decides the mode does not fit and exits
+    # 252. Or its sizing fits the share and the driver refuses the allocation all the same, which
+    # exits 255, because the share is advisory and read once at startup and cannot describe a card
+    # whose free memory moves while four workers start. Both go to the re-run on the whole card.
+    #
+    # Decided here rather than in classify (), which the self-test path does not reach.
+
+    if proc.returncode == 252:
+      CAPPED_MEM_SKIP = True
+
+    if (proc.returncode == 255) and (alloc_failed(out) == True):
+      CAPPED_MEM_SKIP = True
 
   return proc.returncode, out
 
@@ -3125,18 +3209,23 @@ def selftest_write_hash(mode, vhash, vfmt, path):
 
 
 def container_mask_from_password(pw, where):
-  # test.sh container_mask_from_password (test.sh): the password with one digit given up as a
-  # '?d', so the run has ten candidates rather than being handed the answer, every other byte staying
-  # literal. 'first' or 'last' picks which digit; no digit means nothing to search, so hand the
-  # password back as a literal mask.
+  # Replace the first or last digit with '?d', falling back to a lowercase letter
+  # with '?l' when password contains no ASCII digit. This searches multiple candidates
+  # and keeps 'hashcat' from being interpreted as a mask filename.
 
   n = len(pw)
 
   order = range(0, n) if where == "first" else range(n - 1, -1, -1)
 
+  # Prefer a digit to keep the search to ten candidates.
   for i in order:
     if b"0" <= pw[i:i + 1] <= b"9":
       return pw[:i] + b"?d" + pw[i + 1:]
+
+  # With no digit available, use a lowercase letter for 26 candidates.
+  for i in order:
+    if b"a" <= pw[i:i + 1] <= b"z":
+      return pw[:i] + b"?l" + pw[i + 1:]
 
   return pw
 
@@ -3297,17 +3386,21 @@ def container_luks2(args, mode, attack, width, tmp):
 # test.sh luks_test's per-mode hash+cipher (test.sh): 29511+ each map to one hash+cipher and vary
 # only the cipher mode and key size.
 LUKS1_HASH_CIPHER = {
-  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"),
-  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"),
-  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"),
-  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"),
+  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"), 29514: ("sha1", "blowfish"),
+  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"), 29524: ("sha256", "blowfish"),
+  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"), 29534: ("sha512", "blowfish"),
+  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"), 29544: ("ripemd160", "blowfish"),
 }
 
 
-def luks_variants():
+def luks_variants(cipher=None):
   # test.sh's luksMode x luksKeySize double loop with the keysize->mode validity filter (test.sh):
   # 128 is cbc only, 512 is xts only, 256 is any.
   for lmode in ("cbc-essiv", "cbc-plain64", "xts-plain64"):
+    # XTS requires 128-bit blocks, but Blowfish has 64-bit blocks.
+    if cipher == "blowfish" and lmode == "xts-plain64":
+      continue
+
     for ksize in ("128", "256", "512"):
       if ksize == "128" and lmode == "xts-plain64":
         continue
@@ -3324,7 +3417,9 @@ def container_luks1(args, mode, attack, width, tmp):
   luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
   opts = base_opts(args)
 
-  for lmode, ksize in luks_variants():
+  found = False
+
+  for lmode, ksize in luks_variants(luks_cipher):
     name      = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
     container = os.path.join(LUKS_TESTS_DIR, name + ".luks")
     label     = "Luks-Mode %s-%s-%s-%s" % (luks_hash, luks_cipher, lmode, ksize)
@@ -3332,6 +3427,7 @@ def container_luks1(args, mode, attack, width, tmp):
     if not os.path.isfile(container):
       continue
 
+    found = True
     hash_file = os.path.join(tmp, name + ".hash")
 
     if not container_extract("luks2hashcat.py", container, hash_file):
@@ -3341,12 +3437,16 @@ def container_luks1(args, mode, attack, width, tmp):
     extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
     container_crack(args, opts, mode, attack, hash_file, width, label, extra)
 
+  if not found:
+    die("! no LUKS1 containers for mode %d. Run with -g to generate them." % mode)
+
 
 def container_luks_legacy(args, mode, attack, width, tmp):
   # test.sh luks_legacy_test (test.sh): 14600 accepts every hash+cipher, and takes the .luks file
   # directly, with no luks2hashcat.py extraction. That direct-file handling is the 14600-vs-29511+
   # difference.
   opts = base_opts(args)
+  found = False
 
   for luks_hash in ("sha1", "sha256", "sha512", "ripemd160"):
     for luks_cipher in ("aes", "serpent", "twofish"):
@@ -3358,8 +3458,12 @@ def container_luks_legacy(args, mode, attack, width, tmp):
         if not os.path.isfile(container):
           continue
 
+        found = True
         extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
         container_crack(args, opts, mode, attack, container, width, label, extra)
+
+  if not found:
+    die("! no LUKS1 containers for mode %d. Download the LUKS1 test fixtures." % mode)
 
 
 # TrueCrypt (62xx and 293xx). Like VeraCrypt below, the family ports as data rather than a case
@@ -4003,7 +4107,7 @@ def generate_containers(args, mode, tmp):
     os.makedirs(LUKS_TESTS_DIR, exist_ok=True)
     luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
 
-    for lmode, ksize in luks_variants():
+    for lmode, ksize in luks_variants(luks_cipher):
       name = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
       out  = os.path.join(LUKS_TESTS_DIR, name + ".luks")
 
@@ -4586,15 +4690,16 @@ MINIMAL_MODES = [0, 100, 110, 400, 500, 2600, 3000, 3200, 6211, 11600, 12500, 13
 def selftest_status(rc):
   # test.sh status() as container_run_and_report calls it (test.sh): bucket the raw hashcat
   # exit code. Unlike the oracle attacks there is no cracked-but-not-matched rewrite, because the
-  # self-test path checks the exit code alone, not the output. A code outside the known set, a crash
-  # or a failed self-test among them, is a hard error, as classify() counts it.
+  # self-test path checks the exit code alone, not the output. A code outside the known set, a crash,
+  # a failed self-test or a kernel that does not build among them, is a hard error, as classify()
+  # counts it.
 
   e = {"ce": 0, "rs": 0, "to": 0, "nf": 0, "nm": 0, "err": 0}
 
   if rc == 0:
     return e
 
-  if rc == 30 or 246 <= rc <= 253:
+  if runtime_skip(rc) == True:
     e["rs"] += 1
   elif rc == 1:
     e["nf"] += 1
@@ -4963,7 +5068,7 @@ def run_parallel_selftest(args):
     proc = subprocess.run(base + ["-m", str(mode)],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    return proc.stdout
+    return proc.returncode, proc.stdout
 
   sweep_total = 0
   sweep_ok    = 0
@@ -4974,32 +5079,66 @@ def run_parallel_selftest(args):
 
   print("[ test.py ] > Cracking one test vector per hash-mode")
 
-  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for mode, out in zip(selected, pool.map(run_one, selected)):
-      sys.stdout.buffer.write(out)
-      sys.stdout.buffer.flush()
+  # One mode's output printed and counted. A deferred mode goes through this after its re-run, so
+  # the counting is written once and the capped attempt is not counted at all.
 
-      if mode in NO_SELFTEST:
-        sweep_na += "%d " % mode
+  def tally(mode, out):
+    nonlocal sweep_total, sweep_ok, sweep_slow, sweep_na, sweep_bad, sweep_fault
+
+    sys.stdout.buffer.write(out)
+    sys.stdout.buffer.flush()
+
+    if mode in NO_SELFTEST:
+      sweep_na += "%d " % mode
+      return
+
+    sweep_total += 1
+    record("modes")
+
+    text = out.decode("utf-8", "replace")
+
+    if "> OK :" in text:
+      sweep_ok += 1
+      record("OK")
+    elif "> Warning :" in text:
+      sweep_slow += "%d " % mode
+      record("Warning")
+    elif "> Fault :" in text:
+      sweep_fault += "%d " % mode
+      record("Fault")
+    else:
+      sweep_bad += "%d " % mode
+      record("not-OK")
+
+  retry = []
+
+  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    for mode, (prc, out) in zip(selected, pool.map(run_one, selected)):
+      if prc == MEMSKIP_RC:
+        # Squeezed by its share of the card. Its output is left out and the mode is re-run below,
+        # once the workers that squeezed it have finished.
+        retry.append(mode)
+
         continue
 
-      sweep_total += 1
-      record("modes")
+      tally(mode, out)
 
-      text = out.decode("utf-8", "replace")
+  if retry:
+    # One at a time with both shares removed, the same answer run_parallel gives. A mode that needs
+    # more than the whole card runs out again, now with nothing capping it.
 
-      if "> OK :" in text:
-        sweep_ok += 1
-        record("OK")
-      elif "> Warning :" in text:
-        sweep_slow += "%d " % mode
-        record("Warning")
-      elif "> Fault :" in text:
-        sweep_fault += "%d " % mode
-        record("Fault")
-      else:
-        sweep_bad += "%d " % mode
-        record("not-OK")
+    nocap = {k: v for k, v in os.environ.items()
+             if k not in ("HASHCAT_DEVICE_MEM_LIMIT", "HASHCAT_HOST_MEM_LIMIT")}
+
+    print("[ test.py ] > re-running %d memory-capped skip(s) without the cap: %s"
+          % (len(retry), " ".join(str(m) for m in retry)))
+    sys.stdout.flush()
+
+    for mode in retry:
+      proc = subprocess.run(base + ["-m", str(mode)], env=nocap,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+      tally(mode, proc.stdout)
 
   selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
@@ -5128,7 +5267,10 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 14300, 22000, 22001, 31500, 31600}
 # characters derives the same key and opens the same container. A mask or a hybrid attack finds one
 # of those rather than the one the oracle generated, which is a correct password either way, so the
 # outfile goes through the module's verify instead of a literal compare.
-EDGE_VERIFY_OUT = {1500, 36901, 37902, 37903}
+
+# 35900 reads only as many characters of the Hashids salt as its shuffles take, one fewer than the
+# alphabet holds, so the noise words that differ only past those all produce the same hashid.
+EDGE_VERIFY_OUT = {1500, 35900, 36901, 37902, 37903}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
@@ -5202,6 +5344,22 @@ def edge_strip_userpw(data):
   # mode that appends a note to the plaintext line still matches. Applied per line here.
 
   return re.sub(rb"    \(user password[^\n]*", b"", data)
+
+
+def edge_hash_line(mode, dig):
+  # A LUKS_MODES oracle prints the path of a hash file. hashcat reads the hash out of that file and
+  # writes the hash, not the path, to the outfile, so the compare needs the line the file holds.
+
+  if (mode in LUKS_MODES) == False:
+    return dig
+
+  try:
+    with open(dig, "rb") as fh:
+      line = fh.read().rstrip(b"\r\n")
+  except OSError:
+    return dig
+
+  return line
 
 
 def edge_out_verifies(mode, raw, hashes, tmp):
@@ -5522,7 +5680,12 @@ def edge_single_cmd(ctx, word, word_len, i, tmp):
     f2  = pfx + ".2.word"
 
     _w(f1, word[:off] + b"\n")
-    _w(f2, word[off:] + b"\n")
+
+    # dict2 gets the tail twice so it is longer than dict1 (one head): a swap-capable mode then takes
+    # dict2 as the base and assembles the candidate in BASE_RIGHT order, which the equal-length split
+    # never reaches. Both lines are the same tail, so the only candidate is still the whole word and
+    # the expected crack is unchanged; a mode that cannot swap is unaffected.
+    _w(f2, word[off:] + b"\n" + word[off:] + b"\n")
 
     return [f1, f2], None
 
@@ -5622,7 +5785,7 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
       hash_out = target
     else:
       target   = dig
-      hash_out = dig
+      hash_out = edge_hash_line(ctx.mode, dig)
 
     extra, stdin = edge_single_cmd(ctx, word, word_len, i, tmp)
 
@@ -5849,11 +6012,13 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   hlines = []
 
   for word, word_len, word_compare, dig in selected:
-    hlines.append(dig)
+    line = edge_hash_line(mode, dig)
+
+    hlines.append(line)
 
     wline = word_compare if (use_compare and word_compare is not None) else word
 
-    hcout.append(dig + b":" + wline)
+    hcout.append(line + b":" + wline)
 
   _w(hash_in, b"".join(h + b"\n" for h in hlines))
 
@@ -6591,8 +6756,11 @@ def main():
                   help="crack each mode's own test oracle through the Python bridge (-m 73000), no mode kernel")
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
-  ap.add_argument("--artificially-low-iteration-count", action="store_true",
-                  help="generate supported test hashes with 2 iterations")
+  iterations = ap.add_mutually_exclusive_group()
+  iterations.add_argument("--artificially-low-iteration-count", action="store_true", default=None,
+                          help="generate supported test hashes with 2 iterations (default)")
+  iterations.add_argument("--full-iteration-count", dest="artificially_low_iteration_count", action="store_false",
+                          help="use original iteration counts instead of reduced counts")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack selftest hash of each mode")
   ap.add_argument("-M", dest="minimal", action="store_true",
@@ -6688,8 +6856,10 @@ def main():
   if args.attack is None:
     args.attack = "all" if args.edge else "0"
 
-  if args.artificially_low_iteration_count:
-    os.environ[test_iterations.ITERATION_ENV] = "true"
+  if args.artificially_low_iteration_count is not None:
+    os.environ[test_iterations.ITERATION_ENV] = "true" if args.artificially_low_iteration_count else "false"
+  else:
+    os.environ.setdefault(test_iterations.ITERATION_ENV, "true")
 
   try:
     test_iterations.iteration_reduction_requested()
@@ -6744,7 +6914,9 @@ def main():
     if args.jobs > 1 and not args.selftest_child:
       sys.exit(run_parallel_selftest(args))
 
-    sys.exit(selftest_vector_sweep(args))
+    rc = selftest_vector_sweep(args)
+
+    sys.exit(memskip_rc(rc))
 
   if args.jobs > 1:
     sys.exit(run_parallel_depth(args) if depth else run_parallel(args))
@@ -6907,14 +7079,15 @@ def main():
   if args.generate:
     print_gen_summary()
 
-  if CAPPED_MEM_SKIP:
-    # A -j child: tell the parent this mode skipped only because its memory share was too small, so it
-    # can be re-run without the cap. This outranks ERRORS so the parent re-runs on the whole card and
-    # the retry's own exit code, not this capped run's, decides pass or fail.
-    sys.exit(MEMSKIP_RC)
+  rc = 0
 
   if ERRORS:
-    sys.exit(1)
+    rc = 1
+
+  # The ask outranks ERRORS, so the parent re-runs on the whole card and the re-run's own exit code,
+  # not this capped run's, decides pass or fail.
+
+  sys.exit(memskip_rc(rc))
 
 
 if __name__ == "__main__":

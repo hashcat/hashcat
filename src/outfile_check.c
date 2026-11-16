@@ -190,6 +190,11 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
 
     if (announce == true) EVENT (EVENT_OUTCHECK_PREFLIGHT_PRE);
 
+    outcheck_cracked_t cracked_pass;
+
+    cracked_pass.digests = 0;
+    cracked_pass.files   = 0;
+
     for (int j = 0; j < out_cnt; j++)
     {
       HCFILE fp;
@@ -217,6 +222,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
       // leaves room for a terminator
 
       char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
+
+      u32 digests_file = 0;
 
       // large portion of the following code is the same as in potfile_remove_parse
       // maybe subject of a future optimization
@@ -319,6 +326,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
 
               hashes->digests_done++;
 
+              digests_file++;
+
               salt_buf->digests_done++;
 
               if (salt_buf->digests_done == salt_buf->digests_cnt)
@@ -342,6 +351,12 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
 
       hcfree (line_buf);
 
+      if (digests_file > 0)
+      {
+        cracked_pass.digests += digests_file;
+        cracked_pass.files   += 1;
+      }
+
       out_info[j].seek = hc_ftell (&fp);
 
       hc_fclose (&fp);
@@ -350,6 +365,11 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
     }
 
     if (announce == true) EVENT (EVENT_OUTCHECK_PREFLIGHT_POST);
+
+    // The preflight count is printed on the startup screen. During the attack a removal would only
+    // move the Recovered counter, so each pass that removes hashes prints a line for them.
+
+    if ((once == false) && (cracked_pass.digests > 0)) EVENT_DATA (EVENT_OUTCHECK_CRACKED, &cracked_pass, sizeof (cracked_pass));
   }
 
   hcfree (hash_buf.esalt);

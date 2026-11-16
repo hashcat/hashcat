@@ -110,7 +110,19 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     combinator_ctx->combs_cnt = words2_cnt;
 
-    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) && (words1_cnt < words2_cnt);
+    // The swap is safe only when the running kernel assembles the candidate in the swapped order.
+    // An optimized kernel does, a slow (OUTSIDE_KERNEL) hash does through the shared amp_a1.cl, and
+    // a fast pure kernel does once its _a1-pure.cl is converted and the module sets the opt-in flag.
+
+    const bool kernel_can_swap = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+                              || (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+                              || (hashconfig->opts_type & OPTS_TYPE_COMBI_PURE_SWAP);
+
+    // --slow-candidates builds every candidate on the host, where hybrid_assemble () always puts the
+    // base word in front. No kernel assembles anything there, so there is nothing to gain from the
+    // swap and a swapped run would try every pair the wrong way round.
+
+    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && (user_options->slow_candidates == false) && (kernel_can_swap == true) && (words1_cnt < words2_cnt);
 
     if (swap == true)
     {

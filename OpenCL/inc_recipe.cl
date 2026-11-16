@@ -4592,6 +4592,42 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
   raw[0] = hc_swap32##HS (ctx.h);                                     \
 }
 
+// lookup8 uses inc_hash_lookup8.cl, see RECIPE_LOOKUP8. It takes bytes in memory order and writes
+// the hash big endian, the way its 64 bit value prints in hex. A call without a level starts from
+// level 0, and a call with one is a SEED step, see RECIPE_STEP_SEED. It has no HMAC form and no
+// utf16le update.
+
+#define RECIPE_LOOKUP8_T        u64
+#define RECIPE_LOOKUP8_T_vector u64x
+
+#define RECIPE_LEN_lookup8    8
+#define RECIPE_BLOCK_lookup8  24
+#define RECIPE_UPD_lookup8(X)  lookup8_update##X
+#define RECIPE_UPDW_lookup8(X) recipe_no_utf16_lookup8
+#define RECIPE_UPDG_lookup8    lookup8_update_global
+#define RECIPE_UPDWG_lookup8   recipe_no_utf16_lookup8
+#define RECIPE_UPDP_lookup8(X) lookup8_update##X
+#define RECIPE_PBUF_lookup8    w
+#define RECIPE_UPDS_lookup8(X) lookup8_update##X
+#define RECIPE_SBUF_lookup8    s
+#define RECIPE_CTX_lookup8(X)  lookup8_ctx##X##_t
+#define RECIPE_INIT_lookup8(X) lookup8_init##X (&ctx, (RECIPE_LOOKUP8_T##X) 0);
+#define RECIPE_KS_lookup8(HS,V)  (V)
+
+#define RECIPE_HASH_lookup8(X,HS,INIT,FEED)                           \
+{                                                                     \
+  lookup8_ctx##X##_t ctx;                                             \
+                                                                      \
+  INIT                                                                \
+                                                                      \
+  FEED                                                                \
+                                                                      \
+  lookup8_final##X (&ctx);                                            \
+                                                                      \
+  raw[0] = hc_swap32##HS (h32_from_64##HS (ctx.c));                   \
+  raw[1] = hc_swap32##HS (l32_from_64##HS (ctx.c));                   \
+}
+
 // lm and mdc2 use inc_hash_lm.cl and inc_hash_mdc2.cl with the DES tables, see RECIPE_DES. Both
 // take bytes in memory order and return little endian words. They have no hmac_ form: lm keeps only
 // 14 bytes of its input, and the block of mdc2 is shorter than its digest.
@@ -4822,7 +4858,7 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 // endian number from its first 8 bytes, or 4 for xxh32, the way the hex of the seed reads. A
 // shorter key gives a smaller number. The step then hashes its parts as a HASH step does.
 
-#ifdef RECIPE_XXHASH
+#if defined (RECIPE_XXHASH) || defined (RECIPE_LOOKUP8)
 
 DECLSPEC u64 recipe_seed64_S (PRIVATE_AS const u32 *buf, const u32 len)
 {
@@ -4872,6 +4908,7 @@ DECLSPEC u32x recipe_seed32 (PRIVATE_AS const u32x *buf, const u32 len)
 
 #define RECIPE_SEED_xxh64(X,HS,KEY) xxh64_init##X (&ctx, recipe_seed64##HS (RECIPE_KBUF (KEY), (u32) RECIPE_KLEN (KEY)));
 #define RECIPE_SEED_xxh32(X,HS,KEY) xxh32_init##X (&ctx, recipe_seed32##HS (RECIPE_KBUF (KEY), (u32) RECIPE_KLEN (KEY)));
+#define RECIPE_SEED_lookup8(X,HS,KEY) lookup8_init##X (&ctx, recipe_seed64##HS (RECIPE_KBUF (KEY), (u32) RECIPE_KLEN (KEY)));
 
 #define RECIPE_SEED3(F,X,HS,KEY) RECIPE_SEED_##F (X, HS, KEY)
 #define RECIPE_SEED2(F,X,HS,KEY) RECIPE_SEED3 (F, X, HS, KEY)
@@ -6423,6 +6460,7 @@ typedef struct recipe_state_scalar
 #define RECIPE_NAT_wrl1(HS)            RECIPE_NAT_LE    (16, HS)
 #define RECIPE_NAT_xxh64(HS)           RECIPE_NAT_BE64  ( 2, HS)
 #define RECIPE_NAT_xxh32(HS)           RECIPE_NAT_BE    ( 1, HS)
+#define RECIPE_NAT_lookup8(HS)         RECIPE_NAT_BE64  ( 2, HS)
 
 // The result of xor, and or or belongs to no family and keeps its bytes in memory order. It can be
 // up to 64 bytes long, and its step zeroes raw past its length.
