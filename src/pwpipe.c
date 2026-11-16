@@ -89,7 +89,7 @@ static bool pw_pipe_sync (void)
   return hc_env_flag ("HASHCAT_PIPE_SYNC", &cache);
 }
 
-int pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state, const bool serial)
+void pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state, const bool serial)
 {
   memset (pipe, 0, sizeof (pw_pipe_t));
 
@@ -108,23 +108,29 @@ int pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   device_param->pipe_serial = pipe->serial;
 
-  if (pipe->serial == true) return 0;
+  if (pipe->serial == true) return;
 
   hc_thread_sem_init (pipe->sem_free);
   hc_thread_sem_init (pipe->sem_filled);
 
   for (int i = 0; i < PW_PIPE_SLOTS; i++) hc_thread_sem_post (pipe->sem_free);
 
+  // Without a producer thread nothing would ever post sem_filled, and pw_pipe_take () would wait for
+  // it forever. The serial arrangement needs no thread of its own, so a failed create falls back to it.
+
   if (hc_thread_create_ok (pipe->thread, pw_pipe_thread, pipe) == false)
   {
-    pipe->thread_live = false;
+    hc_thread_sem_close (pipe->sem_free);
+    hc_thread_sem_close (pipe->sem_filled);
 
-    return -1;
+    pipe->serial = true;
+
+    device_param->pipe_serial = true;
+
+    return;
   }
 
   pipe->thread_live = true;
-
-  return 0;
 }
 
 // Blocks until the next batch is ready. Returns NULL once the source is exhausted, which is also

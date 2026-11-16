@@ -43,6 +43,10 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
   device_param->kernel_param.digests_cnt = 1;
   device_param->kernel_param.digests_offset_host = 0;
 
+  // the self-test buffer holds one salt, so a kernel that tests every salt in one launch walks only that one
+
+  device_param->kernel_param.salts_cnt = 1;
+
   // password : move the known password into a fake buffer
 
   const u32 module_opts_type = module_ctx->module_opts_type (hashconfig, user_options, user_options_extra);
@@ -385,10 +389,6 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
   const u32 kernel_threads_sav = device_param->kernel_threads;
 
   device_param->kernel_threads = device_param->kernel_threads_min;
-
-  const double spin_damp_sav = device_param->spin_damp;
-
-  device_param->spin_damp = 0;
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -758,8 +758,6 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
     }
   }
 
-  device_param->spin_damp = spin_damp_sav;
-
   device_param->kernel_threads = kernel_threads_sav;
 
   return 0;
@@ -812,6 +810,7 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   device_param->kernel_param.digests_offset_host  = 0;
   device_param->kernel_param.combs_mode           = 0;
   device_param->kernel_param.salt_repeat          = 0;
+  device_param->kernel_param.salts_cnt            = hashcat_ctx->hashes->salts_cnt;
 
   device_param->kernel_params[15] = hc_dev_kern_arg (device_param, HC_DEV_BUF_DIGESTS_BUF);
   device_param->kernel_params[17] = hc_dev_kern_arg (device_param, HC_DEV_BUF_SALT_BUFS);

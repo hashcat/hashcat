@@ -33,17 +33,19 @@ static const char *ST_HASH        = "$krb5asrep$18$user$EXAMPLE.COM$aa4c494f520b
 
 #include "hooks_common.c"
 
-// Struct to store the hash structure - same fields as TGS-REP type 18
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 12
+#define MAX_KDC_SALT_LEN 1022
 #define MAX_EDATA2_LEN 20480
 
+// Struct to store the hash structure - same fields as TGS-REP type 18
 typedef struct krb5asrep_18
 {
   u32 user[128];
   u32 realm[128];
-  u32 account_info[512];
-  u32 account_info_len;
+  u32 kdc_salt[256];
+  u32 kdc_salt_len;
 
   u32 checksum[3];
   u32 edata2[MAX_EDATA2_LEN / 4];
@@ -117,11 +119,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   /**
-   * Hashcat
    * format 1: $krb5asrep$18$user$realm$checksum$edata2
-   *
-   * JtR
-   * format 2: $krb5asrep$18$salt$edata2$checksum
+   * format 2: $krb5asrep$18$salt$edata2$checksum    (JtR: checksum after encrypted)
    */
 
   if (line_len < (int) strlen (SIGNATURE_KRB5ASREP)) return (PARSER_SALT_LENGTH);
@@ -135,18 +134,18 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
    */
 
   // the checksum is 24 characters plus its '$', so the line must be at least
-  // 25 bytes before that offset can be computed -- without this the index
+  // 25 bytes before that offset can be computed - without this the index
   // below goes negative and reads in front of the buffer
   if (line_len < 25) return (PARSER_SALT_LENGTH);
 
   if (line_buf[line_len - 25] == '$')
   {
-    // JtR format
+    // format 2: $krb5asrep$18$salt$edata2$checksum  (JtR: checksum after encrypted)
     krb5asrep->format = 2;
   }
   else
   {
-    // Hashcat format
+    // format 1: $krb5asrep$18$user$realm$checksum$edata2
     krb5asrep->format = 1;
   }
 
@@ -218,7 +217,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   int user_len;
   int realm_len;
   int data_len;
-  int account_info_len;
+  int kdc_salt_len;
 
   if (krb5asrep->format == 1)
   {
@@ -237,20 +236,20 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     data_pos = token.buf[4];
     data_len = token.len[4];
 
-    account_info_len = token.len[2] + token.len[1];
+    kdc_salt_len = token.len[2] + token.len[1];
   }
   else
   {
     salt_pos = token.buf[1];
-    account_info_len = token.len[1];
+    kdc_salt_len = token.len[1];
 
-    memcpy (krb5asrep->account_info, salt_pos, account_info_len);
+    memcpy (krb5asrep->kdc_salt, salt_pos, kdc_salt_len);
 
   /**
-     * JtR format only has the final salt/account_info value (combination of
+     * JtR format only has the final salt/kdc_salt value (combination of
      * user and realm), rather than separate "user" and "realm" values. Since
      * user and realm won't be used for the JtR format, their values won't
-     * matter, so set them both to the same value as account_info.
+     * matter, so set them both to the same value as kdc_salt.
      */
 
     user_pos = token.buf[1];
@@ -269,9 +268,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     checksum_pos = token.buf[3];
   }
 
-  u8 *account_info_ptr = (u8 *) krb5asrep->account_info;
+  u8 *kdc_salt_ptr = (u8 *) krb5asrep->kdc_salt;
 
-  // Domain must be uppercase
+  // realm must be uppercase
   u8 realm[512];
 
   if (krb5asrep->format == 1)
@@ -279,11 +278,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     memcpy (realm, realm_pos, realm_len);
     uppercase (realm, realm_len);
 
-    memcpy (account_info_ptr, realm, realm_len);
-    memcpy (account_info_ptr + realm_len, user_pos, user_len);
+    memcpy (kdc_salt_ptr, realm, realm_len);
+    memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
   }
 
-  krb5asrep->account_info_len = account_info_len;
+  krb5asrep->kdc_salt_len = kdc_salt_len;
 
   // hmac-sha1 is reduced to 12 bytes
   krb5asrep->checksum[0] = byte_swap_32 (hex_to_u32 (checksum_pos +  0));
@@ -308,7 +307,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5asrep->edata2_len = data_len / 2;
 
-  if (krb5asrep->account_info_len > 256)
+  if (krb5asrep->kdc_salt_len > 256)
   {
     salt->salt_buf[0] = krb5asrep->checksum[0];
     salt->salt_buf[1] = krb5asrep->checksum[1];
@@ -318,12 +317,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    const int account_info_words = (krb5asrep->account_info_len + 3) / 4;
+    const int kdc_salt_words = (krb5asrep->kdc_salt_len + 3) / 4;
 
-    for (int i = 0; i < account_info_words; i++)
-      salt->salt_buf[i] = krb5asrep->account_info[i];
+    for (int i = 0; i < kdc_salt_words; i++)
+      salt->salt_buf[i] = krb5asrep->kdc_salt[i];
 
-    salt->salt_len = krb5asrep->account_info_len;
+    salt->salt_len = krb5asrep->kdc_salt_len;
   }
 
   salt->salt_iter = 4096 - 1;
@@ -340,7 +339,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   const krb5asrep_18_t *krb5asrep = (const krb5asrep_18_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
+  char *data = (char *) hcmalloc ((MAX_EDATA2_LEN * 2) + 1);
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {
@@ -366,7 +365,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   {
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x",
       SIGNATURE_KRB5ASREP,
-      (const char *) krb5asrep->account_info,
+      (const char *) krb5asrep->kdc_salt,
       data,
       krb5asrep->checksum[0],
       krb5asrep->checksum[1],

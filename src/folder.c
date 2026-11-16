@@ -22,6 +22,10 @@
 #elif defined (__FreeBSD__) || defined (__NetBSD__) || defined (__DragonFly__)
 #include <sys/param.h>
 #include <sys/sysctl.h>
+#elif defined (_WIN)
+#include <initguid.h>
+#include <knownfolders.h>
+#include <shlobj.h>
 #endif
 
 static int get_exec_path (char *exec_path, const size_t exec_path_sz)
@@ -54,7 +58,56 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   if (win_len >= (DWORD) (exec_path_sz - 1)) return -1;
 
-  const size_t len = (size_t) win_len;
+  size_t len = (size_t) win_len;
+
+  // Started through a symbolic link, which is how winget puts a portable program on PATH, the name
+  // can be the link's, while everything hashcat ships lies beside the file it points to. Only a link
+  // is followed: on a mapped or substituted drive the final path is the network or the real one,
+  // and those paths are fine as they are.
+
+  const DWORD attr = GetFileAttributesA (exec_path);
+
+  if ((attr != INVALID_FILE_ATTRIBUTES) && ((attr & FILE_ATTRIBUTE_REPARSE_POINT) != 0))
+  {
+    const HANDLE file = CreateFileA (exec_path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (file != INVALID_HANDLE_VALUE)
+    {
+      char final_path[1024];
+
+      const DWORD final_len = GetFinalPathNameByHandleA (file, final_path, (DWORD) sizeof (final_path), FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+
+      CloseHandle (file);
+
+      // The answer starts with \\?\, or \\?\UNC\ for a share, which is not how any other path in
+      // this process is written. Without it the path is the drive or \\server\share form.
+
+      if ((final_len > 0) && (final_len < (DWORD) sizeof (final_path)))
+      {
+        size_t skip = 0;
+
+        if (strncmp (final_path, "\\\\?\\UNC\\", 8) == 0)
+        {
+          final_path[6] = '\\';
+
+          skip = 6;
+        }
+        else if (strncmp (final_path, "\\\\?\\", 4) == 0)
+        {
+          skip = 4;
+        }
+
+        const size_t final_size = (size_t) final_len - skip;
+
+        if (final_size < exec_path_sz)
+        {
+          memcpy (exec_path, &final_path[skip], final_size);
+
+          len = final_size;
+        }
+      }
+    }
+  }
 
   #elif defined (__APPLE__)
 
@@ -158,6 +211,92 @@ static void get_install_dir (char *install_dir, const char *exec_path)
     install_dir[1] = 0;
   }
 }
+
+#if defined (_WIN)
+
+// A known folder in UTF-8, which is what every other path in this process is in. false when this
+// user has no such folder, which is not an error: that folder then takes no part in the test below.
+
+static bool get_known_folder (const KNOWNFOLDERID *id, const char *suffix, char *path, const size_t path_sz)
+{
+  PWSTR wide = NULL;
+
+  const HRESULT hr = SHGetKnownFolderPath (id, KF_FLAG_DEFAULT, NULL, &wide);
+
+  if (hr != S_OK)
+  {
+    CoTaskMemFree (wide);
+
+    return false;
+  }
+
+  char narrow[HCBUFSIZ_TINY];
+
+  const int narrow_len = WideCharToMultiByte (CP_UTF8, 0, wide, -1, narrow, (int) sizeof (narrow), NULL, NULL);
+
+  CoTaskMemFree (wide);
+
+  if (narrow_len == 0) return false;
+
+  const int path_len = snprintf (path, path_sz, "%s%s", narrow, (suffix != NULL) ? suffix : "");
+
+  if ((path_len < 0) || ((size_t) path_len >= path_sz)) return false;
+
+  return true;
+}
+
+// Windows paths ignore case, and both sides come from the system, so folding ASCII is enough.
+
+static bool path_is_below (const char *dir, const char *root)
+{
+  const size_t root_len = strlen (root);
+
+  if (root_len == 0) return false;
+
+  if (_strnicmp (dir, root, root_len) != 0) return false;
+
+  if (dir[root_len] == 0)    return true;
+  if (dir[root_len] == '\\') return true;
+  if (dir[root_len] == '/')  return true;
+
+  return false;
+}
+
+static bool below_known_folder (const char *dir, const KNOWNFOLDERID *id, const char *suffix)
+{
+  char root[HCBUFSIZ_TINY];
+
+  if (get_known_folder (id, suffix, root, sizeof (root)) == false) return false;
+
+  const bool below = path_is_below (dir, root);
+
+  return below;
+}
+
+// An installed hashcat is one in the places installers and package managers put programs: Program
+// Files, the per user Programs folder, and winget's packages folder. That folder belongs to whatever
+// put hashcat there, and an upgrade or an uninstall would take a potfile in it along, so the user's
+// data goes to their local application data folder instead, the way an installed hashcat on Linux
+// uses the home directory. An unpacked copy anywhere else keeps everything beside hashcat.exe.
+
+static bool win_installed (const char *install_dir)
+{
+  if (below_known_folder (install_dir, &FOLDERID_ProgramFiles,     NULL) == true) return true;
+  if (below_known_folder (install_dir, &FOLDERID_ProgramFilesX86,  NULL) == true) return true;
+  if (below_known_folder (install_dir, &FOLDERID_UserProgramFiles, NULL) == true) return true;
+  if (below_known_folder (install_dir, &FOLDERID_LocalAppData,     "\\Microsoft\\WinGet\\Packages") == true) return true;
+
+  return false;
+}
+
+static bool win_profile_dir (char *profile_dir, const size_t profile_dir_sz)
+{
+  const bool found = get_known_folder (&FOLDERID_LocalAppData, "\\hashcat", profile_dir, profile_dir_sz);
+
+  return found;
+}
+
+#endif // _WIN
 
 #if defined (_POSIX)
 static void get_profile_dir (char *profile_dir, const char *home_dir)
@@ -437,13 +576,22 @@ int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED cons
 
   hcfree (exec_path);
 
+  char win_profile[HCBUFSIZ_TINY];
+
+  const bool win_user = (folder_request->given == false) && (win_installed (install_dir) == true) && (win_profile_dir (win_profile, sizeof (win_profile)) == true);
+
   #endif
 
-  // One folder holds everything, the executable's own. A program that named its folders only gets
-  // here on Windows, and folder_config_init () explains what it gets there.
+  // One folder holds everything, the executable's own, except for an installed hashcat on Windows,
+  // which caches in the per user folder folder_config_init () gives it. A program that named its
+  // folders only gets here on Windows, and folder_config_init () explains what it gets there.
 
   const char *shared_root = install_dir;
   const char *cache_root  = install_dir;
+
+  #if defined (_WIN)
+  if (win_user == true) cache_root = win_profile;
+  #endif
 
   if ((folder_request->given == true) && (shared_folder != NULL))
   {
@@ -661,6 +809,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   // Each is its own allocation, which is what folder_config_destroy () expects of a folder that is
   // not install_dir.
 
+  char win_profile[HCBUFSIZ_TINY];
+
   if (folder_request->given == true)
   {
     const char *profile_folder = (folder_request->profile_folder != NULL) ? folder_request->profile_folder : shared_folder;
@@ -671,6 +821,38 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     shared_dir  = hcstrdup (shared_folder);
 
     hc_mkdir_rec (profile_dir, 0700);
+  }
+  else if ((win_installed (install_dir) == true) && (win_profile_dir (win_profile, sizeof (win_profile)) == true))
+  {
+    // An installed copy, see win_installed (). The layout is the Linux one: the profile folder for
+    // the potfile and the rest of what a user keeps, a sessions folder below it, and the cache below
+    // it too, where Linux has a separate cache root. The files hashcat ships stay beside hashcat.exe.
+
+    profile_dir = hcstrdup (win_profile);
+    cache_dir   = hcstrdup (win_profile);
+
+    hc_asprintf (&session_dir, "%s\\%s", profile_dir, SESSIONS_FOLDER);
+
+    // A potfile beside hashcat.exe is from a run before this copy kept its data per user, or from a
+    // copy that was unpacked there. Nothing is copied or deleted, the same as for ~/.hashcat on
+    // Linux: say where things are now and let the user move what they want.
+
+    char legacy_potfile[HCBUFSIZ_TINY];
+
+    snprintf (legacy_potfile, sizeof (legacy_potfile), "%s\\hashcat.potfile", install_dir);
+
+    if (hc_path_exist (legacy_potfile) == true)
+    {
+      event_log_warning (hashcat_ctx, "Found %s, which an installed hashcat no longer uses.", legacy_potfile);
+      event_log_warning (hashcat_ctx, "It is left untouched. Everything hashcat keeps per user is now in");
+      event_log_warning (hashcat_ctx, "  %s", profile_dir);
+      event_log_warning (hashcat_ctx, "with sessions and the files it rebuilds by itself, the compiled kernels among them, below it.");
+      event_log_warning (hashcat_ctx, "Move what you still want across.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
+
+    hc_mkdir_rec (profile_dir, 0700);
+    hc_mkdir     (session_dir, 0700);
   }
 
   #endif
@@ -887,18 +1069,21 @@ int hc_mkdir_rec (const char *path, MAYBE_UNUSED const int mode)
 
   if (errno == EEXIST) return 0;
 
+  // dirname () may return static storage, as it does on macOS, and the recursive call below makes its
+  // own dirname () call, which would overwrite this parent before the call that creates it. So the
+  // parent is copied out first.
+
   char *fullpath = hcstrdup (path);
 
-  char *subpath = dirname (fullpath);
-
-  if (hc_mkdir_rec (subpath, mode) == -1)
-  {
-    hcfree (fullpath);
-
-    return -1;
-  }
+  char *subpath = hcstrdup (dirname (fullpath));
 
   hcfree (fullpath);
+
+  const int rc_parent = hc_mkdir_rec (subpath, mode);
+
+  hcfree (subpath);
+
+  if (rc_parent == -1) return -1;
 
   if (hc_mkdir (path, mode) == -1)
   {

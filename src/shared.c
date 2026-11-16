@@ -801,7 +801,7 @@ int hc_append_hex (char *buf, const int len, const int buf_sz, const u8 *src, in
 }
 
 // exec_hexify () writes 2 bytes per input byte and then a terminator, which is what the byte held
-// back above is for. It also clamps its own input to PW_MAX, so it can write less than asked.
+// back above is for. It also clamps its own input to PW_MAX * 2, so it can write less than asked.
 
 int hc_append_hexify (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
 {

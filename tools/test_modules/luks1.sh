@@ -98,7 +98,7 @@ EOF
   mkdir -p "$mount_point"
   sudo mount /dev/mapper/"$name" "$mount_point"
 
-  sudo sh -c 'echo "Hello from $filename" > "$mount_point/info.txt"'
+  sudo sh -c 'echo "Hello from $1" > "$2/info.txt"' _ "$filename" "$mount_point"
   while ! sudo umount "$mount_point"; do
     # echo  "Waiting for $mount_point to become free..."
     sleep 1

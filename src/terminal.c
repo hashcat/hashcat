@@ -3622,6 +3622,11 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   json_key (&js, "recovered_hashes");
   json_raw (&js, numbuf);
 
+  // Both zero while there is nothing to say, which is how the view reads them too.
+
+  json_kv_uint (&js, "recovered_est_hour", (unsigned long long) hashcat_status->recovered_est_hour);
+  json_kv_uint (&js, "recovered_limit", hashcat_status->recovered_limit);
+
   snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->salts_done, hashcat_status->salts_cnt);
   json_key (&js, "recovered_salts");
   json_raw (&js, numbuf);
@@ -4393,6 +4398,27 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
+  // Progress and Time.Estimated measure the round in progress. With a queue of masks the run is the
+  // whole queue, and these two lines measure that instead. A window given with --skip or --limit is
+  // a position in the queue in base words and there is no candidate count for it here, so the queue
+  // lines are left out rather than shown against a total they do not line up with.
+
+  if ((hashcat_status->queue_keyspace > 0) && (user_options->skip == 0) && (user_options->limit == 0))
+  {
+    const double queue_percent = ((double) hashcat_status->queue_progress_done / (double) hashcat_status->queue_keyspace) * 100;
+
+    event_log_info (hashcat_ctx,
+      "Queue.Keyspace...: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+      hashcat_status->queue_progress_done,
+      hashcat_status->queue_keyspace,
+      queue_percent);
+
+    event_log_info (hashcat_ctx,
+      "Queue.Estimated..: %s (%s)",
+      hashcat_status->queue_time_estimated_absolute,
+      hashcat_status->queue_time_estimated_relative);
+  }
+
   if (bridge_ctx->enabled == true)
   {
     status_display_bridge_speed (hashcat_ctx, hashcat_status);
@@ -4487,6 +4513,20 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
 
     event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
+
+    // Where the run ends up if it runs forever, which is a different question from the outlook on
+    // the line above and a far longer extrapolation, so it waits for a floor that has settled and
+    // says nothing before. It answers for this attack rather than for the list: one attack mode
+    // reaches far less than every mode together does over a campaign.
+
+    if (hashcat_status->recovered_limit > 0)
+    {
+      event_log_info (hashcat_ctx,
+        "Recovered.Limit..: %u/%u (%.2f%%) Digests, if it ran on",
+        hashcat_status->recovered_limit,
+        hashcat_status->digests_cnt,
+        hc_percent_display (hashcat_status->recovered_limit_percent));
+    }
   }
 
   // How far a protected run has got is itself worth withholding. On a job that takes days, handing

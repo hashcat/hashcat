@@ -364,8 +364,6 @@ static void module_hook23 (hc_device_param_t *device_param, const void *hook_ext
 
   const u8 *first_block_decrypted = (const u8 *) hook_item->first_block_decrypted;
 
-  // Nothing clears the hook buffer between candidates, so every path out of here writes a status.
-
   if (first_block_decrypted[0] & 0x80)
   {
     if (rar3_ppm_header_ok (first_block_decrypted) == 0)

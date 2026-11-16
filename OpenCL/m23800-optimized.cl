@@ -44,14 +44,19 @@ typedef struct rar3_hook
 
   u32 first_block_decrypted[4];
 
-  // One of the HC_RAR3_UNPACK_* values in src/modules/rar3/rar3_status.h, written by the host hook. Zero means
-  // the block unpacked to the expected length, and only then is crc32 worth comparing.
+  // One of the HC_RAR3_UNPACK_* values in src/modules/rar3/rar3_status.h, written by the host hook. Only
+  // RAR3_UNPACK_OK means the block unpacked to the expected length, and only then is crc32 worth
+  // comparing. A candidate the host hook skipped keeps the zero the buffer was cleared to.
 
   u32 unpack_status;
 
   u32 crc32;
 
 } rar3_hook_t;
+
+// HC_RAR3_UNPACK_OK in src/modules/rar3/rar3_status.h
+
+#define RAR3_UNPACK_OK 1
 
 KERNEL_FQ KERNEL_FA void m23800_init (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t, rar3_t))
 {
@@ -500,7 +505,7 @@ KERNEL_FQ KERNEL_FA void m23800_comp (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, ra
 
   if (gid >= GID_CNT) return;
 
-  if (hooks[gid].unpack_status != 0) return;
+  if (hooks[gid].unpack_status != RAR3_UNPACK_OK) return;
 
   u32 crc32 = hooks[gid].crc32;
 
