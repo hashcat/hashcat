@@ -1167,15 +1167,18 @@ def a4_vectors(mode, pairs, optimized):
   if mode in LUKS_MODES or mode == 40023:
     return None
 
-  if not any(word == b"" for word, _ in pairs):
+  # Mode 20510 removes a six-byte prefix before feeding a candidate to the grammar.
+  min_length = 7 if mode == 20510 else 1
+
+  if not any(len(word) < min_length for word, _ in pairs):
     return None
 
-  spare = oracle_spare(mode, optimized, 1)
+  spare = oracle_spare(mode, optimized, min_length)
 
-  if spare is None or spare[0] == b"":
+  if spare is None or len(spare[0]) < min_length:
     return None
 
-  return [spare if word == b"" else (word, digest) for word, digest in pairs]
+  return [spare if len(word) < min_length else (word, digest) for word, digest in pairs]
 
 
 def attacks_for(spec, mode):
