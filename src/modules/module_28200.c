@@ -70,6 +70,13 @@ static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return esalt_size;
 }
 
+static bool module_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool hlfmt_disable = true;
+
+  return hlfmt_disable;
+}
+
 static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -311,6 +318,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_extra_tuningdb_block     = scrypt_module_extra_tuningdb_block;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hlfmt_disable            = module_hlfmt_disable;
   module_ctx->module_jit_build_options        = scrypt_module_jit_build_options;
   module_ctx->module_kernel_accel_max         = scrypt_module_kernel_accel_max;
   module_ctx->module_kernel_loops_max         = scrypt_module_kernel_loops_max;
