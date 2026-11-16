@@ -46,14 +46,19 @@
 #define MD6_256_ROUNDS 104  // default value
 #define MD6_256_DLEN   256  // digest len
 
-#define loop_body(rs,ls,step)                                               \
-  x  = S;                                       /* feedback constant     */ \
-  x ^= A[i+step-MD6_T5];                        /* end-around feedback   */ \
-  x ^= A[i+step-MD6_T0];                        /* linear feedback       */ \
-  x ^= ( A[i+step-MD6_T1] & A[i+step-MD6_T2] ); /* first quadratic term  */ \
-  x ^= ( A[i+step-MD6_T3] & A[i+step-MD6_T4] ); /* second quadratic term */ \
-  x ^= (x >> rs);                               /* right-shift           */ \
-  A[i+step] = x ^ (x << ls);                    /* left-shift            */
+// MD6's step recurrence reads back at most MD6_T5 = 89 words, so the 89 input words and everything
+// computed from them fit in a ring of 128 words: word i lives at A[i & 127]. This holds the whole
+// expansion in a 128-word array (1 KB for u64) instead of the full ~1753-word linear buffer (16 KB),
+// the dominant per-work-item cost in the m34600 kernels. The computation is identical; callers must
+// size A as a 128-word ring.
+#define loop_body(rs,ls,step)                                   \
+  x  = S;                                                       \
+  x ^= A[(i+step-MD6_T5) & 127];                                \
+  x ^= A[(i+step-MD6_T0) & 127];                                \
+  x ^= ( A[(i+step-MD6_T1) & 127] & A[(i+step-MD6_T2) & 127] ); \
+  x ^= ( A[(i+step-MD6_T3) & 127] & A[(i+step-MD6_T4) & 127] ); \
+  x ^= (x >> rs);                                               \
+  A[(i+step) & 127] = x ^ (x << ls);
 
 // MD6 with the default parameters: no key, mode L = 64 and 40 + d / 4 rounds for a digest of d
 // bits. The digest has dlen bytes, a multiple of 8 up to 64. These are hx's md6 and md6128 (16
