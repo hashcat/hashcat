@@ -1811,7 +1811,6 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
   const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
   const pubkey_ctx_t    *pubkey_ctx    = hashcat_ctx->pubkey_ctx;
-  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -2098,16 +2097,11 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       u64 word_pos = gidvid_to_word_pos (device_param, plain->gidvid);
 
       // --slow-candidates expands the amplifier on the host, so a position in that keyspace counts
-      // candidates where the feed's segment table counts lines. Dividing brings the two back into the
-      // same unit, and without it a candidate index past the first wordlist's line count names the
-      // second wordlist for words that came out of the first.
+      // candidates where the feed's segment table counts lines. Without the conversion a candidate
+      // index past the first wordlist's line count names the second wordlist for words that came out
+      // of the first.
 
-      if (user_options->slow_candidates == true)
-      {
-        const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
-
-        if (amplifier > 1) word_pos = word_pos / amplifier;
-      }
+      word_pos = status_get_base_word (hashcat_ctx, word_pos);
 
       debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len, word_pos);
     }
@@ -2364,14 +2358,23 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
-    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
+    const time_t now = time (NULL);
 
-    cpt_ctx->cpt_pos++;
+    // The history is indexed by the second it stands for rather than filled in order, so a run that
+    // cracks in very many batches no longer walks over its own earlier seconds. A slot still holding
+    // an older second is stale and starts again instead of adding to a count from a day ago.
+
+    cpt_t *slot = &cpt_ctx->cpt_buf[(u64) now % CPT_SECONDS];
+
+    if (slot->timestamp != now)
+    {
+      slot->timestamp = now;
+      slot->cracked   = 0;
+    }
+
+    slot->cracked += cpt_cracked;
 
     cpt_ctx->cpt_total += cpt_cracked;
-
-    if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
   }
@@ -5459,20 +5462,33 @@ static HC_THREAD_FUNC hashes_group_thread (void *p)
       salt_buf->digests_done   = 0;
       salt_buf->digests_offset = offsets[salt_idx];
 
-      if (hook_salt_size > 0)
-      {
-        memcpy (param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size), hashes_buf[i].hook_salt, hook_salt_size);
-      }
-
       hashes_buf[i].salt = salt_buf;
-
-      if (hook_salt_size > 0) hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size);
     }
     else if (hashconfig->is_salted == true)
     {
       hashes_buf[i].salt = &salts_buf_new[salt_idx];
+    }
 
-      if (hook_salt_size > 0) hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size);
+    if (hook_salt_size > 0)
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT_PER_DIGEST)
+      {
+        // the slot stays with the digest, not the salt: digests that share a salt keep
+        // their own hook data
+
+        memcpy (param->hook_salts_buf_new + ((u64) i * hook_salt_size), hashes_buf[i].hook_salt, hook_salt_size);
+
+        hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) i * hook_salt_size);
+      }
+      else
+      {
+        if (i == offsets[salt_idx])
+        {
+          memcpy (param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size), hashes_buf[i].hook_salt, hook_salt_size);
+        }
+
+        hashes_buf[i].hook_salt = param->hook_salts_buf_new + ((u64) salt_idx * hook_salt_size);
+      }
     }
 
     if (param->digests_buf_new != NULL)
@@ -6033,15 +6049,27 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // test iteration count in association attack
+  // An association attack launches every salt at once, with the loops of the first one. Its kernels
+  // take each work item's own salt, but the host runs every loop and repeat as salt 0 asks, so a hash
+  // with other counts would never crack.
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    salt_t *salts_buf = hashes->salts_buf;
+    const salt_t *salts_buf = hashes->salts_buf;
 
     for (u32 salt_idx = 1; salt_idx < hashes->salts_cnt; salt_idx++)
     {
-      if (salts_buf[salt_idx - 1].salt_iter != salts_buf[salt_idx].salt_iter)
+      const salt_t *prev = &salts_buf[salt_idx - 1];
+      const salt_t *salt = &salts_buf[salt_idx];
+
+      bool mixed = false;
+
+      if (prev->salt_iter    != salt->salt_iter)    mixed = true;
+      if (prev->salt_iter2   != salt->salt_iter2)   mixed = true;
+      if (prev->salt_iter3   != salt->salt_iter3)   mixed = true;
+      if (prev->salt_repeats != salt->salt_repeats) mixed = true;
+
+      if (mixed == true)
       {
         event_log_error (hashcat_ctx, "Mixed iteration counts are not supported in association attack-mode.");
 

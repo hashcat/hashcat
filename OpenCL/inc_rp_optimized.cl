@@ -885,7 +885,57 @@ DECLSPEC void append_block8_optimized (const u32 offset, PRIVATE_AS u32 *buf0, P
 
 DECLSPEC void reverse_block_optimized (PRIVATE_AS u32 *in0, PRIVATE_AS u32 *in1, PRIVATE_AS u32 *out0, PRIVATE_AS u32 *out1, const u32 len)
 {
-  rshift_block_optimized_N (in0, in1, out0, out1, 32 - len);
+  const u32 num = 32 - len;
+
+  if (num < 32)
+  {
+    u32 t[8];
+
+    t[0] = in0[0];
+    t[1] = in0[1];
+    t[2] = in0[2];
+    t[3] = in0[3];
+    t[4] = in1[0];
+    t[5] = in1[1];
+    t[6] = in1[2];
+    t[7] = in1[3];
+
+    t[7] = (num & 16) ? t[3] : t[7];
+    t[6] = (num & 16) ? t[2] : t[6];
+    t[5] = (num & 16) ? t[1] : t[5];
+    t[4] = (num & 16) ? t[0] : t[4];
+    t[3] = (num & 16) ? 0 : t[3];
+    t[2] = (num & 16) ? 0 : t[2];
+    t[1] = (num & 16) ? 0 : t[1];
+    t[0] = (num & 16) ? 0 : t[0];
+
+    t[7] = (num &  8) ? t[5] : t[7];
+    t[6] = (num &  8) ? t[4] : t[6];
+    t[5] = (num &  8) ? t[3] : t[5];
+    t[4] = (num &  8) ? t[2] : t[4];
+    t[3] = (num &  8) ? t[1] : t[3];
+    t[2] = (num &  8) ? t[0] : t[2];
+    t[1] = (num &  8) ? 0 : t[1];
+    t[0] = (num &  8) ? 0 : t[0];
+
+    t[7] = (num &  4) ? t[6] : t[7];
+    t[6] = (num &  4) ? t[5] : t[6];
+    t[5] = (num &  4) ? t[4] : t[5];
+    t[4] = (num &  4) ? t[3] : t[4];
+    t[3] = (num &  4) ? t[2] : t[3];
+    t[2] = (num &  4) ? t[1] : t[2];
+    t[1] = (num &  4) ? t[0] : t[1];
+    t[0] = (num &  4) ? 0 : t[0];
+
+    out0[0] = hc_bytealign_S (0, t[0], num);
+    out0[1] = hc_bytealign_S (t[0], t[1], num);
+    out0[2] = hc_bytealign_S (t[1], t[2], num);
+    out0[3] = hc_bytealign_S (t[2], t[3], num);
+    out1[0] = hc_bytealign_S (t[3], t[4], num);
+    out1[1] = hc_bytealign_S (t[4], t[5], num);
+    out1[2] = hc_bytealign_S (t[5], t[6], num);
+    out1[3] = hc_bytealign_S (t[6], t[7], num);
+  }
 
   u32 tib40[4];
   u32 tib41[4];
@@ -955,7 +1005,9 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t | generate_cmask (t);
+  const u32 cmask = generate_cmask (buf0[0]);
+
+  t = buf0[0]; buf0[0] = (t | cmask) & ~(0x00000020 & cmask);
   t = buf0[1]; buf0[1] = t | generate_cmask (t);
   t = buf0[2]; buf0[2] = t | generate_cmask (t);
   t = buf0[3]; buf0[3] = t | generate_cmask (t);
@@ -964,8 +1016,6 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0
   t = buf1[2]; buf1[2] = t | generate_cmask (t);
   t = buf1[3]; buf1[3] = t | generate_cmask (t);
 
-  t = buf0[0]; buf0[0] = t & ~(0x00000020 & generate_cmask (t));
-
   return in_len;
 }
 
@@ -973,7 +1023,9 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
+  const u32 cmask = generate_cmask (buf0[0]);
+
+  t = buf0[0]; buf0[0] = (t & ~cmask) | (0x00000020 & cmask);
   t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
   t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
   t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
@@ -981,8 +1033,6 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0
   t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
   t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
   t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
-
-  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask (t));
 
   return in_len;
 }
@@ -1003,18 +1053,27 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_trest (MAYBE_UNUSED const u32 p0, MAYBE
   return in_len;
 }
 
+DECLSPEC u32 generate_cshift_mask_optimized (const u32 value)
+{
+  if (value == 0) return 0;
+
+  const u32 mask_lookup = generate_cshift_mask (value);
+
+  return mask_lookup;
+}
+
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_shift_case (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t ^ generate_cshift_mask (t);
-  t = buf0[1]; buf0[1] = t ^ generate_cshift_mask (t);
-  t = buf0[2]; buf0[2] = t ^ generate_cshift_mask (t);
-  t = buf0[3]; buf0[3] = t ^ generate_cshift_mask (t);
-  t = buf1[0]; buf1[0] = t ^ generate_cshift_mask (t);
-  t = buf1[1]; buf1[1] = t ^ generate_cshift_mask (t);
-  t = buf1[2]; buf1[2] = t ^ generate_cshift_mask (t);
-  t = buf1[3]; buf1[3] = t ^ generate_cshift_mask (t);
+  t = buf0[0]; buf0[0] = t ^ generate_cshift_mask_optimized (t);
+  t = buf0[1]; buf0[1] = t ^ generate_cshift_mask_optimized (t);
+  t = buf0[2]; buf0[2] = t ^ generate_cshift_mask_optimized (t);
+  t = buf0[3]; buf0[3] = t ^ generate_cshift_mask_optimized (t);
+  t = buf1[0]; buf1[0] = t ^ generate_cshift_mask_optimized (t);
+  t = buf1[1]; buf1[1] = t ^ generate_cshift_mask_optimized (t);
+  t = buf1[2]; buf1[2] = t ^ generate_cshift_mask_optimized (t);
+  t = buf1[3]; buf1[3] = t ^ generate_cshift_mask_optimized (t);
 
   return in_len;
 }
@@ -1023,31 +1082,19 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, M
 {
   if (p0 >= in_len) return in_len;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
   const u32 m = 0x20u << ((p0 & 3) * 8);
 
-  t[p0 / 4] = tmp ^ (m & generate_cmask (tmp));
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = buf0[0] ^ (m & generate_cmask (buf0[0])); break;
+    case 1: buf0[1] = buf0[1] ^ (m & generate_cmask (buf0[1])); break;
+    case 2: buf0[2] = buf0[2] ^ (m & generate_cmask (buf0[2])); break;
+    case 3: buf0[3] = buf0[3] ^ (m & generate_cmask (buf0[3])); break;
+    case 4: buf1[0] = buf1[0] ^ (m & generate_cmask (buf1[0])); break;
+    case 5: buf1[1] = buf1[1] ^ (m & generate_cmask (buf1[1])); break;
+    case 6: buf1[2] = buf1[2] ^ (m & generate_cmask (buf1[2])); break;
+    case 7: buf1[3] = buf1[3] ^ (m & generate_cmask (buf1[3])); break;
+  }
 
   return in_len;
 }
@@ -1065,47 +1112,23 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_toggle_at_sep (MAYBE_UNUSED const u32 p
   u32 r6 = search_on_register (buf1[2], p1);
   u32 r7 = search_on_register (buf1[3], p1);
 
-  const u32 rn = (r0 <<  0)
-               | (r1 <<  4)
-               | (r2 <<  8)
-               | (r3 << 12)
-               | (r4 << 16)
-               | (r5 << 20)
-               | (r6 << 24)
-               | (r7 << 28);
+  u32 rn = (r0 <<  0)
+         | (r1 <<  4)
+         | (r2 <<  8)
+         | (r3 << 12)
+         | (r4 << 16)
+         | (r5 << 20)
+         | (r6 << 24)
+         | (r7 << 28);
 
   if (rn == 0) return in_len;
 
-  u32 occurence = 0;
-
-  u32 ro = 0;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0; i < 32; i++)
+  for (u32 occurrence = 0; (occurrence < p0) && (rn != 0); occurrence++)
   {
-    if ((rn >> i) & 1)
-    {
-      if (occurence == p0)
-      {
-        ro = 1u << i;
-
-        #ifdef IS_METAL
-
-        i = 32;
-
-        continue;
-
-        #else
-
-        break; // bug on Apple Intel/Silicon with Metal
-
-        #endif
-      }
-      occurence++;
-    }
+    rn &= rn - 1;
   }
+
+  const u32 ro = rn & (0u - rn);
 
   r0 = (ro >>  0) & 15;
   r1 = (ro >>  4) & 15;
@@ -1203,92 +1226,47 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_reflect (MAYBE_UNUSED const u32 p0, MAY
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_to_hex_lower (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC u32 hex_word_optimized (const u32 in, const u32 alpha_offset)
 {
-  u32 buf_in[8];
+  const u32 n = ((in & 0x00f000f0) >> 4) | ((in & 0x000f000f) << 8);
+  const u32 a = ((n + 0x06060606) >> 4) & 0x01010101;
+  const u32 out = n + 0x30303030 + a * alpha_offset;
 
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
+  return out;
+}
 
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
-
-  u32 out_len = in_len * 2;
+DECLSPEC u32 to_hex_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 in_len, const u32 alpha_offset)
+{
+  const u32 out_len = in_len * 2;
 
   if (out_len >= 32) return in_len;
 
-  for (int pos = in_len - 1; pos >= 0; pos--)
-  {
-    const u8 c = in[pos];
+  make_utf16le_S (buf0, buf0, buf1);
 
-    const u8 tbl[0x10] =
-    {
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-      'a', 'b', 'c', 'd', 'e', 'f',
-    };
+  buf0[0] = hex_word_optimized (buf0[0], alpha_offset);
+  buf0[1] = hex_word_optimized (buf0[1], alpha_offset);
+  buf0[2] = hex_word_optimized (buf0[2], alpha_offset);
+  buf0[3] = hex_word_optimized (buf0[3], alpha_offset);
+  buf1[0] = hex_word_optimized (buf1[0], alpha_offset);
+  buf1[1] = hex_word_optimized (buf1[1], alpha_offset);
+  buf1[2] = hex_word_optimized (buf1[2], alpha_offset);
+  buf1[3] = hex_word_optimized (buf1[3], alpha_offset);
 
-    in[pos * 2 + 1] = tbl[c >>  0 & 15];
-    in[pos * 2] = tbl[c >>  4 & 15];
-  }
+  truncate_right_optimized (buf0, buf1, out_len);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  return out_len;
+}
+
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_to_hex_lower (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+{
+  const u32 out_len = to_hex_optimized (buf0, buf1, in_len, 39);
 
   return out_len;
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_to_hex_upper (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
-
-  const int out_len = in_len * 2;
-
-  if (out_len >= 32) return in_len;
-
-  for (int pos = in_len - 1; pos >= 0; pos--)
-  {
-    const u8 c = in[pos];
-
-    const u8 tbl[0x10] =
-    {
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-      'A', 'B', 'C', 'D', 'E', 'F',
-    };
-
-    in[pos * 2 + 1] = tbl[c >>  0 & 15];
-    in[pos * 2] = tbl[c >>  4 & 15];
-  }
-
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  const u32 out_len = to_hex_optimized (buf0, buf1, in_len, 7);
 
   return out_len;
 }
@@ -1595,7 +1573,54 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_insert_every (MAYBE_UNUSED const u32 p0
 
   if (p0 == 0) return in_len;
 
-  const u32 out_len = in_len + (in_len / p0);
+  if (p0 == 1)
+  {
+    const u32 out_len = in_len * 2;
+
+    if (out_len >= 32) return in_len;
+
+    make_utf16le_S (buf0, buf0, buf1);
+
+    const u32 inserted = (p1 & 0xff) * 0x01000100;
+
+    buf0[0] |= inserted;
+    buf0[1] |= inserted;
+    buf0[2] |= inserted;
+    buf0[3] |= inserted;
+    buf1[0] |= inserted;
+    buf1[1] |= inserted;
+    buf1[2] |= inserted;
+    buf1[3] |= inserted;
+
+    truncate_right_optimized (buf0, buf1, out_len);
+
+    return out_len;
+  }
+
+  if (p0 == 2)
+  {
+    const u32 out_len = in_len + (in_len >> 1);
+
+    if (out_len >= 32) return in_len;
+
+    const u32 inserted = p1 & 0xff;
+
+    buf1[3] = ((buf1[0] >> 24) & 0x000000ff) | (inserted << 8) | ((buf1[1] & 0x0000ffff) << 16);
+    buf1[2] = (buf1[0] & 0x0000ffff) | (inserted << 16) | ((buf1[0] & 0x00ff0000) << 8);
+    buf1[1] = inserted | ((buf0[3] & 0xffff0000) >> 8) | (inserted << 24);
+    buf1[0] = ((buf0[2] >> 24) & 0x000000ff) | (inserted << 8) | ((buf0[3] & 0x0000ffff) << 16);
+    buf0[3] = (buf0[2] & 0x0000ffff) | (inserted << 16) | ((buf0[2] & 0x00ff0000) << 8);
+    buf0[2] = inserted | ((buf0[1] & 0xffff0000) >> 8) | (inserted << 24);
+    buf0[1] = ((buf0[0] >> 24) & 0x000000ff) | (inserted << 8) | ((buf0[1] & 0x0000ffff) << 16);
+    buf0[0] = (buf0[0] & 0x0000ffff) | (inserted << 16) | ((buf0[0] & 0x00ff0000) << 8);
+
+    truncate_right_optimized (buf0, buf1, out_len);
+
+    return out_len;
+  }
+
+  const u32 copies = in_len / p0;
+  const u32 out_len = in_len + copies;
 
   if (out_len >= 32) return in_len;
 
@@ -1612,9 +1637,19 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_insert_every (MAYBE_UNUSED const u32 p0
 
   PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
 
-  for (u32 src = in_len, dest = out_len; src > 0; src--, dest--) {
-    if ((src % p0) == 0) { in[dest-1] = p1; dest--; }
-    in[dest-1] = in[src-1];
+  u32 next = copies * p0;
+
+  for (u32 src = in_len, dest = out_len; src > 0; src--, dest--)
+  {
+    if (src == next)
+    {
+      in[dest - 1] = p1;
+
+      dest--;
+      next -= p0;
+    }
+
+    in[dest - 1] = in[src - 1];
   }
 
   buf0[0] = buf_in[0];
@@ -1711,29 +1746,17 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_overstrike (MAYBE_UNUSED const u32 p0, 
 
   const u32 m = ~(0xffu << ((p0 & 3) * 8));
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  t[p0 / 4] = (tmp & m) | p1n;
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & m) | p1n; break;
+    case 1: buf0[1] = (buf0[1] & m) | p1n; break;
+    case 2: buf0[2] = (buf0[2] & m) | p1n; break;
+    case 3: buf0[3] = (buf0[3] & m) | p1n; break;
+    case 4: buf1[0] = (buf1[0] & m) | p1n; break;
+    case 5: buf1[1] = (buf1[1] & m) | p1n; break;
+    case 6: buf1[2] = (buf1[2] & m) | p1n; break;
+    case 7: buf1[3] = (buf1[3] & m) | p1n; break;
+  }
 
   return in_len;
 }
@@ -1773,276 +1796,385 @@ DECLSPEC u32 replace_on_register (const u32 in, const u32 r, const u32 p1)
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  const u32 r0 = search_on_register (buf0[0], p0);
-  const u32 r1 = search_on_register (buf0[1], p0);
-  const u32 r2 = search_on_register (buf0[2], p0);
-  const u32 r3 = search_on_register (buf0[3], p0);
-  const u32 r4 = search_on_register (buf1[0], p0);
-  const u32 r5 = search_on_register (buf1[1], p0);
-  const u32 r6 = search_on_register (buf1[2], p0);
-  const u32 r7 = search_on_register (buf1[3], p0);
+  if (p0 >= 256) return in_len;
 
-  const u32 rn = r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+  if (p1 >= 256)
+  {
+    buf0[0] = replace_on_register (buf0[0], search_on_register (buf0[0], p0), p1);
+    buf0[1] = replace_on_register (buf0[1], search_on_register (buf0[1], p0), p1);
+    buf0[2] = replace_on_register (buf0[2], search_on_register (buf0[2], p0), p1);
+    buf0[3] = replace_on_register (buf0[3], search_on_register (buf0[3], p0), p1);
+    buf1[0] = replace_on_register (buf1[0], search_on_register (buf1[0], p0), p1);
+    buf1[1] = replace_on_register (buf1[1], search_on_register (buf1[1], p0), p1);
+    buf1[2] = replace_on_register (buf1[2], search_on_register (buf1[2], p0), p1);
+    buf1[3] = replace_on_register (buf1[3], search_on_register (buf1[3], p0), p1);
 
-  if (rn == 0) return in_len;
+    return in_len;
+  }
 
-  buf0[0] = replace_on_register (buf0[0], r0, p1);
-  buf0[1] = replace_on_register (buf0[1], r1, p1);
-  buf0[2] = replace_on_register (buf0[2], r2, p1);
-  buf0[3] = replace_on_register (buf0[3], r3, p1);
-  buf1[0] = replace_on_register (buf1[0], r4, p1);
-  buf1[1] = replace_on_register (buf1[1], r5, p1);
-  buf1[2] = replace_on_register (buf1[2], r6, p1);
-  buf1[3] = replace_on_register (buf1[3], r7, p1);
+  const u32 search = p0 * 0x01010101;
+  const u32 replacement = p1 * 0x01010101;
+
+  const u32 x0 = buf0[0] ^ search;
+  const u32 bits0 = ~(((x0 & 0x7f7f7f7f) + 0x7f7f7f7f) | x0 | 0x7f7f7f7f);
+  const u32 mask0 = (bits0 >> 7) * 0xff;
+
+  buf0[0] = (buf0[0] & ~mask0) | (replacement & mask0);
+
+  const u32 x1 = buf0[1] ^ search;
+  const u32 bits1 = ~(((x1 & 0x7f7f7f7f) + 0x7f7f7f7f) | x1 | 0x7f7f7f7f);
+  const u32 mask1 = (bits1 >> 7) * 0xff;
+
+  buf0[1] = (buf0[1] & ~mask1) | (replacement & mask1);
+
+  const u32 x2 = buf0[2] ^ search;
+  const u32 bits2 = ~(((x2 & 0x7f7f7f7f) + 0x7f7f7f7f) | x2 | 0x7f7f7f7f);
+  const u32 mask2 = (bits2 >> 7) * 0xff;
+
+  buf0[2] = (buf0[2] & ~mask2) | (replacement & mask2);
+
+  const u32 x3 = buf0[3] ^ search;
+  const u32 bits3 = ~(((x3 & 0x7f7f7f7f) + 0x7f7f7f7f) | x3 | 0x7f7f7f7f);
+  const u32 mask3 = (bits3 >> 7) * 0xff;
+
+  buf0[3] = (buf0[3] & ~mask3) | (replacement & mask3);
+
+  const u32 x4 = buf1[0] ^ search;
+  const u32 bits4 = ~(((x4 & 0x7f7f7f7f) + 0x7f7f7f7f) | x4 | 0x7f7f7f7f);
+  const u32 mask4 = (bits4 >> 7) * 0xff;
+
+  buf1[0] = (buf1[0] & ~mask4) | (replacement & mask4);
+
+  const u32 x5 = buf1[1] ^ search;
+  const u32 bits5 = ~(((x5 & 0x7f7f7f7f) + 0x7f7f7f7f) | x5 | 0x7f7f7f7f);
+  const u32 mask5 = (bits5 >> 7) * 0xff;
+
+  buf1[1] = (buf1[1] & ~mask5) | (replacement & mask5);
+
+  const u32 x6 = buf1[2] ^ search;
+  const u32 bits6 = ~(((x6 & 0x7f7f7f7f) + 0x7f7f7f7f) | x6 | 0x7f7f7f7f);
+  const u32 mask6 = (bits6 >> 7) * 0xff;
+
+  buf1[2] = (buf1[2] & ~mask6) | (replacement & mask6);
+
+  const u32 x7 = buf1[3] ^ search;
+  const u32 bits7 = ~(((x7 & 0x7f7f7f7f) + 0x7f7f7f7f) | x7 | 0x7f7f7f7f);
+  const u32 mask7 = (bits7 >> 7) * 0xff;
+
+  buf1[3] = (buf1[3] & ~mask7) | (replacement & mask7);
 
   return in_len;
+}
+
+DECLSPEC u32 search_packed_optimized (const u32 value, const u32 search)
+{
+  const u32 x = value ^ search;
+  const u32 bits = ~(((x & 0x7f7f7f7f) + 0x7f7f7f7f) | x | 0x7f7f7f7f);
+
+  const u32 mask = (bits * 0x00204081) >> 28;
+
+  return mask;
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_nth (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED const u32 p2, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  u32 buf_in[8];
+  if (in_len == 0) return in_len;
 
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
+  const u32 search = (p1 & 0xff) * 0x01010101;
 
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+  const u32 r0 = search_packed_optimized (buf0[0], search);
+  const u32 r1 = search_packed_optimized (buf0[1], search);
+  const u32 r2 = search_packed_optimized (buf0[2], search);
+  const u32 r3 = search_packed_optimized (buf0[3], search);
+  const u32 r4 = search_packed_optimized (buf1[0], search);
+  const u32 r5 = search_packed_optimized (buf1[1], search);
+  const u32 r6 = search_packed_optimized (buf1[2], search);
+  const u32 r7 = search_packed_optimized (buf1[3], search);
 
-  u32 occurrence = 0;
+  u32 rn = (r0 <<  0)
+         | (r1 <<  4)
+         | (r2 <<  8)
+         | (r3 << 12)
+         | (r4 << 16)
+         | (r5 << 20)
+         | (r6 << 24)
+         | (r7 << 28);
 
-  u32 done = 0;
+  rn &= 0xffffffffu >> (32 - in_len);
 
-  for (u32 pos = 0; pos < in_len; pos++)
+  for (u32 occurrence = 0; (occurrence < p0) && (rn != 0); occurrence++)
   {
-    if (in[pos] != (u8) p1) continue;
-
-    if (occurrence == p0)
-    {
-      in[pos] = (u8) p2;
-
-      done = 1;
-
-      break;
-    }
-
-    occurrence++;
-  }
-
-  if (done == 0) return in_len;
-
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
-
-  return in_len;
-}
-
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_l (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
-{
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
-
-  u32 rn = 0;
-
-  for (u32 pos = 0; pos < in_len; pos++)
-  {
-    if (!is_l (in[pos])) continue;
-
-    in[pos] = (u8)p1;
-
-    rn++;
+    rn &= rn - 1;
   }
 
   if (rn == 0) return in_len;
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  const u32 selected = rn & (0u - rn);
+
+  buf0[0] = replace_on_register (buf0[0], (selected >>  0) & 15, p2 & 0xff);
+  buf0[1] = replace_on_register (buf0[1], (selected >>  4) & 15, p2 & 0xff);
+  buf0[2] = replace_on_register (buf0[2], (selected >>  8) & 15, p2 & 0xff);
+  buf0[3] = replace_on_register (buf0[3], (selected >> 12) & 15, p2 & 0xff);
+  buf1[0] = replace_on_register (buf1[0], (selected >> 16) & 15, p2 & 0xff);
+  buf1[1] = replace_on_register (buf1[1], (selected >> 20) & 15, p2 & 0xff);
+  buf1[2] = replace_on_register (buf1[2], (selected >> 24) & 15, p2 & 0xff);
+  buf1[3] = replace_on_register (buf1[3], (selected >> 28) & 15, p2 & 0xff);
+
+  return in_len;
+}
+
+DECLSPEC u32 generate_range_mask_optimized (const u32 value, const u32 lower, const u32 upper)
+{
+  const u32 low = value & 0x7f7f7f7f;
+
+  const u32 ge = low + (0x80808080 - lower * 0x01010101);
+  const u32 gt = low + (0x7f7f7f7f - upper * 0x01010101);
+
+  const u32 bits = ge & ~gt & ~value & 0x80808080;
+
+  const u32 mask = (bits >> 7) * 0xff;
+
+  return mask;
+}
+
+DECLSPEC u32 generate_class_mask_l_optimized (const u32 value)
+{
+  const u32 mask = generate_range_mask_optimized (value, 'a', 'z');
+
+  return mask;
+}
+
+DECLSPEC u32 generate_class_mask_u_optimized (const u32 value)
+{
+  const u32 mask = generate_range_mask_optimized (value, 'A', 'Z');
+
+  return mask;
+}
+
+DECLSPEC u32 generate_class_mask_d_optimized (const u32 value)
+{
+  const u32 mask = generate_range_mask_optimized (value, '0', '9');
+
+  return mask;
+}
+
+DECLSPEC u32 generate_class_mask_lh_optimized (const u32 value)
+{
+  const u32 mask = generate_range_mask_optimized (value, 'a', 'f') | generate_range_mask_optimized (value, '0', '9');
+
+  return mask;
+}
+
+DECLSPEC u32 generate_class_mask_uh_optimized (const u32 value)
+{
+  const u32 mask = generate_range_mask_optimized (value, 'A', 'F') | generate_range_mask_optimized (value, '0', '9');
+
+  return mask;
+}
+
+DECLSPEC u32 generate_class_mask_s_optimized (const u32 value)
+{
+  u32 mask = 0;
+
+  if (is_s ((value >>  0) & 0xff)) mask |= 0x000000ff;
+  if (is_s ((value >>  8) & 0xff)) mask |= 0x0000ff00;
+  if (is_s ((value >> 16) & 0xff)) mask |= 0x00ff0000;
+  if (is_s ((value >> 24) & 0xff)) mask |= 0xff000000;
+
+  return mask;
+}
+
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_l (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+{
+  const u32 replacement = (p1 & 0xff) * 0x01010101;
+
+  const u32 mask0 = generate_class_mask_l_optimized (buf0[0]);
+
+  buf0[0] = (buf0[0] & ~mask0) | (replacement & mask0);
+
+  const u32 mask1 = generate_class_mask_l_optimized (buf0[1]);
+
+  buf0[1] = (buf0[1] & ~mask1) | (replacement & mask1);
+
+  const u32 mask2 = generate_class_mask_l_optimized (buf0[2]);
+
+  buf0[2] = (buf0[2] & ~mask2) | (replacement & mask2);
+
+  const u32 mask3 = generate_class_mask_l_optimized (buf0[3]);
+
+  buf0[3] = (buf0[3] & ~mask3) | (replacement & mask3);
+
+  const u32 mask4 = generate_class_mask_l_optimized (buf1[0]);
+
+  buf1[0] = (buf1[0] & ~mask4) | (replacement & mask4);
+
+  const u32 mask5 = generate_class_mask_l_optimized (buf1[1]);
+
+  buf1[1] = (buf1[1] & ~mask5) | (replacement & mask5);
+
+  const u32 mask6 = generate_class_mask_l_optimized (buf1[2]);
+
+  buf1[2] = (buf1[2] & ~mask6) | (replacement & mask6);
+
+  const u32 mask7 = generate_class_mask_l_optimized (buf1[3]);
+
+  buf1[3] = (buf1[3] & ~mask7) | (replacement & mask7);
 
   return in_len;
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_u (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  u32 buf_in[8];
+  const u32 replacement = (p1 & 0xff) * 0x01010101;
 
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
+  const u32 mask0 = generate_class_mask_u_optimized (buf0[0]);
 
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+  buf0[0] = (buf0[0] & ~mask0) | (replacement & mask0);
 
-  u32 rn = 0;
+  const u32 mask1 = generate_class_mask_u_optimized (buf0[1]);
 
-  for (u32 pos = 0; pos < in_len; pos++)
-  {
-    if (!is_u (in[pos])) continue;
+  buf0[1] = (buf0[1] & ~mask1) | (replacement & mask1);
 
-    in[pos] = (u8)p1;
+  const u32 mask2 = generate_class_mask_u_optimized (buf0[2]);
 
-    rn++;
-  }
+  buf0[2] = (buf0[2] & ~mask2) | (replacement & mask2);
 
-  if (rn == 0) return in_len;
+  const u32 mask3 = generate_class_mask_u_optimized (buf0[3]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[3] = (buf0[3] & ~mask3) | (replacement & mask3);
+
+  const u32 mask4 = generate_class_mask_u_optimized (buf1[0]);
+
+  buf1[0] = (buf1[0] & ~mask4) | (replacement & mask4);
+
+  const u32 mask5 = generate_class_mask_u_optimized (buf1[1]);
+
+  buf1[1] = (buf1[1] & ~mask5) | (replacement & mask5);
+
+  const u32 mask6 = generate_class_mask_u_optimized (buf1[2]);
+
+  buf1[2] = (buf1[2] & ~mask6) | (replacement & mask6);
+
+  const u32 mask7 = generate_class_mask_u_optimized (buf1[3]);
+
+  buf1[3] = (buf1[3] & ~mask7) | (replacement & mask7);
 
   return in_len;
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_d (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  u32 buf_in[8];
+  const u32 replacement = (p1 & 0xff) * 0x01010101;
 
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
+  const u32 mask0 = generate_class_mask_d_optimized (buf0[0]);
 
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+  buf0[0] = (buf0[0] & ~mask0) | (replacement & mask0);
 
-  u32 rn = 0;
+  const u32 mask1 = generate_class_mask_d_optimized (buf0[1]);
 
-  for (u32 pos = 0; pos < in_len; pos++)
-  {
-    if (!is_d (in[pos])) continue;
+  buf0[1] = (buf0[1] & ~mask1) | (replacement & mask1);
 
-    in[pos] = (u8)p1;
+  const u32 mask2 = generate_class_mask_d_optimized (buf0[2]);
 
-    rn++;
-  }
+  buf0[2] = (buf0[2] & ~mask2) | (replacement & mask2);
 
-  if (rn == 0) return in_len;
+  const u32 mask3 = generate_class_mask_d_optimized (buf0[3]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[3] = (buf0[3] & ~mask3) | (replacement & mask3);
+
+  const u32 mask4 = generate_class_mask_d_optimized (buf1[0]);
+
+  buf1[0] = (buf1[0] & ~mask4) | (replacement & mask4);
+
+  const u32 mask5 = generate_class_mask_d_optimized (buf1[1]);
+
+  buf1[1] = (buf1[1] & ~mask5) | (replacement & mask5);
+
+  const u32 mask6 = generate_class_mask_d_optimized (buf1[2]);
+
+  buf1[2] = (buf1[2] & ~mask6) | (replacement & mask6);
+
+  const u32 mask7 = generate_class_mask_d_optimized (buf1[3]);
+
+  buf1[3] = (buf1[3] & ~mask7) | (replacement & mask7);
 
   return in_len;
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_lh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  u32 buf_in[8];
+  const u32 replacement = (p1 & 0xff) * 0x01010101;
 
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
+  const u32 mask0 = generate_class_mask_lh_optimized (buf0[0]);
 
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+  buf0[0] = (buf0[0] & ~mask0) | (replacement & mask0);
 
-  u32 rn = 0;
+  const u32 mask1 = generate_class_mask_lh_optimized (buf0[1]);
 
-  for (u32 pos = 0; pos < in_len; pos++)
-  {
-    if (!is_lh (in[pos])) continue;
+  buf0[1] = (buf0[1] & ~mask1) | (replacement & mask1);
 
-    in[pos] = (u8)p1;
+  const u32 mask2 = generate_class_mask_lh_optimized (buf0[2]);
 
-    rn++;
-  }
+  buf0[2] = (buf0[2] & ~mask2) | (replacement & mask2);
 
-  if (rn == 0) return in_len;
+  const u32 mask3 = generate_class_mask_lh_optimized (buf0[3]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[3] = (buf0[3] & ~mask3) | (replacement & mask3);
+
+  const u32 mask4 = generate_class_mask_lh_optimized (buf1[0]);
+
+  buf1[0] = (buf1[0] & ~mask4) | (replacement & mask4);
+
+  const u32 mask5 = generate_class_mask_lh_optimized (buf1[1]);
+
+  buf1[1] = (buf1[1] & ~mask5) | (replacement & mask5);
+
+  const u32 mask6 = generate_class_mask_lh_optimized (buf1[2]);
+
+  buf1[2] = (buf1[2] & ~mask6) | (replacement & mask6);
+
+  const u32 mask7 = generate_class_mask_lh_optimized (buf1[3]);
+
+  buf1[3] = (buf1[3] & ~mask7) | (replacement & mask7);
 
   return in_len;
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class_uh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-  u32 buf_in[8];
+  const u32 replacement = (p1 & 0xff) * 0x01010101;
 
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
+  const u32 mask0 = generate_class_mask_uh_optimized (buf0[0]);
 
-  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+  buf0[0] = (buf0[0] & ~mask0) | (replacement & mask0);
 
-  u32 rn = 0;
+  const u32 mask1 = generate_class_mask_uh_optimized (buf0[1]);
 
-  for (u32 pos = 0; pos < in_len; pos++)
-  {
-    if (!is_uh (in[pos])) continue;
+  buf0[1] = (buf0[1] & ~mask1) | (replacement & mask1);
 
-    in[pos] = (u8)p1;
+  const u32 mask2 = generate_class_mask_uh_optimized (buf0[2]);
 
-    rn++;
-  }
+  buf0[2] = (buf0[2] & ~mask2) | (replacement & mask2);
 
-  if (rn == 0) return in_len;
+  const u32 mask3 = generate_class_mask_uh_optimized (buf0[3]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[3] = (buf0[3] & ~mask3) | (replacement & mask3);
+
+  const u32 mask4 = generate_class_mask_uh_optimized (buf1[0]);
+
+  buf1[0] = (buf1[0] & ~mask4) | (replacement & mask4);
+
+  const u32 mask5 = generate_class_mask_uh_optimized (buf1[1]);
+
+  buf1[1] = (buf1[1] & ~mask5) | (replacement & mask5);
+
+  const u32 mask6 = generate_class_mask_uh_optimized (buf1[2]);
+
+  buf1[2] = (buf1[2] & ~mask6) | (replacement & mask6);
+
+  const u32 mask7 = generate_class_mask_uh_optimized (buf1[3]);
+
+  buf1[3] = (buf1[3] & ~mask7) | (replacement & mask7);
 
   return in_len;
 }
@@ -2099,8 +2231,207 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_class (MAYBE_UNUSED const u32 p
   return in_len;
 }
 
+#if defined IS_NV
+
+// Each entry packs a stable byte permutation and the number of retained bytes.
+
+CONSTANT_VK static u32 rule_compact_selectors[16] =
+{
+  0x00004444, 0x00014440, 0x00014441, 0x00024410,
+  0x00014442, 0x00024420, 0x00024421, 0x00034210,
+  0x00014443, 0x00024430, 0x00024431, 0x00034310,
+  0x00024432, 0x00034320, 0x00034321, 0x00043210
+};
+
+typedef struct rule_compact4
+{
+  u32 w0;
+  u32 len;
+
+} rule_compact4_t;
+
+typedef struct rule_compact8
+{
+  u32 w0;
+  u32 w1;
+  u32 len;
+
+} rule_compact8_t;
+
+typedef struct rule_compact16
+{
+  u32 w0;
+  u32 w1;
+  u32 w2;
+  u32 w3;
+  u32 len;
+
+} rule_compact16_t;
+
+DECLSPEC u32 class_purge_mask_optimized (const u32 value)
+{
+  const u32 bits = value & 0x80808080;
+
+  const u32 mask = (bits * 0x00204081) >> 28;
+
+  return mask;
+}
+
+DECLSPEC rule_compact4_t compact4_optimized (const u32 value, const u32 keep)
+{
+  const u32 selector = rule_compact_selectors[keep];
+
+  rule_compact4_t out;
+
+  out.w0  = hc_byte_perm_S (value, 0, selector);
+  out.len = selector >> 16;
+
+  return out;
+}
+
+DECLSPEC rule_compact8_t compact8_optimized (const rule_compact4_t a, const rule_compact4_t b)
+{
+  const u32 shift = (4 - a.len) * 4;
+  const u32 selector0 = (0x32104444u >> shift) & 0xffff;
+  const u32 selector1 = (0x44443210u >> shift) & 0xffff;
+
+  rule_compact8_t out;
+
+  out.w0  = a.w0 | hc_byte_perm_S (b.w0, 0, selector0);
+  out.w1  =        hc_byte_perm_S (b.w0, 0, selector1);
+  out.len = a.len + b.len;
+
+  return out;
+}
+
+DECLSPEC rule_compact16_t compact16_optimized (const rule_compact8_t a, const rule_compact8_t b)
+{
+  const u32 word_offset = a.len >> 2;
+  const u32 byte_offset = a.len & 3;
+
+  const u32 s0 = (word_offset == 0) ? b.w0 : 0;
+  const u32 s1 = (word_offset == 0) ? b.w1 : (word_offset == 1) ? b.w0 : 0;
+  const u32 s2 = (word_offset == 1) ? b.w1 : (word_offset == 2) ? b.w0 : 0;
+  const u32 s3 = (word_offset == 2) ? b.w1 : 0;
+
+  rule_compact16_t out;
+
+  out.w0  = a.w0 | hc_bytealign_S ( 0, s0, byte_offset);
+  out.w1  = a.w1 | hc_bytealign_S (s0, s1, byte_offset);
+  out.w2  =        hc_bytealign_S (s1, s2, byte_offset);
+  out.w3  =        hc_bytealign_S (s2, s3, byte_offset);
+  out.len = a.len + b.len;
+
+  return out;
+}
+
+DECLSPEC void compact32_optimized (const rule_compact16_t a, const rule_compact16_t b, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1)
+{
+  const u32 word_offset = a.len >> 2;
+  const u32 byte_offset = a.len & 3;
+
+  const u32 s0 = (word_offset == 0) ? b.w0 : 0;
+  const u32 s1 = (word_offset == 0) ? b.w1 : (word_offset == 1) ? b.w0 : 0;
+  const u32 s2 = (word_offset == 0) ? b.w2 : (word_offset == 1) ? b.w1 : (word_offset == 2) ? b.w0 : 0;
+  const u32 s3 = (word_offset == 0) ? b.w3 : (word_offset == 1) ? b.w2 : (word_offset == 2) ? b.w1 : (word_offset == 3) ? b.w0 : 0;
+  const u32 s4 = (word_offset == 1) ? b.w3 : (word_offset == 2) ? b.w2 : (word_offset == 3) ? b.w1 : (word_offset == 4) ? b.w0 : 0;
+  const u32 s5 = (word_offset == 2) ? b.w3 : (word_offset == 3) ? b.w2 : (word_offset == 4) ? b.w1 : 0;
+  const u32 s6 = (word_offset == 3) ? b.w3 : (word_offset == 4) ? b.w2 : 0;
+  const u32 s7 = (word_offset == 4) ? b.w3 : 0;
+
+  buf0[0] = a.w0 | hc_bytealign_S ( 0, s0, byte_offset);
+  buf0[1] = a.w1 | hc_bytealign_S (s0, s1, byte_offset);
+  buf0[2] = a.w2 | hc_bytealign_S (s1, s2, byte_offset);
+  buf0[3] = a.w3 | hc_bytealign_S (s2, s3, byte_offset);
+  buf1[0] =        hc_bytealign_S (s3, s4, byte_offset);
+  buf1[1] =        hc_bytealign_S (s4, s5, byte_offset);
+  buf1[2] =        hc_bytealign_S (s5, s6, byte_offset);
+  buf1[3] =        hc_bytealign_S (s6, s7, byte_offset);
+}
+
+DECLSPEC u32 purge_packed_optimized (const u32 remove, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 in_len)
+{
+  const u32 valid = (in_len == 32) ? 0xffffffffu : (1u << in_len) - 1;
+  const u32 keep = valid & ~remove;
+
+  const rule_compact4_t c0 = compact4_optimized (buf0[0], (keep >>  0) & 15);
+
+  const rule_compact4_t c1 = compact4_optimized (buf0[1], (keep >>  4) & 15);
+
+  const rule_compact8_t d0 = compact8_optimized (c0, c1);
+
+  const rule_compact4_t c2 = compact4_optimized (buf0[2], (keep >>  8) & 15);
+
+  const rule_compact4_t c3 = compact4_optimized (buf0[3], (keep >> 12) & 15);
+
+  const rule_compact8_t d1 = compact8_optimized (c2, c3);
+
+  const rule_compact16_t e0 = compact16_optimized (d0, d1);
+
+  const rule_compact4_t c4 = compact4_optimized (buf1[0], (keep >> 16) & 15);
+
+  const rule_compact4_t c5 = compact4_optimized (buf1[1], (keep >> 20) & 15);
+
+  const rule_compact8_t d2 = compact8_optimized (c4, c5);
+
+  const rule_compact4_t c6 = compact4_optimized (buf1[2], (keep >> 24) & 15);
+
+  const rule_compact4_t c7 = compact4_optimized (buf1[3], (keep >> 28) & 15);
+
+  const rule_compact8_t d3 = compact8_optimized (c6, c7);
+
+  const rule_compact16_t e1 = compact16_optimized (d2, d3);
+
+  compact32_optimized (e0, e1, buf0, buf1);
+
+  const u32 out_len = e0.len + e1.len;
+
+  return out_len;
+}
+
+#endif
+
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  if (p0 >= 256) return in_len;
+
+  const u32 search = p0 * 0x01010101;
+
+  const u32 r0 = search_packed_optimized (buf0[0], search);
+
+  const u32 r1 = search_packed_optimized (buf0[1], search);
+
+  const u32 r2 = search_packed_optimized (buf0[2], search);
+
+  const u32 r3 = search_packed_optimized (buf0[3], search);
+
+  const u32 r4 = search_packed_optimized (buf1[0], search);
+
+  const u32 r5 = search_packed_optimized (buf1[1], search);
+
+  const u32 r6 = search_packed_optimized (buf1[2], search);
+
+  const u32 r7 = search_packed_optimized (buf1[3], search);
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  if (remove == 0) return in_len;
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   const u32 r0 = search_on_register (buf0[0], p0);
   const u32 r1 = search_on_register (buf0[1], p0);
   const u32 r2 = search_on_register (buf0[2], p0);
@@ -2151,10 +2482,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, M
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_l (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  const u32 r0 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf0[0]));
+
+  const u32 r1 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf0[1]));
+
+  const u32 r2 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf0[2]));
+
+  const u32 r3 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf0[3]));
+
+  const u32 r4 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf1[0]));
+
+  const u32 r5 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf1[1]));
+
+  const u32 r6 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf1[2]));
+
+  const u32 r7 = class_purge_mask_optimized (generate_class_mask_l_optimized (buf1[3]));
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   u32 out_len = 0;
 
   u32 buf_in[8];
@@ -2192,10 +2558,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_l (MAYBE_UNUSED const u
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_u (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  const u32 r0 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf0[0]));
+
+  const u32 r1 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf0[1]));
+
+  const u32 r2 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf0[2]));
+
+  const u32 r3 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf0[3]));
+
+  const u32 r4 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf1[0]));
+
+  const u32 r5 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf1[1]));
+
+  const u32 r6 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf1[2]));
+
+  const u32 r7 = class_purge_mask_optimized (generate_class_mask_u_optimized (buf1[3]));
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   u32 out_len = 0;
 
   u32 buf_in[8];
@@ -2233,10 +2634,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_u (MAYBE_UNUSED const u
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_d (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  const u32 r0 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf0[0]));
+
+  const u32 r1 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf0[1]));
+
+  const u32 r2 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf0[2]));
+
+  const u32 r3 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf0[3]));
+
+  const u32 r4 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf1[0]));
+
+  const u32 r5 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf1[1]));
+
+  const u32 r6 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf1[2]));
+
+  const u32 r7 = class_purge_mask_optimized (generate_class_mask_d_optimized (buf1[3]));
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   u32 out_len = 0;
 
   u32 buf_in[8];
@@ -2274,10 +2710,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_d (MAYBE_UNUSED const u
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_lh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  const u32 r0 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf0[0]));
+
+  const u32 r1 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf0[1]));
+
+  const u32 r2 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf0[2]));
+
+  const u32 r3 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf0[3]));
+
+  const u32 r4 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf1[0]));
+
+  const u32 r5 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf1[1]));
+
+  const u32 r6 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf1[2]));
+
+  const u32 r7 = class_purge_mask_optimized (generate_class_mask_lh_optimized (buf1[3]));
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   u32 out_len = 0;
 
   u32 buf_in[8];
@@ -2315,10 +2786,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_lh (MAYBE_UNUSED const 
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_uh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  const u32 r0 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf0[0]));
+
+  const u32 r1 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf0[1]));
+
+  const u32 r2 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf0[2]));
+
+  const u32 r3 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf0[3]));
+
+  const u32 r4 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf1[0]));
+
+  const u32 r5 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf1[1]));
+
+  const u32 r6 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf1[2]));
+
+  const u32 r7 = class_purge_mask_optimized (generate_class_mask_uh_optimized (buf1[3]));
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   u32 out_len = 0;
 
   u32 buf_in[8];
@@ -2356,10 +2862,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_uh (MAYBE_UNUSED const 
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_s (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
+  #if defined IS_NV
+
+  const u32 r0 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf0[0]));
+
+  const u32 r1 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf0[1]));
+
+  const u32 r2 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf0[2]));
+
+  const u32 r3 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf0[3]));
+
+  const u32 r4 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf1[0]));
+
+  const u32 r5 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf1[1]));
+
+  const u32 r6 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf1[2]));
+
+  const u32 r7 = class_purge_mask_optimized (generate_class_mask_s_optimized (buf1[3]));
+
+  const u32 remove = (r0 <<  0)
+                   | (r1 <<  4)
+                   | (r2 <<  8)
+                   | (r3 << 12)
+                   | (r4 << 16)
+                   | (r5 << 20)
+                   | (r6 << 24)
+                   | (r7 << 28);
+
+  const u32 out_len = purge_packed_optimized (remove, buf0, buf1, in_len);
+
+  return out_len;
+
+  #else
+
   u32 out_len = 0;
 
   u32 buf_in[8];
@@ -2397,6 +2938,8 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_s (MAYBE_UNUSED const u
   buf1[3] = buf_out[7];
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
@@ -2528,6 +3071,31 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupechar_all (MAYBE_UNUSED const u32 p0
   if ( in_len           ==  0) return in_len;
   if ((in_len + in_len) >= 32) return in_len;
 
+  #if defined IS_NV || defined IS_AMD || defined IS_HIP || defined IS_AMD_USE_OPENCL
+
+  #if defined IS_NV
+  const u32 lo = 0x1100;
+  const u32 hi = 0x3322;
+  #else
+  const u32 lo = 0x01010000;
+  const u32 hi = 0x03030202;
+  #endif
+
+  buf1[3] = hc_byte_perm_S (buf0[3], buf0[3], hi);
+  buf1[2] = hc_byte_perm_S (buf0[3], buf0[3], lo);
+  buf1[1] = hc_byte_perm_S (buf0[2], buf0[2], hi);
+  buf1[0] = hc_byte_perm_S (buf0[2], buf0[2], lo);
+  buf0[3] = hc_byte_perm_S (buf0[1], buf0[1], hi);
+  buf0[2] = hc_byte_perm_S (buf0[1], buf0[1], lo);
+  buf0[1] = hc_byte_perm_S (buf0[0], buf0[0], hi);
+  buf0[0] = hc_byte_perm_S (buf0[0], buf0[0], lo);
+
+  const u32 out_len = in_len + in_len;
+
+  return out_len;
+
+  #else
+
   u32 out_len = in_len;
 
   u32 tib40[4];
@@ -2554,6 +3122,8 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupechar_all (MAYBE_UNUSED const u32 p0
   out_len = out_len + out_len;
 
   return out_len;
+
+  #endif
 }
 
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_switch_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
@@ -2569,27 +3139,67 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_switch_last (MAYBE_UNUSED const u32 p0,
 {
   if (in_len < 2) return in_len;
 
-  u32 t[8];
+  const u32 src = in_len - 2;
+  const u32 dst = in_len - 1;
 
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
+  u32 src_word = 0;
 
-  exchange_byte_optimized (t, in_len - 2, in_len - 1);
+  switch (src / 4)
+  {
+    case 0: src_word = buf0[0]; break;
+    case 1: src_word = buf0[1]; break;
+    case 2: src_word = buf0[2]; break;
+    case 3: src_word = buf0[3]; break;
+    case 4: src_word = buf1[0]; break;
+    case 5: src_word = buf1[1]; break;
+    case 6: src_word = buf1[2]; break;
+    case 7: src_word = buf1[3]; break;
+  }
 
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  u32 dst_word = 0;
+
+  switch (dst / 4)
+  {
+    case 0: dst_word = buf0[0]; break;
+    case 1: dst_word = buf0[1]; break;
+    case 2: dst_word = buf0[2]; break;
+    case 3: dst_word = buf0[3]; break;
+    case 4: dst_word = buf1[0]; break;
+    case 5: dst_word = buf1[1]; break;
+    case 6: dst_word = buf1[2]; break;
+    case 7: dst_word = buf1[3]; break;
+  }
+
+  const u32 src_shift = (src & 3) * 8;
+  const u32 dst_shift = (dst & 3) * 8;
+  const u32 src_byte = (src_word >> src_shift) & 0xff;
+  const u32 dst_byte = (dst_word >> dst_shift) & 0xff;
+  const u32 src_mask = ~(0xffu << src_shift);
+  const u32 dst_mask = ~(0xffu << dst_shift);
+
+  switch (src / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & src_mask) | (dst_byte << src_shift); break;
+    case 1: buf0[1] = (buf0[1] & src_mask) | (dst_byte << src_shift); break;
+    case 2: buf0[2] = (buf0[2] & src_mask) | (dst_byte << src_shift); break;
+    case 3: buf0[3] = (buf0[3] & src_mask) | (dst_byte << src_shift); break;
+    case 4: buf1[0] = (buf1[0] & src_mask) | (dst_byte << src_shift); break;
+    case 5: buf1[1] = (buf1[1] & src_mask) | (dst_byte << src_shift); break;
+    case 6: buf1[2] = (buf1[2] & src_mask) | (dst_byte << src_shift); break;
+    case 7: buf1[3] = (buf1[3] & src_mask) | (dst_byte << src_shift); break;
+  }
+
+  switch (dst / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & dst_mask) | (src_byte << dst_shift); break;
+    case 1: buf0[1] = (buf0[1] & dst_mask) | (src_byte << dst_shift); break;
+    case 2: buf0[2] = (buf0[2] & dst_mask) | (src_byte << dst_shift); break;
+    case 3: buf0[3] = (buf0[3] & dst_mask) | (src_byte << dst_shift); break;
+    case 4: buf1[0] = (buf1[0] & dst_mask) | (src_byte << dst_shift); break;
+    case 5: buf1[1] = (buf1[1] & dst_mask) | (src_byte << dst_shift); break;
+    case 6: buf1[2] = (buf1[2] & dst_mask) | (src_byte << dst_shift); break;
+    case 7: buf1[3] = (buf1[3] & dst_mask) | (src_byte << dst_shift); break;
+  }
 
   return in_len;
 }
@@ -2599,27 +3209,67 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_switch_at (MAYBE_UNUSED const u32 p0, M
   if (p0 >= in_len) return in_len;
   if (p1 >= in_len) return in_len;
 
-  u32 t[8];
+  const u32 src = p0;
+  const u32 dst = p1;
 
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
+  u32 src_word = 0;
 
-  exchange_byte_optimized (t, p0, p1);
+  switch (src / 4)
+  {
+    case 0: src_word = buf0[0]; break;
+    case 1: src_word = buf0[1]; break;
+    case 2: src_word = buf0[2]; break;
+    case 3: src_word = buf0[3]; break;
+    case 4: src_word = buf1[0]; break;
+    case 5: src_word = buf1[1]; break;
+    case 6: src_word = buf1[2]; break;
+    case 7: src_word = buf1[3]; break;
+  }
 
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  u32 dst_word = 0;
+
+  switch (dst / 4)
+  {
+    case 0: dst_word = buf0[0]; break;
+    case 1: dst_word = buf0[1]; break;
+    case 2: dst_word = buf0[2]; break;
+    case 3: dst_word = buf0[3]; break;
+    case 4: dst_word = buf1[0]; break;
+    case 5: dst_word = buf1[1]; break;
+    case 6: dst_word = buf1[2]; break;
+    case 7: dst_word = buf1[3]; break;
+  }
+
+  const u32 src_shift = (src & 3) * 8;
+  const u32 dst_shift = (dst & 3) * 8;
+  const u32 src_byte = (src_word >> src_shift) & 0xff;
+  const u32 dst_byte = (dst_word >> dst_shift) & 0xff;
+  const u32 src_mask = ~(0xffu << src_shift);
+  const u32 dst_mask = ~(0xffu << dst_shift);
+
+  switch (src / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & src_mask) | (dst_byte << src_shift); break;
+    case 1: buf0[1] = (buf0[1] & src_mask) | (dst_byte << src_shift); break;
+    case 2: buf0[2] = (buf0[2] & src_mask) | (dst_byte << src_shift); break;
+    case 3: buf0[3] = (buf0[3] & src_mask) | (dst_byte << src_shift); break;
+    case 4: buf1[0] = (buf1[0] & src_mask) | (dst_byte << src_shift); break;
+    case 5: buf1[1] = (buf1[1] & src_mask) | (dst_byte << src_shift); break;
+    case 6: buf1[2] = (buf1[2] & src_mask) | (dst_byte << src_shift); break;
+    case 7: buf1[3] = (buf1[3] & src_mask) | (dst_byte << src_shift); break;
+  }
+
+  switch (dst / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & dst_mask) | (src_byte << dst_shift); break;
+    case 1: buf0[1] = (buf0[1] & dst_mask) | (src_byte << dst_shift); break;
+    case 2: buf0[2] = (buf0[2] & dst_mask) | (src_byte << dst_shift); break;
+    case 3: buf0[3] = (buf0[3] & dst_mask) | (src_byte << dst_shift); break;
+    case 4: buf1[0] = (buf1[0] & dst_mask) | (src_byte << dst_shift); break;
+    case 5: buf1[1] = (buf1[1] & dst_mask) | (src_byte << dst_shift); break;
+    case 6: buf1[2] = (buf1[2] & dst_mask) | (src_byte << dst_shift); break;
+    case 7: buf1[3] = (buf1[3] & dst_mask) | (src_byte << dst_shift); break;
+  }
 
   return in_len;
 }
@@ -2631,29 +3281,17 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_chr_shiftl (MAYBE_UNUSED const u32 p0, 
   const u32 mr = 0xffu << ((p0 & 3) * 8);
   const u32 ml = ~mr;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (((tmp & mr) << 1) & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | (((buf0[0] & mr) << 1) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | (((buf0[1] & mr) << 1) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | (((buf0[2] & mr) << 1) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | (((buf0[3] & mr) << 1) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | (((buf1[0] & mr) << 1) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | (((buf1[1] & mr) << 1) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | (((buf1[2] & mr) << 1) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | (((buf1[3] & mr) << 1) & mr); break;
+  }
 
   return in_len;
 }
@@ -2665,29 +3303,17 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_chr_shiftr (MAYBE_UNUSED const u32 p0, 
   const u32 mr = 0xffu << ((p0 & 3) * 8);
   const u32 ml = ~mr;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (((tmp & mr) >> 1) & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | (((buf0[0] & mr) >> 1) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | (((buf0[1] & mr) >> 1) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | (((buf0[2] & mr) >> 1) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | (((buf0[3] & mr) >> 1) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | (((buf1[0] & mr) >> 1) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | (((buf1[1] & mr) >> 1) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | (((buf1[2] & mr) >> 1) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | (((buf1[3] & mr) >> 1) & mr); break;
+  }
 
   return in_len;
 }
@@ -2701,29 +3327,17 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_chr_incr (MAYBE_UNUSED const u32 p0, MA
 
   const u32 n = 0x01010101 & mr;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (((tmp & mr) + n) & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | (((buf0[0] & mr) + n) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | (((buf0[1] & mr) + n) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | (((buf0[2] & mr) + n) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | (((buf0[3] & mr) + n) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | (((buf1[0] & mr) + n) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | (((buf1[1] & mr) + n) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | (((buf1[2] & mr) + n) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | (((buf1[3] & mr) + n) & mr); break;
+  }
 
   return in_len;
 }
@@ -2737,29 +3351,17 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_chr_decr (MAYBE_UNUSED const u32 p0, MA
 
   const u32 n = 0x01010101 & mr;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (((tmp & mr) - n) & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | (((buf0[0] & mr) - n) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | (((buf0[1] & mr) - n) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | (((buf0[2] & mr) - n) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | (((buf0[3] & mr) - n) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | (((buf1[0] & mr) - n) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | (((buf1[1] & mr) - n) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | (((buf1[2] & mr) - n) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | (((buf1[3] & mr) - n) & mr); break;
+  }
 
   return in_len;
 }
@@ -2773,29 +3375,17 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_chr_add (MAYBE_UNUSED const u32 p0, MAY
 
   const u32 n = (p1 & 0xffu) << ((p0 & 3) * 8);
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (((tmp & mr) + n) & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | (((buf0[0] & mr) + n) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | (((buf0[1] & mr) + n) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | (((buf0[2] & mr) + n) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | (((buf0[3] & mr) + n) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | (((buf1[0] & mr) + n) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | (((buf1[1] & mr) + n) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | (((buf1[2] & mr) + n) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | (((buf1[3] & mr) + n) & mr); break;
+  }
 
   return in_len;
 }
@@ -2804,38 +3394,20 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_np1 (MAYBE_UNUSED const u32 p0,
 {
   if ((p0 + 1) >= in_len) return in_len;
 
-  u32 tib4x[8];
-
-  lshift_block_optimized (buf0, buf1, tib4x + 0, tib4x + 4);
-
   const u32 mr = 0xffu << ((p0 & 3) * 8);
   const u32 ml = ~mr;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  const u32 tmp2 = tib4x[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (tmp2 & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | ((((p0 & 3) == 3) ? (buf0[1] << 24) : (buf0[0] >> 8)) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | ((((p0 & 3) == 3) ? (buf0[2] << 24) : (buf0[1] >> 8)) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | ((((p0 & 3) == 3) ? (buf0[3] << 24) : (buf0[2] >> 8)) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | ((((p0 & 3) == 3) ? (buf1[0] << 24) : (buf0[3] >> 8)) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | ((((p0 & 3) == 3) ? (buf1[1] << 24) : (buf1[0] >> 8)) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | ((((p0 & 3) == 3) ? (buf1[2] << 24) : (buf1[1] >> 8)) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | ((((p0 & 3) == 3) ? (buf1[3] << 24) : (buf1[2] >> 8)) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | ((((p0 & 3) == 3) ? (0 << 24) : (buf1[3] >> 8)) & mr); break;
+  }
 
   return in_len;
 }
@@ -2843,41 +3415,22 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_np1 (MAYBE_UNUSED const u32 p0,
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_nm1 (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   if (p0 == 0) return in_len;
-
   if (p0 >= in_len) return in_len;
-
-  u32 tib4x[8];
-
-  rshift_block_optimized (buf0, buf1, tib4x + 0, tib4x + 4);
 
   const u32 mr = 0xffu << ((p0 & 3) * 8);
   const u32 ml = ~mr;
 
-  u32 t[8];
-
-  t[0] = buf0[0];
-  t[1] = buf0[1];
-  t[2] = buf0[2];
-  t[3] = buf0[3];
-  t[4] = buf1[0];
-  t[5] = buf1[1];
-  t[6] = buf1[2];
-  t[7] = buf1[3];
-
-  const u32 tmp = t[p0 / 4];
-
-  const u32 tmp2 = tib4x[p0 / 4];
-
-  t[p0 / 4] = (tmp & ml) | (tmp2 & mr);
-
-  buf0[0] = t[0];
-  buf0[1] = t[1];
-  buf0[2] = t[2];
-  buf0[3] = t[3];
-  buf1[0] = t[4];
-  buf1[1] = t[5];
-  buf1[2] = t[6];
-  buf1[3] = t[7];
+  switch (p0 / 4)
+  {
+    case 0: buf0[0] = (buf0[0] & ml) | ((((p0 & 3) == 0) ? (0 >> 24) : (buf0[0] << 8)) & mr); break;
+    case 1: buf0[1] = (buf0[1] & ml) | ((((p0 & 3) == 0) ? (buf0[0] >> 24) : (buf0[1] << 8)) & mr); break;
+    case 2: buf0[2] = (buf0[2] & ml) | ((((p0 & 3) == 0) ? (buf0[1] >> 24) : (buf0[2] << 8)) & mr); break;
+    case 3: buf0[3] = (buf0[3] & ml) | ((((p0 & 3) == 0) ? (buf0[2] >> 24) : (buf0[3] << 8)) & mr); break;
+    case 4: buf1[0] = (buf1[0] & ml) | ((((p0 & 3) == 0) ? (buf0[3] >> 24) : (buf1[0] << 8)) & mr); break;
+    case 5: buf1[1] = (buf1[1] & ml) | ((((p0 & 3) == 0) ? (buf1[0] >> 24) : (buf1[1] << 8)) & mr); break;
+    case 6: buf1[2] = (buf1[2] & ml) | ((((p0 & 3) == 0) ? (buf1[1] >> 24) : (buf1[2] << 8)) & mr); break;
+    case 7: buf1[3] = (buf1[3] & ml) | ((((p0 & 3) == 0) ? (buf1[2] >> 24) : (buf1[3] << 8)) & mr); break;
+  }
 
   return in_len;
 }
@@ -2967,43 +3520,95 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, M
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  u32 sep0 = 0;
 
-    u32 sep = 0;
+  if (((buf0[0] >>  0) & 0xff) == p0) sep0 |= 0x000000ff;
+  if (((buf0[0] >>  8) & 0xff) == p0) sep0 |= 0x0000ff00;
+  if (((buf0[0] >> 16) & 0xff) == p0) sep0 |= 0x00ff0000;
+  if (((buf0[0] >> 24) & 0xff) == p0) sep0 |= 0xff000000;
 
-    if (((t >>  0) & 0xff) == p0) sep |= 0x000000ff;
-    if (((t >>  8) & 0xff) == p0) sep |= 0x0000ff00;
-    if (((t >> 16) & 0xff) == p0) sep |= 0x00ff0000;
-    if (((t >> 24) & 0xff) == p0) sep |= 0xff000000;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  if (in_len <= 4) return in_len;
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  u32 sep1 = 0;
+
+  if (((buf0[1] >>  0) & 0xff) == p0) sep1 |= 0x000000ff;
+  if (((buf0[1] >>  8) & 0xff) == p0) sep1 |= 0x0000ff00;
+  if (((buf0[1] >> 16) & 0xff) == p0) sep1 |= 0x00ff0000;
+  if (((buf0[1] >> 24) & 0xff) == p0) sep1 |= 0xff000000;
+
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  u32 sep2 = 0;
+
+  if (((buf0[2] >>  0) & 0xff) == p0) sep2 |= 0x000000ff;
+  if (((buf0[2] >>  8) & 0xff) == p0) sep2 |= 0x0000ff00;
+  if (((buf0[2] >> 16) & 0xff) == p0) sep2 |= 0x00ff0000;
+  if (((buf0[2] >> 24) & 0xff) == p0) sep2 |= 0xff000000;
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  u32 sep3 = 0;
+
+  if (((buf0[3] >>  0) & 0xff) == p0) sep3 |= 0x000000ff;
+  if (((buf0[3] >>  8) & 0xff) == p0) sep3 |= 0x0000ff00;
+  if (((buf0[3] >> 16) & 0xff) == p0) sep3 |= 0x00ff0000;
+  if (((buf0[3] >> 24) & 0xff) == p0) sep3 |= 0xff000000;
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  u32 sep4 = 0;
+
+  if (((buf1[0] >>  0) & 0xff) == p0) sep4 |= 0x000000ff;
+  if (((buf1[0] >>  8) & 0xff) == p0) sep4 |= 0x0000ff00;
+  if (((buf1[0] >> 16) & 0xff) == p0) sep4 |= 0x00ff0000;
+  if (((buf1[0] >> 24) & 0xff) == p0) sep4 |= 0xff000000;
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  u32 sep5 = 0;
+
+  if (((buf1[1] >>  0) & 0xff) == p0) sep5 |= 0x000000ff;
+  if (((buf1[1] >>  8) & 0xff) == p0) sep5 |= 0x0000ff00;
+  if (((buf1[1] >> 16) & 0xff) == p0) sep5 |= 0x00ff0000;
+  if (((buf1[1] >> 24) & 0xff) == p0) sep5 |= 0xff000000;
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  u32 sep6 = 0;
+
+  if (((buf1[2] >>  0) & 0xff) == p0) sep6 |= 0x000000ff;
+  if (((buf1[2] >>  8) & 0xff) == p0) sep6 |= 0x0000ff00;
+  if (((buf1[2] >> 16) & 0xff) == p0) sep6 |= 0x00ff0000;
+  if (((buf1[2] >> 24) & 0xff) == p0) sep6 |= 0xff000000;
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  u32 sep7 = 0;
+
+  if (((buf1[3] >>  0) & 0xff) == p0) sep7 |= 0x000000ff;
+  if (((buf1[3] >>  8) & 0xff) == p0) sep7 |= 0x0000ff00;
+  if (((buf1[3] >> 16) & 0xff) == p0) sep7 |= 0x00ff0000;
+  if (((buf1[3] >> 24) & 0xff) == p0) sep7 |= 0xff000000;
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }
@@ -3012,43 +3617,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_l (MAYBE_UNUSED const u
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  const u32 sep0 = generate_class_mask_l_optimized (buf0[0]);
 
-    u32 sep = 0;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    if (is_l ((t >>  0) & 0xff)) sep |= 0x000000ff;
-    if (is_l ((t >>  8) & 0xff)) sep |= 0x0000ff00;
-    if (is_l ((t >> 16) & 0xff)) sep |= 0x00ff0000;
-    if (is_l ((t >> 24) & 0xff)) sep |= 0xff000000;
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  if (in_len <= 4) return in_len;
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  const u32 sep1 = generate_class_mask_l_optimized (buf0[1]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  const u32 sep2 = generate_class_mask_l_optimized (buf0[2]);
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  const u32 sep3 = generate_class_mask_l_optimized (buf0[3]);
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  const u32 sep4 = generate_class_mask_l_optimized (buf1[0]);
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  const u32 sep5 = generate_class_mask_l_optimized (buf1[1]);
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  const u32 sep6 = generate_class_mask_l_optimized (buf1[2]);
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  const u32 sep7 = generate_class_mask_l_optimized (buf1[3]);
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }
@@ -3057,43 +3674,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_u (MAYBE_UNUSED const u
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  const u32 sep0 = generate_class_mask_u_optimized (buf0[0]);
 
-    u32 sep = 0;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    if (is_u ((t >>  0) & 0xff)) sep |= 0x000000ff;
-    if (is_u ((t >>  8) & 0xff)) sep |= 0x0000ff00;
-    if (is_u ((t >> 16) & 0xff)) sep |= 0x00ff0000;
-    if (is_u ((t >> 24) & 0xff)) sep |= 0xff000000;
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  if (in_len <= 4) return in_len;
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  const u32 sep1 = generate_class_mask_u_optimized (buf0[1]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  const u32 sep2 = generate_class_mask_u_optimized (buf0[2]);
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  const u32 sep3 = generate_class_mask_u_optimized (buf0[3]);
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  const u32 sep4 = generate_class_mask_u_optimized (buf1[0]);
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  const u32 sep5 = generate_class_mask_u_optimized (buf1[1]);
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  const u32 sep6 = generate_class_mask_u_optimized (buf1[2]);
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  const u32 sep7 = generate_class_mask_u_optimized (buf1[3]);
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }
@@ -3102,43 +3731,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_d (MAYBE_UNUSED const u
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  const u32 sep0 = generate_class_mask_d_optimized (buf0[0]);
 
-    u32 sep = 0;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    if (is_d ((t >>  0) & 0xff)) sep |= 0x000000ff;
-    if (is_d ((t >>  8) & 0xff)) sep |= 0x0000ff00;
-    if (is_d ((t >> 16) & 0xff)) sep |= 0x00ff0000;
-    if (is_d ((t >> 24) & 0xff)) sep |= 0xff000000;
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  if (in_len <= 4) return in_len;
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  const u32 sep1 = generate_class_mask_d_optimized (buf0[1]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  const u32 sep2 = generate_class_mask_d_optimized (buf0[2]);
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  const u32 sep3 = generate_class_mask_d_optimized (buf0[3]);
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  const u32 sep4 = generate_class_mask_d_optimized (buf1[0]);
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  const u32 sep5 = generate_class_mask_d_optimized (buf1[1]);
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  const u32 sep6 = generate_class_mask_d_optimized (buf1[2]);
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  const u32 sep7 = generate_class_mask_d_optimized (buf1[3]);
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }
@@ -3147,43 +3788,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_lh (MAYBE_UNUSED const 
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  const u32 sep0 = generate_class_mask_lh_optimized (buf0[0]);
 
-    u32 sep = 0;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    if (is_lh ((t >>  0) & 0xff)) sep |= 0x000000ff;
-    if (is_lh ((t >>  8) & 0xff)) sep |= 0x0000ff00;
-    if (is_lh ((t >> 16) & 0xff)) sep |= 0x00ff0000;
-    if (is_lh ((t >> 24) & 0xff)) sep |= 0xff000000;
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  if (in_len <= 4) return in_len;
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  const u32 sep1 = generate_class_mask_lh_optimized (buf0[1]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  const u32 sep2 = generate_class_mask_lh_optimized (buf0[2]);
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  const u32 sep3 = generate_class_mask_lh_optimized (buf0[3]);
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  const u32 sep4 = generate_class_mask_lh_optimized (buf1[0]);
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  const u32 sep5 = generate_class_mask_lh_optimized (buf1[1]);
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  const u32 sep6 = generate_class_mask_lh_optimized (buf1[2]);
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  const u32 sep7 = generate_class_mask_lh_optimized (buf1[3]);
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }
@@ -3192,43 +3845,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_uh (MAYBE_UNUSED const 
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  const u32 sep0 = generate_class_mask_uh_optimized (buf0[0]);
 
-    u32 sep = 0;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    if (is_uh ((t >>  0) & 0xff)) sep |= 0x000000ff;
-    if (is_uh ((t >>  8) & 0xff)) sep |= 0x0000ff00;
-    if (is_uh ((t >> 16) & 0xff)) sep |= 0x00ff0000;
-    if (is_uh ((t >> 24) & 0xff)) sep |= 0xff000000;
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  if (in_len <= 4) return in_len;
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  const u32 sep1 = generate_class_mask_uh_optimized (buf0[1]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  const u32 sep2 = generate_class_mask_uh_optimized (buf0[2]);
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  const u32 sep3 = generate_class_mask_uh_optimized (buf0[3]);
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  const u32 sep4 = generate_class_mask_uh_optimized (buf1[0]);
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  const u32 sep5 = generate_class_mask_uh_optimized (buf1[1]);
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  const u32 sep6 = generate_class_mask_uh_optimized (buf1[2]);
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  const u32 sep7 = generate_class_mask_uh_optimized (buf1[3]);
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }
@@ -3237,43 +3902,55 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_s (MAYBE_UNUSED const u
 {
   if (in_len == 0) return in_len;
 
-  u32 buf_in[8];
-
-  buf_in[0] = buf0[0];
-  buf_in[1] = buf0[1];
-  buf_in[2] = buf0[2];
-  buf_in[3] = buf0[3];
-  buf_in[4] = buf1[0];
-  buf_in[5] = buf1[1];
-  buf_in[6] = buf1[2];
-  buf_in[7] = buf1[3];
-
   u32 rem = 0xff;
 
-  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
-  {
-    const u32 t = buf_in[idx];
+  const u32 sep0 = generate_class_mask_s_optimized (buf0[0]);
 
-    u32 sep = 0;
+  buf0[0] = title_sep_word (buf0[0], sep0, &rem);
 
-    if (is_s ((t >>  0) & 0xff)) sep |= 0x000000ff;
-    if (is_s ((t >>  8) & 0xff)) sep |= 0x0000ff00;
-    if (is_s ((t >> 16) & 0xff)) sep |= 0x00ff0000;
-    if (is_s ((t >> 24) & 0xff)) sep |= 0xff000000;
+  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
 
-    buf_in[idx] = title_sep_word (t, sep, &rem);
-  }
+  if (in_len <= 4) return in_len;
 
-  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+  const u32 sep1 = generate_class_mask_s_optimized (buf0[1]);
 
-  buf0[0] = buf_in[0];
-  buf0[1] = buf_in[1];
-  buf0[2] = buf_in[2];
-  buf0[3] = buf_in[3];
-  buf1[0] = buf_in[4];
-  buf1[1] = buf_in[5];
-  buf1[2] = buf_in[6];
-  buf1[3] = buf_in[7];
+  buf0[1] = title_sep_word (buf0[1], sep1, &rem);
+
+  if (in_len <= 8) return in_len;
+
+  const u32 sep2 = generate_class_mask_s_optimized (buf0[2]);
+
+  buf0[2] = title_sep_word (buf0[2], sep2, &rem);
+
+  if (in_len <= 12) return in_len;
+
+  const u32 sep3 = generate_class_mask_s_optimized (buf0[3]);
+
+  buf0[3] = title_sep_word (buf0[3], sep3, &rem);
+
+  if (in_len <= 16) return in_len;
+
+  const u32 sep4 = generate_class_mask_s_optimized (buf1[0]);
+
+  buf1[0] = title_sep_word (buf1[0], sep4, &rem);
+
+  if (in_len <= 20) return in_len;
+
+  const u32 sep5 = generate_class_mask_s_optimized (buf1[1]);
+
+  buf1[1] = title_sep_word (buf1[1], sep5, &rem);
+
+  if (in_len <= 24) return in_len;
+
+  const u32 sep6 = generate_class_mask_s_optimized (buf1[2]);
+
+  buf1[2] = title_sep_word (buf1[2], sep6, &rem);
+
+  if (in_len <= 28) return in_len;
+
+  const u32 sep7 = generate_class_mask_s_optimized (buf1[3]);
+
+  buf1[3] = title_sep_word (buf1[3], sep7, &rem);
 
   return in_len;
 }

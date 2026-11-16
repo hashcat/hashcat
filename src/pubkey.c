@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "ext_openssl.h"
+#include "outfile.h"
 #include "pubkey.h"
 #include "path.h"
 #include "status_rc.h"
@@ -99,6 +100,16 @@ static int pubkey_compute_keyid (hashcat_ctx_t *hashcat_ctx, pubkey_ctx_t *pubke
   }
 
   return 0;
+}
+
+// The binding header of a payload, as described at the top of this file. The digest is always 64 hex
+// characters and run_time is fixed for the session, so every header of a run has the same length.
+
+static int pubkey_header (const pubkey_ctx_t *pubkey_ctx, const char *hash_hex, u8 *buf, const size_t size)
+{
+  const int header_len = snprintf ((char *) buf, size, "v1\n%s\n%" PRIu64 "\n", hash_hex, pubkey_ctx->run_time);
+
+  return header_len;
 }
 
 int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -192,30 +203,6 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   const size_t capacity = (size_t) key_size - PUBKEY_OAEP_OVERHEAD;
 
-  // The key has to be able to carry the longest password hashcat can ever produce, not just the one
-  // we happen to recover. Checking that here, once, is what makes it impossible to reach the
-  // encrypt call with a plain that does not fit: a seed phrase silently truncated to the modulus
-  // would be worth exactly nothing to whoever is waiting for it.
-
-  const size_t needed = PUBKEY_HEADER_MAX + PW_MAX;
-
-  if (capacity < needed)
-  {
-    const int needed_bits = (int) ((needed + PUBKEY_OAEP_OVERHEAD) * 8);
-
-    event_log_error (hashcat_ctx, "%s: the key is too small.", user_options->encrypt_with_pubkey);
-
-    event_log_warning (hashcat_ctx, "The key is %d bits and can carry %" PRIu64 " bytes, but a password of up to %d bytes plus %d bytes of binding must fit.", key_bits, (u64) capacity, PW_MAX, PUBKEY_HEADER_MAX);
-    event_log_warning (hashcat_ctx, "Use a key of at least %d bits. A 4096 bit key is recommended:", needed_bits);
-    event_log_warning (hashcat_ctx, "  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out private.pem");
-    event_log_warning (hashcat_ctx, "  openssl rsa -in private.pem -pubout -out public.pem");
-    event_log_warning (hashcat_ctx, NULL);
-
-    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
-    return -1;
-  }
-
   pubkey_ctx->key_size = (size_t) key_size;
   pubkey_ctx->key_bits = key_bits;
   pubkey_ctx->capacity = capacity;
@@ -227,6 +214,88 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
   pubkey_ctx->enabled = true;
 
   return 0;
+}
+
+// The key has to be able to carry the longest password the run can report, not just the one we
+// happen to recover: a seed phrase silently truncated to the modulus would be worth exactly nothing
+// to whoever is waiting for it. How long that is depends on the hash mode, its kernel and the
+// attack, so this runs from outer_loop () once all three are settled, and not when the key is read,
+// where none of them is.
+//
+// A key that is too small ends the run, unless --force accepts that a longer password is cut to
+// fit. The encrypted result is the only copy of the password hashcat writes, so the cut part is
+// lost.
+
+int pubkey_ctx_check_size (hashcat_ctx_t *hashcat_ctx)
+{
+  const pubkey_ctx_t   *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (pubkey_ctx->enabled == false) return 0;
+
+  const u32 plain_max = build_plain_max (hashcat_ctx);
+
+  const size_t needed = PUBKEY_HEADER_MAX + (size_t) plain_max;
+
+  if (pubkey_ctx->capacity >= needed) return 0;
+
+  const int needed_bits = (int) ((needed + PUBKEY_OAEP_OVERHEAD) * 8);
+
+  // the smaller of the two common sizes that carries it
+
+  const int recommended_bits = (needed_bits > 4096) ? 8192 : 4096;
+
+  // How much of a password the key carries behind this run's header, which is where
+  // pubkey_encrypt_plain () cuts one under --force. A key that cannot carry the header has no room for
+  // any password, so --force cannot help.
+
+  char digest_hex[65];
+
+  memset (digest_hex, '0', 64);
+
+  digest_hex[64] = 0;
+
+  u8 header_buf[PUBKEY_HEADER_MAX];
+
+  const int header_len = pubkey_header (pubkey_ctx, digest_hex, header_buf, sizeof (header_buf));
+
+  if ((header_len <= 0) || ((size_t) header_len >= pubkey_ctx->capacity))
+  {
+    event_log_error (hashcat_ctx, "%s: the key is far too small to carry a password.", user_options->encrypt_with_pubkey);
+
+    event_log_warning (hashcat_ctx, "Use a key of at least %d bits. %d bits are recommended.", needed_bits, recommended_bits);
+    event_log_warning (hashcat_ctx, NULL);
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
+    return -1;
+  }
+
+  const u64 plain_fit = (u64) (pubkey_ctx->capacity - (size_t) header_len);
+
+  if (user_options->force == true)
+  {
+    event_log_warning (hashcat_ctx, "%s: the key is %d bits and carries a password of up to %" PRIu64 " bytes, but this attack can report %u bytes.", user_options->encrypt_with_pubkey, pubkey_ctx->key_bits, plain_fit, plain_max);
+    event_log_warning (hashcat_ctx, "--force is set, so a longer password is cut to fit. The encrypted result is the only copy of the");
+    event_log_warning (hashcat_ctx, "password hashcat writes, so the rest of it is lost. A key of at least %d bits keeps every password whole.", needed_bits);
+    event_log_warning (hashcat_ctx, NULL);
+
+    return 0;
+  }
+
+  event_log_error (hashcat_ctx, "%s: the key is too small.", user_options->encrypt_with_pubkey);
+
+  event_log_warning (hashcat_ctx, "The key is %d bits and can carry %" PRIu64 " bytes, but a password of up to %u bytes plus %d bytes of binding must fit.", pubkey_ctx->key_bits, (u64) pubkey_ctx->capacity, plain_max, PUBKEY_HEADER_MAX);
+  event_log_warning (hashcat_ctx, "Use a key of at least %d bits. %d bits are recommended:", needed_bits, recommended_bits);
+  event_log_warning (hashcat_ctx, "  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:%d -out private.pem", recommended_bits);
+  event_log_warning (hashcat_ctx, "  openssl rsa -in private.pem -pubout -out public.pem");
+  event_log_warning (hashcat_ctx, "Or add --force to run with this key. A password longer than %" PRIu64 " bytes is then cut to fit,", plain_fit);
+  event_log_warning (hashcat_ctx, "and the encrypted result is the only copy of the password hashcat writes.");
+  event_log_warning (hashcat_ctx, NULL);
+
+  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
+  return -1;
 }
 
 void pubkey_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
@@ -252,7 +321,8 @@ void pubkey_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int pubkey_encrypt_plain (hashcat_ctx_t *hashcat_ctx, const u8 *hash_buf, const int hash_len, const u8 *plain_buf, const int plain_len, u8 *out_buf, const size_t out_size, int *out_len)
 {
-  pubkey_ctx_t *pubkey_ctx = hashcat_ctx->pubkey_ctx;
+  pubkey_ctx_t         *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   hc_openssl_lib_t *ossl = (hc_openssl_lib_t *) pubkey_ctx->openssl;
 
@@ -276,9 +346,9 @@ int pubkey_encrypt_plain (hashcat_ctx_t *hashcat_ctx, const u8 *hash_buf, const 
     snprintf (hash_hex + (i * 2), 3, "%02x", hash_md[i]);
   }
 
-  u8 payload[PUBKEY_HEADER_MAX + PW_MAX];
+  u8 payload[PUBKEY_HEADER_MAX + (PW_MAX * 2)];
 
-  const int header_len = snprintf ((char *) payload, PUBKEY_HEADER_MAX, "v1\n%s\n%" PRIu64 "\n", hash_hex, pubkey_ctx->run_time);
+  const int header_len = pubkey_header (pubkey_ctx, hash_hex, payload, PUBKEY_HEADER_MAX);
 
   if ((header_len <= 0) || (header_len >= PUBKEY_HEADER_MAX))
   {
@@ -287,26 +357,46 @@ int pubkey_encrypt_plain (hashcat_ctx_t *hashcat_ctx, const u8 *hash_buf, const 
     return -1;
   }
 
-  if ((size_t) plain_len > sizeof (payload) - (size_t) header_len)
+  if ((size_t) header_len >= pubkey_ctx->capacity)
   {
-    event_log_error (hashcat_ctx, "Recovered password of %d bytes does not fit the encrypted payload.", plain_len);
+    event_log_error (hashcat_ctx, "Encrypted payload header of %d bytes exceeds the %" PRIu64 " bytes the key can carry.", header_len, (u64) pubkey_ctx->capacity);
 
     return -1;
   }
 
-  memcpy (payload + header_len, plain_buf, (size_t) plain_len);
+  // pubkey_ctx_check_size () held the key against the longest password the run can report, so a
+  // plain that does not fit gets here only under --force, which accepted the cut, or from a module
+  // that lengthens the plain afterwards. Without --force the alternative to a hard error is writing
+  // a truncated result.
 
-  const size_t payload_len = (size_t) header_len + (size_t) plain_len;
+  const size_t room = pubkey_ctx->capacity - (size_t) header_len;
 
-  // The key size was validated at startup against PW_MAX, so this cannot legitimately trip. It is
-  // kept because the alternative to a hard error here is writing a truncated or empty result.
+  int payload_plain_len = plain_len;
 
-  if (payload_len > pubkey_ctx->capacity)
+  if ((size_t) plain_len > room)
   {
-    event_log_error (hashcat_ctx, "Encrypted payload of %" PRIu64 " bytes exceeds the %" PRIu64 " bytes the key can carry.", (u64) payload_len, (u64) pubkey_ctx->capacity);
+    if (user_options->force == false)
+    {
+      event_log_error (hashcat_ctx, "Encrypted payload of %" PRIu64 " bytes exceeds the %" PRIu64 " bytes the key can carry.", (u64) header_len + (u64) plain_len, (u64) pubkey_ctx->capacity);
+
+      return -1;
+    }
+
+    event_log_warning (hashcat_ctx, "A recovered password of %d bytes was cut to %" PRIu64 " bytes to fit the key.", plain_len, (u64) room);
+
+    payload_plain_len = (int) room;
+  }
+
+  if ((size_t) payload_plain_len > sizeof (payload) - (size_t) header_len)
+  {
+    event_log_error (hashcat_ctx, "Recovered password of %d bytes does not fit the encrypted payload.", payload_plain_len);
 
     return -1;
   }
+
+  memcpy (payload + header_len, plain_buf, (size_t) payload_plain_len);
+
+  const size_t payload_len = (size_t) header_len + (size_t) payload_plain_len;
 
   // encrypt
 

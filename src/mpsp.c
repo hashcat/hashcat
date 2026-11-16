@@ -1843,14 +1843,14 @@ static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig,
   snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
 }
 
-// Copy one piece of a -a 12 candidate without running past the end of the buffer, and report how much
-// was taken.
+// Copy one piece of a -a 12 candidate without running past out_max, the size of the buffer it goes
+// into, and report how much was taken.
 
-static u32 hybrid_append (u8 *out_buf, const u32 out_len, const u8 *src, const u32 src_len)
+static u32 hybrid_append (u8 *out_buf, const u32 out_len, const u32 out_max, const u8 *src, const u32 src_len)
 {
-  if (out_len >= PW_MAX) return 0;
+  if (out_len >= out_max) return 0;
 
-  const u32 copy_len = MIN (src_len, PW_MAX - out_len);
+  const u32 copy_len = MIN (src_len, out_max - out_len);
 
   // an absent piece is passed as NULL with a length of 0, and memcpy () must not be handed NULL even
   // for 0 bytes
@@ -1897,7 +1897,7 @@ u32 hybrid_amp_mask (hashcat_ctx_t *hashcat_ctx, const u64 off, char *mask_buf)
 // its item, so everything the fill accepted after it has moved up, and only the fill knows by how
 // much. The buffer is the record of what it decided.
 
-u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 il_pos, u8 *out_buf, const u8 *base_buf, const u32 base_len)
+u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 il_pos, u8 *out_buf, const u32 out_max, const u8 *base_buf, const u32 base_len)
 {
   const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
@@ -1910,11 +1910,11 @@ u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *dev
     const pw_t *word_ptr = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_WORD];
     const pw_t *post_ptr = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_POST];
 
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) pre_ptr->i,  pre_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, base_buf,                 base_len);
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) mid_ptr->i,  mid_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) word_ptr->i, word_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) post_ptr->i, post_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) pre_ptr->i,  pre_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                 base_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) mid_ptr->i,  mid_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) word_ptr->i, word_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) post_ptr->i, post_ptr->pw_len);
 
     return out_len;
   }
@@ -1926,22 +1926,23 @@ u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *dev
 
   if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    out_len += hybrid_append (out_buf, out_len, (const u8 *) one_ptr->i, one_ptr->pw_len);
-    out_len += hybrid_append (out_buf, out_len, base_buf,                base_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) one_ptr->i, one_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                base_len);
 
     return out_len;
   }
 
-  out_len += hybrid_append (out_buf, out_len, base_buf,                base_len);
-  out_len += hybrid_append (out_buf, out_len, (const u8 *) one_ptr->i, one_ptr->pw_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                base_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, (const u8 *) one_ptr->i, one_ptr->pw_len);
 
   return out_len;
 }
 
 // Put one -a 12 candidate together from its pieces, in the one order the amplifier kernel also uses:
-// mask, base word, mask, second word, mask. Any of the five may be empty.
+// mask, base word, mask, second word, mask. Any of the five may be empty. out_max is the size of
+// out_buf.
 
-u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
+u32 hybrid_assemble_max (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const u32 out_max, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
 {
   const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -1953,11 +1954,20 @@ u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_b
 
   u32 out_len = 0;
 
-  out_len += hybrid_append (out_buf, out_len, mask_ptr,                     pre_len);
-  out_len += hybrid_append (out_buf, out_len, base_buf,                     base_len);
-  out_len += hybrid_append (out_buf, out_len, mask_ptr + pre_len,           mid_len);
-  out_len += hybrid_append (out_buf, out_len, word_buf,                     word_len);
-  out_len += hybrid_append (out_buf, out_len, mask_ptr + pre_len + mid_len, post_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, mask_ptr,                     pre_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, base_buf,                     base_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, mask_ptr + pre_len,           mid_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, word_buf,                     word_len);
+  out_len += hybrid_append (out_buf, out_len, out_max, mask_ptr + pre_len + mid_len, post_len);
+
+  return out_len;
+}
+
+// A candidate the host builds goes into a pw_t, so it is cut at PW_MAX.
+
+u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
+{
+  const u32 out_len = hybrid_assemble_max (hashcat_ctx, out_buf, PW_MAX, mask_buf, base_buf, base_len, word_buf, word_len);
 
   return out_len;
 }
@@ -2119,21 +2129,33 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       if (user_options->increment == INCREMENT_INVERSED)
       {
-        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated)) == -1)
+        char *mask_reversed = reverseMask (mask, "");
+
+        const int rc_truncated = mp_get_truncated_mask (hashcat_ctx, mask_reversed, strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated));
+
+        hcfree (mask_reversed);
+
+        if (rc_truncated == -1)
         {
           hcfree (mask_truncated);
 
           break;
         }
 
+        char *mask_restored = NULL;
+
         if (prepend)
         {
-          mask_truncated = reverseMask (mask_truncated, prepend);
+          mask_restored = reverseMask (mask_truncated, prepend);
         }
         else
         {
-         mask_truncated = reverseMask (mask_truncated, "");
+          mask_restored = reverseMask (mask_truncated, "");
         }
+
+        hcfree (mask_truncated);
+
+        mask_truncated = mask_restored;
       }
       else
       {
@@ -3563,6 +3585,138 @@ int mask_ctx_check_arg (hashcat_ctx_t *hashcat_ctx)
   return -1;
 }
 
+// Defined next to mask_ctx_parse_maskfile (), the other caller.
+
+static int maskfile_split (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, mf_t *mfs_buf, size_t *mfs_cnt_out);
+
+// The keyspace of a range of the mask queue, summed ahead of the first round, so that the status
+// screen can measure the run against the whole queue rather than against the round in progress.
+// The caller of the whole queue is mask_ctx_init (), and the sum lands in
+// status_ctx->words_queue_cnt, and Queue.Keyspace and Queue.Estimated are the lines that read it.
+// The caller of a prefix is outer_loop () after a restore: a run restored into a later round
+// starts its walk there, and the rounds before it are part of the queue's progress, so their sum
+// is seeded into words_walk_cnt as if this run had sized them itself.
+//
+// A round reports its keyspace out of the tables sp_tbl_to_css () builds, but those add a
+// position's own characters and stop at --markov-threshold, so what a position contributes is the
+// smaller of the two. The product of that over the mask is the round's keyspace, and the tables are
+// not needed to size a mask. The UTF-16 expansion and an appended salt add positions of one
+// character each, which multiply the product by one, so they are not reproduced here either.
+//
+// A mask a run would pass over adds nothing, exactly as when its round is reached: one outside the
+// mode's length range, one that does not parse, and one whose keyspace does not fit a u64. A mask
+// that does not parse is reported here and reported again when its round parses it, because the
+// parsers are the shared ones and they say what they fail on.
+
+static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_pos, const u32 end_pos)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
+
+  const u32 threshold = user_options->markov_threshold;
+
+  // The parse records a mask's markers in the mask context, and the first round parses its own mask
+  // again, so nothing the walk leaves there may outlive it. The same holds for the run's error: a
+  // mask that fails here fails its round again, and the error belongs to that round.
+
+  const bool was_w = mask_ctx->has_w;
+  const bool was_q = mask_ctx->has_q;
+
+  const u32 was_pre = mask_ctx->pre_len;
+  const u32 was_mid = mask_ctx->mid_len;
+
+  const rc_final_t rc_saved = status_get_rc_error (hashcat_ctx);
+
+  mf_t *mfs_buf = (mf_t *) hccalloc (MAX_MFS, sizeof (mf_t));
+  cs_t *mp_usr  = (cs_t *) hccalloc (8, sizeof (cs_t));
+
+  u64 queue_cnt = 0;
+
+  for (u32 mask_pos = start_pos; mask_pos < end_pos; mask_pos++)
+  {
+    // A queue read from a mask file holds lines, each the charsets it defines and then the mask, so
+    // it is split the way mask_ctx_parse_maskfile () splits the round's: what the command line gave
+    // is not inherited by a mask file. A queue the command line built, which is what --increment
+    // produces, holds masks, and they are read against the command line's charsets.
+
+    char *mask    = mask_ctx->masks[mask_pos];
+    cs_t *mask_cs = mask_ctx->mp_usr;
+
+    if (mask_ctx->mask_from_file == true)
+    {
+      size_t mfs_cnt = 0;
+
+      if (maskfile_split (hashcat_ctx, mask, mfs_buf, &mfs_cnt) == -1) continue;
+
+      for (u32 i = 0; i < 8; i++) mp_reset_usr (mp_usr, i);
+
+      bool mask_ok = true;
+
+      for (size_t i = 0; i < mfs_cnt; i++)
+      {
+        if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mp_usr, mfs_buf[i].mf_buf, (u32) i, RC_FINAL_ERROR_TASK) == -1)
+        {
+          mask_ok = false;
+
+          break;
+        }
+      }
+
+      if (mask_ok == false) continue;
+
+      mask    = mfs_buf[mfs_cnt].mf_buf;
+      mask_cs = mp_usr;
+    }
+
+    u32 css_cnt = 0;
+
+    if (mp_gen_css (hashcat_ctx, mask, strlen (mask), mask_ctx->mp_sys, mask_cs, mask_ctx->css_buf, &css_cnt) == -1) continue;
+
+    if ((css_cnt < hashconfig->pw_min) || (css_cnt > hashconfig->pw_max)) continue;
+
+    u64 mask_cnt = 1;
+
+    for (u32 i = 0; i < css_cnt; i++)
+    {
+      const u64 cs_len = MIN (mask_ctx->css_buf[i].cs_len, threshold);
+
+      if (overflow_check_u64_mul (mask_cnt, cs_len) == true)
+      {
+        mask_cnt = 0;
+
+        break;
+      }
+
+      mask_cnt *= cs_len;
+    }
+
+    if (mask_cnt == 0) continue;
+
+    if (overflow_check_u64_add (queue_cnt, mask_cnt) == true)
+    {
+      queue_cnt = UINT64_MAX;
+
+      break;
+    }
+
+    queue_cnt += mask_cnt;
+  }
+
+  mask_ctx->has_w   = was_w;
+  mask_ctx->has_q   = was_q;
+  mask_ctx->pre_len = was_pre;
+  mask_ctx->mid_len = was_mid;
+
+  hcfree (mfs_buf);
+  hcfree (mp_usr);
+
+  if (rc_saved == RC_FINAL_OK) status_clear_rc_error (hashcat_ctx);
+
+  return queue_cnt;
+}
+
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -3970,6 +4124,40 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (sp_setup_tbl (hashcat_ctx) == -1) return -1;
   }
 
+  // One mask is one round and the per round lines already measure it. From two masks on, the run is
+  // a queue and the total is worth sizing. Only the brute force arm is sized: a hybrid round draws
+  // its keyspace from wordlists as well, and the feed modes report theirs through the feed.
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    if (mask_ctx->masks_cnt > 1)
+    {
+      status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+      // The prefix sums are sized here on the main thread, next to the total: the status thread
+      // reads them for every estimate, and re-parsing masks there would race the round's own
+      // parse of this same context.
+
+      mask_ctx->masks_prefix_cnt = (u64 *) hccalloc (mask_ctx->masks_cnt + 1, sizeof (u64));
+
+      for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+      {
+        const u64 mask_cnt = mask_ctx_queue_keyspace (hashcat_ctx, mask_pos, mask_pos + 1);
+
+        if ((mask_cnt == UINT64_MAX) || (overflow_check_u64_add (mask_ctx->masks_prefix_cnt[mask_pos], mask_cnt) == true))
+        {
+          mask_ctx->masks_prefix_cnt[mask_pos + 1] = UINT64_MAX;
+        }
+        else
+        {
+          mask_ctx->masks_prefix_cnt[mask_pos + 1] = mask_ctx->masks_prefix_cnt[mask_pos] + mask_cnt;
+        }
+      }
+
+      status_ctx->words_queue_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_cnt];
+    }
+  }
+
   return 0;
 }
 
@@ -3997,22 +4185,20 @@ void mask_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (mask_ctx->masks);
 
+  hcfree (mask_ctx->masks_prefix_cnt);
+
   hcfree (mask_ctx->mfs);
 
   memset (mask_ctx, 0, sizeof (mask_ctx_t));
 }
 
-int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
+// A mask file line is the charsets it defines and then the mask itself, comma separated, with a
+// backslash escaping the next character. Split a line into those fields: mfs_buf[0..mfs_cnt) are
+// the charsets and mfs_buf[mfs_cnt] is the mask. mask_ctx_parse_maskfile () applies that to the
+// round in progress, mask_ctx_queue_keyspace () to a queue it is only sizing.
+
+static int maskfile_split (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, mf_t *mfs_buf, size_t *mfs_cnt_out)
 {
-  mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (mask_ctx->enabled == false) return 0;
-
-  if (mask_ctx->mask_from_file == false) return 0;
-
-  mf_t *mfs_buf = mask_ctx->mfs;
-
   mfs_buf[0].mf_len = 0;
   mfs_buf[1].mf_len = 0;
   mfs_buf[2].mf_len = 0;
@@ -4024,8 +4210,6 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   mfs_buf[8].mf_len = 0;
 
   size_t mfs_cnt = 0;
-
-  char *mask_buf = mask_ctx->mask;
 
   const size_t mask_len = strlen (mask_buf);
 
@@ -4085,6 +4269,26 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   mf_t *mf = mfs_buf + mfs_cnt;
 
   mf->mf_buf[mf->mf_len] = 0;
+
+  *mfs_cnt_out = mfs_cnt;
+
+  return 0;
+}
+
+int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
+{
+  mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (mask_ctx->enabled == false) return 0;
+
+  if (mask_ctx->mask_from_file == false) return 0;
+
+  mf_t *mfs_buf = mask_ctx->mfs;
+
+  size_t mfs_cnt = 0;
+
+  if (maskfile_split (hashcat_ctx, mask_ctx->mask, mfs_buf, &mfs_cnt) == -1) return -1;
 
   user_options->custom_charset_1 = NULL;
   user_options->custom_charset_2 = NULL;

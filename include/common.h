@@ -146,7 +146,20 @@ but this is needed for VS compiler which doesn't have inline keyword but has __i
 #define HCBUFSIZ_SMALL      0x2000
 #define HCBUFSIZ_LARGE      0x1000000
 
-#define CPT_CACHE           0x20000
+// One slot per second of the longest window the status view reports over. The history used to hold
+// one entry per cracking batch, which a run that cracks in more batches than it has slots overwrites,
+// and the hour and day counts then read low. A second is the finest the timestamps carry, so a slot
+// per second is the most history there is to keep.
+
+#define CPT_SECONDS         (60 * 60 * 24)
+
+// How many points of the curve of recovered digests against candidates spent are kept. One point
+// per tick until this fills, then every second point, which doubles the spacing and leaves the span
+// and the shape intact. It is a memory bound and nothing else: how much data the fit needs, which
+// floor it settles on and whether either answer is worth printing all come out of the scatter of
+// the points about the line.
+
+#define CURVE_SAMPLES       256
 #define PARAMCNT            64
 #define DEVICES_MAX         256
 #define EXEC_CACHE          128

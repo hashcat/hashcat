@@ -819,6 +819,7 @@ typedef enum opts_type
   OPTS_TYPE_BINARY_HASHFILE_OPTIONAL = (1ULL << 46), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06                 = (1ULL << 47),
   OPTS_TYPE_KEYBOARD_MAPPING         = (1ULL << 48),
+  OPTS_TYPE_HOOK_SALT_PER_DIGEST     = (1ULL << 44), // hook_salt slots stay one per digest after salt grouping (default: one per salt)
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
 
   // The single-hash brute-force kernels have a sibling, m<type>_r04 to _r16, for a mask whose right
@@ -1152,7 +1153,6 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
-  SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
   PIPELINE_STATS           = false,
@@ -1303,7 +1303,6 @@ typedef enum user_options_map
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
   IDX_SPEED_ONLY                = 0xff48,
-  IDX_SPIN_DAMP                 = 0xff49,
   IDX_STATUS                    = 0xff4a,
   IDX_STATUS_JSON               = 0xff4b,
   IDX_STATUS_TIMER              = 0xff4c,
@@ -1719,6 +1718,28 @@ typedef struct cpt
 
 } cpt_t;
 
+// One point on the curve of what is left against what has been spent. Both coordinates are read off
+// counters hashcat already keeps exactly, so a point is observed rather than estimated.
+
+typedef struct curve_point
+{
+  u64       progress;
+  u32       remaining;
+
+  // When the point was taken, which is what turns a window of seconds into a span of candidates.
+  // The curve itself is in candidates and knows nothing about the clock.
+
+  time_t    when;
+
+  // Whether this point lies on the curve this attack is walking. A run restarted on a list an
+  // earlier run already cracked re-walks those candidates with the answers sitting in the potfile,
+  // so until it cracks one of its own the remainder it reports was reached by candidates this run
+  // never spent. Such a point has the right x and somebody else's y, and fitting it tilts the line.
+
+  bool      on_curve;
+
+} curve_point_t;
+
 #define LINK_SPEED_COUNT 10000
 
 typedef struct link_speed
@@ -1848,6 +1869,31 @@ typedef enum pipe_slot
   PIPE_TOTAL_END   = PIPE_SORT,
 
 } pipe_slot_t;
+
+typedef struct kernel_exec_shape
+{
+  u64 num;
+  u64 threads;
+  u64 dimy;
+  u64 vector_width;
+  u64 items_per_candidate;
+  u64 shared_mem;
+
+} kernel_exec_shape_t;
+
+// The first init, loop and comp launch of one salt in a chunk, which for a fast hash is its one launch,
+// and the loop count of the loop launch. A salt keeps one for a chunk of the full step and one for a
+// shorter chunk.
+
+#define LAUNCH_SALT_KERNS 3
+#define LAUNCH_SALT_KINDS 2
+
+typedef struct launch_salt
+{
+  float us[LAUNCH_SALT_KERNS];
+  u32   loops;
+
+} launch_salt_t;
 
 typedef struct hc_device_param
 {
@@ -2137,10 +2183,6 @@ typedef struct hc_device_param
   double  outerloop_msec;
   u64     outerloop_progress;
 
-  // The running total the pair above is made from.
-
-  double  outerloop_words;
-
   u64     innerloop_pos;
   u64     innerloop_left;
 
@@ -2155,13 +2197,51 @@ typedef struct hc_device_param
 
   // workaround cpu spinning
 
-  double  exec_us_prev[HC_DEV_KERN_CNT][EXPECTED_ITERATIONS];
+  // A float holds a launch time in microseconds closely enough, so the time and the loop count of a
+  // launch take eight bytes together. hc_device_param_t is allocated DEVICES_MAX times, and
+  // brain_feed () keeps one on its stack.
 
-  // this is "current" speed
+  float   exec_us_prev[HC_DEV_KERN_CNT][EXPECTED_ITERATIONS];
+  u32     exec_loops_prev[HC_DEV_KERN_CNT][EXPECTED_ITERATIONS];
+  kernel_exec_shape_t exec_us_prev_shape[HC_DEV_KERN_CNT];
+
+  // the last launch of each kernel in the current shape
+
+  float   exec_us_last[HC_DEV_KERN_CNT];
+  u32     exec_loops_last[HC_DEV_KERN_CNT];
+
+  // the kernels test every salt of the list in one launch, see module_salt_sweep ()
+
+  bool    salt_sweep;
+
+  // a launch predicted from its salt, see launch_salt_t, and the launch size the records of each kind of
+  // chunk were taken at, in work items and in amplifier items per work item
+
+  launch_salt_t *launch_salt;
+
+  u32     launch_salt_cnt;
+  u64     launch_salt_num[LAUNCH_SALT_KINDS];
+  u32     launch_salt_il[LAUNCH_SALT_KINDS];
+
+  u32     launch_chunk;
+  u32     launch_chunk_kind;
+  float   launch_factor[LAUNCH_SALT_KERNS];
+  u32     launch_factor_chunk[LAUNCH_SALT_KERNS];
+
+  // the last launch of each kernel, for the next launch of the same salt in the same chunk
+
+  u32     launch_last_salt[LAUNCH_SALT_KERNS];
+  u32     launch_last_chunk[LAUNCH_SALT_KERNS];
+  u32     launch_last_loops[LAUNCH_SALT_KERNS];
+  float   launch_last_us[LAUNCH_SALT_KERNS];
+
+  // this is "current" speed. speed_words holds the base words of each launch in the ring, which
+  // --progress-only reports beside its time.
 
   u32     speed_pos;
   u64     speed_cnt[SPEED_CACHE];
   double  speed_msec[SPEED_CACHE];
+  double  speed_words[SPEED_CACHE];
   bool    speed_only_finish;
 
   hc_timer_t timer_speed;
@@ -2193,8 +2273,6 @@ typedef struct hc_device_param
   bool    has_bfe;
   bool    has_lop3;
   bool    has_shfw;
-
-  double  spin_damp;
 
   // How early the launch wait wakes up before a launch is expected to end, and the pinned host
   // memory a cracking launch uploads its parameters from and copies the crack count back into.
@@ -3031,7 +3109,6 @@ typedef struct user_options
   bool         kernel_accel_chgd;
   bool         kernel_loops_chgd;
   bool         kernel_threads_chgd;
-  bool         spin_damp_chgd;
   bool         backend_vector_width_chgd;
   bool         outfile_chgd;
   bool         outfile_format_chgd;
@@ -3191,7 +3268,6 @@ typedef struct user_options
   u32          kernel_loops;
   u32          kernel_threads;
   u32          markov_threshold;
-  u32          spin_damp;
   u32          backend_vector_width;
   u32          outfile_check_timer;
   u32          outfile_format;
@@ -3572,6 +3648,12 @@ typedef struct mask_ctx
   u32    masks_cnt;
   u32    masks_avail;
 
+  // Prefix sums of the per mask keyspaces, sized once at init: entry i is the queue's work
+  // before round i, entry masks_cnt is the whole queue. Read by the status thread, so it is
+  // built once and never written again.
+
+  u64   *masks_prefix_cnt;
+
   char  *mask;
 
   mf_t  *mfs;
@@ -3883,9 +3965,44 @@ typedef struct cpt_ctx
   bool enabled;
 
   cpt_t     *cpt_buf;
-  int        cpt_pos;
   time_t     cpt_start;
   u64        cpt_total;
+
+  // The curve the recovered count follows against the candidates spent, and the fit over it. It
+  // lives here because it answers for the same line of the status view, and because one array does
+  // not earn a context of its own.
+
+  curve_point_t *curve_buf;
+  int            curve_cnt;
+
+  // The fit over those points. The share of the ever crackable digests found by a given point is
+  // taken as a normal distribution over the logarithm of the candidates spent, which for a fixed
+  // floor is a straight line through the probit of that share. curve_have says there is a line.
+
+  u32            curve_total;
+  u32            curve_never;
+  double         curve_inter;
+  double         curve_slope;
+  bool           curve_have;
+
+  // What the residuals say about that line: the scatter of the points about it, the mean and the
+  // spread of their x, and how many carry it. Those four give the standard error of anything read
+  // off the line, which is what decides whether a figure is worth printing rather than a threshold
+  // written into the source.
+
+  double         curve_s;
+  double         curve_xbar;
+  double         curve_sxx;
+  int            curve_n;
+
+  // The widest and narrowest floor whose fit this data cannot tell apart from the best one, which
+  // is the ceiling's own error bar. curve_bounded says the search bounded the floor at all: an exact
+  // fit admits no rival, so the pair below is then the whole searched range and says nothing.
+
+  bool           curve_bounded;
+
+  u32            curve_never_lo;
+  u32            curve_never_hi;
 
 } cpt_ctx_t;
 
@@ -3990,6 +4107,11 @@ typedef struct hashcat_status
   double      digests_percent;
   double      digests_percent_new;
   double      digests_percent_attack;
+  int         recovered_est_min;
+  int         recovered_est_hour;
+  int         recovered_est_day;
+  u32         recovered_limit;
+  double      recovered_limit_percent;
   u32         salts_cnt;
   u32         salts_done;
   double      salts_percent;
@@ -4009,6 +4131,16 @@ typedef struct hashcat_status
   #endif
   u64         progress_restored;
   u64         progress_skip;
+
+  // The queue-wide counterparts of progress_end, progress_cur and the two time_estimated strings.
+  // queue_keyspace is zero when the run has no mask queue whose keyspace is known, and the other
+  // three then carry nothing either.
+
+  u64         queue_keyspace;
+  u64         queue_progress_done;
+  char       *queue_time_estimated_absolute;
+  char       *queue_time_estimated_relative;
+
   u64         restore_point;
   u64         restore_total;
   double      restore_percent;
@@ -4044,6 +4176,11 @@ typedef struct status_ctx
   bool accessible;
 
   u32  devices_status;
+
+  // An exhausted round with more of the queue after it holds its final status back, and the next
+  // round to start takes the job over. outer_loop prints it if no later round starts.
+
+  bool finished_pending;
 
   /**
    * full (final) status snapshot
@@ -4110,6 +4247,13 @@ typedef struct status_ctx
 
   u64  words_walk_base;
   u64  words_walk_cnt;
+
+  // The keyspace of the whole queue of masks, summed by mask_ctx_queue_keyspace () before the first
+  // round runs, so that the status screen can measure the run against the whole mask file rather
+  // than against the round in progress. Zero means there is no queue of masks or it could not be
+  // sized, and (u64) -1 that the sum did not fit.
+
+  u64  words_queue_cnt;
 
   // This round's share of the window, both positions in the round's own keyspace. words_limit is
   // zero when the round runs to its own end, which is what --limit not being given means.
@@ -4595,6 +4739,7 @@ typedef struct module_ctx
   u64         (*module_extra_tmp_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *);
   char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   bool        (*module_jit_cache_disable)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  bool        (*module_salt_sweep)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 

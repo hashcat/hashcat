@@ -135,7 +135,6 @@ OPTION (OPT_SHOW,                      "show",                      0,   IDX_SHO
 OPTION (OPT_SKIP,                      "skip",                      's', IDX_SKIP,                      required_argument)
 OPTION (OPT_SLOW_CANDIDATES,           "slow-candidates",           'S', IDX_SLOW_CANDIDATES,           no_argument)
 OPTION (OPT_SPEED_ONLY,                "speed-only",                0,   IDX_SPEED_ONLY,                no_argument)
-OPTION (OPT_SPIN_DAMP,                 "spin-damp",                 0,   IDX_SPIN_DAMP,                 required_argument)
 OPTION (OPT_STATUS,                    "status",                    0,   IDX_STATUS,                    no_argument)
 OPTION (OPT_STATUS_JSON,               "status-json",               0,   IDX_STATUS_JSON,               no_argument)
 OPTION (OPT_PIPELINE_STATS,            "pipeline-stats",            0,   IDX_PIPELINE_STATS,            no_argument)

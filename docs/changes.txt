@@ -4,28 +4,29 @@
 ## Release Highlights
 ##
 
-1. Known pieces of a password in PCFG attacks
+1. Known password fragments in PCFG attacks
 
-The "mask" setting of attack-mode 4 needs the length of the password and the position of every known
-character. The new "contains" setting covers the case of knowing a piece but not where it sits, such
-as a year, a name or four digits of a PIN. It keeps only the candidates that hold the piece
-somewhere and filters the grammar the same way "mask" does.
+The "mask" setting in attack-mode 4 requires the password length and the position of each known
+character. The new "contains" setting accepts known fragments whose positions are unknown, such as a
+year, a name or four digits of a PIN. It retains only candidates containing the fragment and filters
+the grammar in the same way as "mask".
 
-The piece is written in mask syntax, so "contains=19?d?d" accepts any year of the 1900s. Several
-pieces separated by commas must all be present without sharing a byte, as in "contains=1987,tom".
-See "docs/hashcat-pcfg.md".
+Fragments use mask syntax, so "contains=19?d?d" accepts any year in the 1900s. Fragments separated
+by commas must all appear without sharing a byte, as in "contains=1987,tom". See
+"docs/hashcat-pcfg.md".
 
 2. Faster scrypt on GPUs
 
-Before, each GPU work item computed a whole scrypt candidate and kept its full SMix state, which did
-not fit in registers and spilled to memory. Under CUDA, HIP and NVIDIA OpenCL, four work items now
-share one candidate, so the state stays in registers. Autotune also measures the TMTO, the lane
-count and the number of candidates on each device, where each module used to pick its TMTO by a
-fixed rule before any kernel had run.
+Previously, each GPU work item computed an entire scrypt candidate and kept its full SMix state,
+which did not fit in registers and spilled to memory. Under CUDA, HIP and NVIDIA OpenCL, four work
+items now share one candidate, keeping the state in registers. Under HIP, the four work items
+exchange values through DPP, and at r=16, where the state is too large for registers, part of it is
+kept in LDS. Autotune also measures TMTO, lane count and candidate count on each device. Previously,
+each module selected its TMTO using a fixed rule before any kernel had run.
 
-Mode 8900 runs 2.3 to 3.2 times as fast on an RTX 4090 and an RX 7900 XTX at all but the lowest cost
-setting. A quarter as many candidates now fill a GPU, so a shorter wordlist is enough to keep it
-busy.
+With mode 8900, hashcat runs 2.3 to 3.2 times as fast on an RTX 4090 and an RX 7900 XTX at all but
+the lowest cost setting. A quarter as many candidates now keep a GPU fully occupied, so a shorter
+wordlist is enough.
 
 ##
 ## New Hash Modes
@@ -42,9 +43,11 @@ busy.
 - Added mode 29544: LUKS v1 RIPEMD-160 + Blowfish
 - Added mode 30800: TronLink Wallet (PBKDF2-HMAC-SHA512, AES-256-CTR)
 - Added mode 34900: Dashlane (legacy, local master password)
+- Added mode 35900: Hashids (salt search)
 - Added mode 36700: Cardano Daedalus Wallet (Byron era, spending password)
 - Added mode 37200: gocryptfs
 - Added mode 37230: Copay Wallet Backup (sjcl, AES-CCM)
+- Added mode 37231: BitGo Wallet Key (sjcl, AES-CCM)
 - Added mode 37240: MetaMask Wallet (short hash, 32 byte vault)
 - Added mode 37800: PuTTY Private Key (PPK) v2, AES-256-CBC
 - Added mode 37801: PuTTY Private Key (PPK) v3, Argon2 + AES-256-CBC
@@ -55,14 +58,19 @@ busy.
 - Added mode 38100: IKE-PSK SHA256
 - Added mode 39000: Kerberos 5, etype 3, AS-REQ Pre-Auth
 - Added mode 39100: Kerberos 5, etype 1, TGS-REP
+- Added mode 38301: Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + 3DES key)
 - Added mode 39200: Kerberos 5, etype 1, AS-REP
 - Added mode 39300: Kerberos 5, etype 1, AS-REQ Pre-Auth
 - Added mode 39400: Kerberos 5, etype 23, AS-REQ Pre-Auth (NT)
 - Added mode 39500: xxHash64
 - Added mode 39600: xxHash32
+- Added mode 40008: Oracle o5logon (AUTH_SESSKEY padding check)
 - Added mode 40176: Tiger-192,4
 - Added mode 44000: Android FDE >= 4.4 (scrypt)
 - Added mode 44100: Android FDE >= 5.0 (scrypt, keymaster RSA)
+- Added mode 44200: Sollet Wallet (PBKDF2-SHA256, XSalsa20)
+- Added mode 44300: Bitcoin BIP38 Private Key (no EC multiply)
+- Added mode 44400: Jenkins lookup8
 
 ##
 ## New Features and Options
@@ -88,19 +96,33 @@ busy.
 - Added support in hash recipes (mode 4000) for xxh64 and xxh32, with an optional seed from salt,
   fromhex(salt) or a string, as in "xxh64(pass, salt)". Also added tiger192_4, Tiger with 4 passes,
   and its hmac_ form
+- Added support for lookup8 in hash recipes (mode 4000), with an optional level, as in
+  "lookup8(pass, salt)"
 - The "--hash-info" option now also reports the expected encoding for a separate salt field, plain,
   HEX or BASE64, as a Salt.Encoding line and as "salt_encoding" under "--machine-readable". Modes
   with an embedded salt do not report this field
 - Hashcat now reports how much long salts reduce the space available for passwords in optimized
   kernels that store both in one buffer, with a notice when the remaining space is below the
   password limit. Before, such a run ended as Exhausted without a warning
+- Added a "$user$realm$checksum$data" layout to the Kerberos 5 hash-modes 7500, 13100, 18200, 19800,
+  19900, 35300, 35400, 38500 and 38600, alongside their existing layouts. Hash lines written to
+  outfiles and the potfile retain the layout in which they were loaded
+- Added support in hash-mode 7500 for hashes without a salt field, with the encrypted timestamp and
+  checksum joined in the last field. Previously, a salt field was required, even if empty
+- Added an optional time step field to hash-mode 18100 (TOTP) for codes that do not use RFC 6238's
+  30 second step
 
 ## Candidate generation
 
-- Added PCFG rulesets of keyboard walks for the US English, Russian, Arabic, French AZERTY, Czech
-  QWERTZ, Greek, Hebrew, Persian, Thai and Vietnamese layouts, named "keyboard-walks-<language>"
+- Added PCFG keyboard-walk rulesets for the US English, Russian, Arabic, French AZERTY, Czech
+  QWERTZ, Greek, Hebrew, Persian, Thai and Vietnamese layouts, with names in the form
+  "keyboard-walks-<language>"
 - Added the PCFG setting "contains" to retain only candidates containing all specified fragments
   without overlap. Fragments are written in mask syntax
+- Added the rule function AN"STR" from JtR, which inserts the string STR at position N, or appends
+  it for N = z. Any character not in STR can delimit it, and each byte counts as one rule function
+- Added the rule "NnXY" to replace occurrence n of the character X with Y, counting from 0. The rule
+  works in files loaded with -r as well as with -j and -k
 
 ## Runtime control and reporting
 
@@ -108,11 +130,47 @@ busy.
   Entries in the tuning-db no longer affect their speed
 - Tuning-db warnings now name the file or module hook that an invalid entry came from, instead of
   only its line number
+- Added the number of rules to the Guess.Mod status line and as "guess_rules_count" to the JSON
+  status
+- A new session no longer replaces the restore file that an earlier session of the same name left
+  behind. The file is moved aside with its last modification time appended to its name
+- Added advice at the end of runs that leave a restore file, identifying the option that prints the
+  command to resume the session
+- Added the "HASHCAT_SCRYPT_NATIVE_CUBIN" environment variable. Setting it to 1 under CUDA makes
+  NVRTC compile scrypt-based hash-modes for the device's sm rather than leaving PTX compilation to
+  the driver. This made modes 8900, 15700 and 24000 run 1-16% faster on an RTX 4090
+- Added startup advice identifying the potfile used to save cracked hashes, or explaining that the
+  run does not save cracked hashes to a potfile
+- Added advice after "No hashes loaded." naming "--hash-info" for the selected hash-mode and
+  "docs/hashcat-example-hashes.md"
+- Changed the OpenCL startup output to give each platform its own line showing its name and vendor,
+  with its devices indented beneath it. This distinguishes two runtimes from the same vendor
+- Added a warning when a backend runtime call has not returned after 60 seconds during startup or
+  "-I", naming the runtime and the "--backend-ignore" option to skip it
+- Changed the Recovered status line to show the hash count once and include the number of hashes
+  cracked by the current queue item when the queue contains several masks or wordlists
+- Changed the Remaining and Recovered/Time status lines to appear for all lists with more than one
+  hash, rather than only those with more than 1000
+- Added the running time to Time.Started after a pause, and "time_running" to the JSON status
+- Changed "--status" to print the first status as soon as an attack speed is available, instead of
+  waiting for the first "--status-timer" interval
+- Added a line for each "--outfile-check-dir" pass that removes hashes during an attack
+- Added the PCIe generation to the Bus field of the hardware monitor, as in Bus:16x4, and "busgen"
+  to the JSON status
+- Added the estimated runtime of the whole attack to "--progress-only", as Time.Estimated and as
+  "estimated_runtime" in the JSON output
+- Added "--bypass-eta" to bypass queue items whose estimated time remaining exceeds the specified
+  number of seconds. The decision is made at each item's first checkpoint
+- Added "--stdin-timeout-flush" to crack candidates already read from stdin after the specified
+  number of seconds without new input, without waiting for a full batch
+- Added "--brain-server-dump-dir" to specify the directory for brain server dumps
 
 ## Extraction tools
 
+- Added "tools/atomic2hashcat.py" to extract hash-mode 2300 lines from Atomic Wallet
 - Added "tools/bestcrypt2hashcat.py", which writes one line per password protected key slot in a
   BestCrypt container, for modes 37900 to 37903
+- Added "tools/bitgo2hashcat.py" to extract hash-mode 37231 lines from BitGo keychains and keycards
 - Added "tools/cardano2hashcat.py" for mode 36700 (Cardano Daedalus Wallet (Byron era, spending
   password))
 - Added "tools/copay2hashcat.py" for mode 37230 (Copay Wallet Backup (sjcl, AES-CCM))
@@ -124,6 +182,7 @@ busy.
 - Added "tools/openssl2hashcat.py" for mode 2300 (OpenSSL enc (AES-CBC, EVP_BytesToKey))
 - Added "tools/opvault2hashcat.py", which writes a hash line for mode 8200 from a 1Password OPVault
 - Added "tools/ppk2hashcat.py" for modes 37800 and 37801 (PuTTY Private Key (PPK) v2 and v3)
+- Added "tools/sollet2hashcat.py" to extract hash-mode 44200 lines from sollet.io wallets
 - Added "tools/tronlink2hashcat.py" for mode 30800 (TronLink Wallet (PBKDF2-HMAC-SHA512,
   AES-256-CTR))
 - Added "tools/xchain2hashcat.py" for mode 15800 (xchain-crypto Keystore (THORChain, THORSwap))
@@ -132,6 +191,10 @@ busy.
 - Added support for containers encrypted with Blowfish to "tools/luks2hashcat.py"
 - Added support for archives encrypted with "rar -hp" to "tools/rar32hashcat.py", which now writes a
   hash line instead of rejecting the archive
+
+## Documentation
+
+- Added a manual page, "docs/hashcat.1", generated from "--help" and installed by "make install"
 
 ##
 ## Performance
@@ -142,10 +205,16 @@ Results depend on the device, runtime and workload.
 - Increased the speed of the scrypt-based hash-modes by computing each candidate on four work items
   under CUDA, HIP and NVIDIA OpenCL and by measuring TMTO and candidate count on each device. Mode
   8900 runs 2.3-3.2x faster on an RTX 4090 and an RX 7900 XTX at all but the lowest cost setting
+- Increased the speed of the scrypt-based hash-modes under HIP by exchanging lane values through DPP
+  rather than the DS crossbar and by keeping part of the SMix state in LDS at r=16. On an RX 7900
+  XTX, mode 8900 gained 13%, mode 15700 47% and mode 24000 ran 3.6x faster
 - Increased the speed of SHA2-256 and eight related SHA-256 hash-modes under CUDA by 3-14% on an RTX
   4090. Rotations now use plain shifts that the compiler can move out of the loop
 - Increased the speed of Cisco-IOS type 4, PDF 1.7 Level 3, sm3crypt, Cisco-IOS $9$ and BLAKE2s-256
   under CUDA by 1.2-5.5% on an RTX 4090 by computing their rotations with plain shifts
+- Increased the speed of hash-mode 36000 on derivation paths whose first dynamic element is not
+  hardened, such as m/49'/0'/0'/0/{0-999}. Previously, the shared parent's public key was recomputed
+  for every index, doubling the elliptic curve work per address
 - Increased "--slow-candidates" speed when host memory limits the launch size by skipping candidate
   staging when the brain is not in use
 - Reduced device memory use of slow hash-modes under "--slow-candidates" by writing candidates
@@ -162,20 +231,56 @@ Results depend on the device, runtime and workload.
 - Reduced host memory use by allocating brain link buffers only when running a brain client
 - Reduced overhead for hash-modes with a host hook by executing the hook in the calling thread when
   only one hook thread runs
+- Increased the speed of SHA-1, SHA-224, SHA-256 and SM3 recipes under CUDA and HIP by reducing the
+  scalar update from two block transforms to one. In mode 4000, recipes crossing a block boundary
+  gain 18-31% on an RTX 4090 and an RX 7900 XTX. Others range from over 2x faster to 9.2% slower
+- Increased combinator attack speed by using the larger wordlist as the base for slow hashes and
+  pure kernels that can assemble candidates in the swapped order. Previously, only optimized kernels
+  swapped the wordlists
+- Increased the speed of hash-modes 19600, 19700, 19800, 19900, 32100 and 32200 when attacking
+  several hashes for the same principal by sharing one key derivation across those hashes
+- Increased the speed of MD4 and NTLM mask attacks with a second brute force kernel that rejects in
+  round 2 while the low bytes of the mask's first word remain fixed
+- Increased the speed of most operators in the optimized rule engine by working on whole registers
+  rather than one byte at a time. On an RTX 4090, a single repeated rule showed a speedup of
+  1.8-8.3x, and mixed rule files gained 1.11-4.63%. Faster character purges are used only on NVIDIA
 
 ##
 ## Improvements
 ##
 
+## Hash modes and kernels
+
+- Allowed scrypt and yescrypt target hashes to use any N while the self-test is enabled. Previously,
+  hashes whose N differed from the self-test hash's were rejected with an incompatible self-test
+  configuration error unless "--self-test-disable" was given
+- Removed the tuning-db files for eight scrypt-based hash-modes. They contained no entries, only
+  advice to pin a Kernel-Accel value found with an -n sweep. These modes time TMTO and launch size
+  themselves for each hash's N, r and p
+- Enabled the startup self-test for hash-mode 16501. It was previously disabled by a flag copied
+  from hash-mode 16500, whose kernel depends on the hash
+- Raised the password length limit for hash-mode 8501 (AS/400 DES) from 8 to 10 characters. AS/400
+  hashes the longer passwords as two DES blocks
+
+## Attack modes and rules
+
+- Rules generated with "-g" are now distinct. Duplicates are retried, and a warning reports how many
+  distinct rules were found when the selected functions cannot produce the requested number
+- Rules chained from several files now omit passthrough functions, making chains more likely to fit
+  within the 31 function limit and removing passthroughs from "--debug-mode" output
+- Masks supplied on the command line are now validated at startup, before loading hashes and
+  initializing devices. Undefined custom charsets, unknown placeholders and trailing "?" characters
+  were previously reported only when the first mask round began
+
 ## Plugins and libhashcat
 
-- Modules and bridges assign only the hooks they implement, and unset hooks take their defaults.
-  Before, hashcat refused a module or bridge with an unset hook, so a new hook meant editing every
-  module
-- Modules now take the constant hooks that each of them used to define from
-  "src/modules/hooks_common.c", and override one with MODULE_OWN_<hook>. The plugin guide shows how
-  to port external modules
-- Added a third loop phase beside the existing two, so hash-modes whose derivation chains three
+- Modules and bridges assign only the hooks they implement. Unset hooks use their defaults.
+  Previously, hashcat rejected modules and bridges with unset hooks, so adding a hook required
+  editing every module
+- Modules now obtain shared constant hooks from "src/modules/hooks_common.c" instead of defining
+  them individually. Individual hooks can be overridden with MODULE_OWN_<hook>. The plugin guide
+  explains how to port external modules
+- Added a third loop phase alongside the existing two, so hash-modes whose derivation chains three
   passes can run each pass in its own loop kernel
 - Added the module hook "module_tune_variants()" to list kernel variants for autotune to time on
   each device, and the kernel parameter MODULE_TUNE to identify the selected variant. The plugin
@@ -184,12 +289,22 @@ Results depend on the device, runtime and workload.
   "module_combined_len_salt()"
 - Raised the plugin interface version from 800 to 810. Plugins built for v8.0.0 need a rebuild but
   no source changes
+- Module hooks now have internal linkage, allowing the compiler to report hooks that are defined but
+  never registered. Incorrect hook signatures now cause errors at registration rather than at the
+  definition
+- Changed "hc_fsync()" and "hc_fclose()" to return 0 on success and -1 on failure. Before, they
+  returned no value
 - Added "is_valid_hex_8_incl_uppercase()" and "is_valid_hex_32_incl_uppercase()" to "inc_common.cl"
   for hash-modes whose known plaintext is hex in either case
 - Added "status_abort_with_error()" for plugins and OPTS_TYPE_BINARY_HASHFILE_DIRECT, which allows a
   hash-mode to read a binary hash file directly while still decoding hashes supplied inline
 - Added "hashcat_session_init_folders()" to libhashcat so programs can supply shared and profile
   folders instead of having them selected based on where the program runs
+
+## FPGA
+
+- Published bitstream set 8, including ZC706, YPCB and Enigma X1 designs built with LiteX and
+  LitePCIe 2026.08. Each set's directory now includes a manifest.json file
 
 ##
 ## Bug Fixes
@@ -207,6 +322,10 @@ Results depend on the device, runtime and workload.
   fewer than eight threads are now rejected, while the others use the local memory path
 - Fixed yescrypt memory budgeting on unified memory devices, where tuning used a budget that
   included memory already reserved by the backend, preventing the run from starting
+- Fixed yescrypt failing every kernel launch with "out of memory" on GPUs with many compute units
+  relative to their memory capacity, such as a 10 GB RTX 3080
+- Fixed yescrypt leaving the last wave of a launch mostly empty under CUDA, which slowed a 10 GB RTX
+  3080 by 23%
 - Fixed PKZIP and Electrum Wallet (Salt-Type 5) failing to crack hashes on Intel Arc GPUs because a
   compiler fault caused the inflate step to reject every candidate
 - Fixed TOTP (HMAC-SHA1) running at a sixth of its v7.1.2 speed with "-a 3" on an Arc A770. The
@@ -224,7 +343,7 @@ Results depend on the device, runtime and workload.
 - Fixed hash-mode 40041 dropping a custom round count when writing a hash, so hashes written to
   outfiles and potfiles or displayed by "--show" could not be loaded again
 - Fixed hash-mode 7500 appending the next field when writing back a user name or realm of 64
-  characters, or a salt of 128 characters. Raised the user name and realm limit to 253 characters
+  characters, or a salt of 128 characters. Raised the user name and realm limit to 511 characters
 - Fixed hash-mode 7500 refusing Kerberos 5 Pre-Auth hashes whose encrypted timestamp is not exactly
   36 bytes long
 - Fixed hash-modes 7700, 7701, 7800 and 7801 failing to crack hashes whose user names are padded
@@ -240,12 +359,16 @@ Results depend on the device, runtime and workload.
   for the candidate
 - Fixed hash-mode 8900 refusing hashes with an N below 1024 and accepting an N that is not a power
   of two
-- Fixed hash-mode 10100 never cracking passwords longer than 31 bytes in optimized mask and
+- Fixed hash-mode 10100 failing to crack passwords longer than 31 bytes in optimized mask and
   combinator attacks
 - Fixed hash-mode 11100 failing to crack hashes with a 32 character user name in optimized kernels.
   Added its combined password and user name limit of 55
+- Changed the error for 7-Zip hashes of data type 128 from "Salt-value exception" to an explanation
+  that truncated data is unsupported
 - Fixed hash-mode 12500 rejecting RAR3-hp hash lines from volumes, which carry 32 bytes of
   ciphertext because a volume's end header is 20 bytes rather than 7
+- Fixed hash-mode 14900 failing to display its notice that passwords must be exactly 10 characters
+  long
 - Fixed hash-modes 15600 and 15700 refusing Ethereum keystores whose payload is a recovery phrase
   rather than a private key, or whose salt is empty, as in Trust Wallet iCloud and Google Drive
   backups
@@ -255,8 +378,14 @@ Results depend on the device, runtime and workload.
   start with the same 16 bytes
 - Fixed hash-mode 34300 rejecting KeePass 4 databases whose headers are not 253 bytes long, such as
   ChaCha20 databases. Raised the header limit for modes 34300 and 34301 to 4096 bytes
+- Fixed hash-mode 38200 showing "Iterations: 1000", the round count of its md5crypt stage, in the
+  benchmark header instead of the N, r and p that the other scrypt-based hash-modes show
 - Renamed hash-mode 132 from MSSQL (2005) to MSSQL (2005, 2008) and hash-mode 1731 from MSSQL (2012,
   2014) to MSSQL (2012-2022), the SQL Server versions that share their hash formats
+- Fixed hash-modes 19600, 19700, 19800, 19900, 28800, 28900, 32100 and 32200 accepting user names or
+  realms of 512 characters, leaving no room in their buffers for the terminator
+- Fixed hash-modes 18200 and 35400 failing to crack AS-REP hashes whose encrypted part contains the
+  application tag 0x7a, which some KDCs send
 
 ## Attack modes and rules
 
@@ -269,6 +398,17 @@ Results depend on the device, runtime and workload.
   when the separator is a letter
 - Fixed the rule "~e?C" leaving a word unchanged in optimized kernels when it contains no character
   of the specified class
+- Fixed "--generate-rules-func-max" values above 31 producing rules truncated to 31 functions.
+  Values above 85 also allowed the rule generator to write past its buffer. Values above 31 are now
+  rejected
+- Fixed stalls near the end of compressed wordlists without frames, such as .gz files with one
+  member. Each line longer than 256 bytes caused hashcat to decode the file again
+- Fixed delayed handling of "q" and "--runtime" while a slow wordlist was filling a batch. The
+  session no longer waits for the full batch before stopping
+- Fixed "--stdin-timeout-abort" failing to end sessions on Windows when stdin is a pipe that stays
+  open without input
+- Fixed "--debug-mode" writing stack memory to the debug file and crashing before the cracked hash
+  reached the outfile when a hash was cracked using a rule line containing only spaces
 
 ## Autotune and tuning database
 
@@ -279,6 +419,8 @@ Results depend on the device, runtime and workload.
   their speed by up to 14x
 - Fixed a tuning-db row for a specific device being ignored when a "DEVICE_TYPE_*" or wildcard row
   matched the same hash-mode
+- Fixed -n validation using only the hash-mode's Kernel-Accel maximum, which prevented manual
+  requests for launch sizes that autotune can use with a lower -T
 
 ## Backends and devices
 
@@ -318,13 +460,33 @@ Results depend on the device, runtime and workload.
 - Fixed the "q" key being ignored during startup, leaving a signal as the only way to quit the run
 - Removed the "COMPUTE" environment variable, which left "DISPLAY" unset instead of setting it. The
   "DISPLAY" variable can be set directly
+- Fixed whitespace padding in OpenCL platform versions, such as that reported by Mesa's rusticl,
+  appearing in startup, "-I" and "--machine-readable" output
+- Fixed unsafe quoting in commands printed by "--restore" for fish when an argument or the stored
+  directory contained a backslash, and for PowerShell when either contained "$" or a backtick
+
+## Outfiles and restore files
+
+- Fixed incorrect crack positions in "--outfile-format 4" and wordlist names in "--debug-mode 5"
+  when the brain skipped part of the keyspace within a batch, or when a device refilled a batch from
+  beyond positions already taken by another device
+- Fixed failed restore file writes overwriting the previous restore file with an empty one, leaving
+  the session impossible to restore. This could occur, for example, when the disk was full
+- Fixed "-O" with rules writing a wrong password to the outfile and potfile for a slow hash whose
+  candidate is longer than 31 bytes, such as "-m 400" with a 32 to 39 byte password
 
 ## Brain and build
 
 - Fixed the brain server retaining client slots for connections that never authenticated, which
   allowed 255 silent connections to fill the server and block legitimate clients
+- Fixed the brain server reading an attack's reservations without the attack's lock when a client
+  attaches to it, which could read freed memory while another client on the same attack reserved or
+  committed
 - Fixed the Docker build failing under clang because the Dockerfile set SOURCE_DATE_EPOCH to an
   empty value instead of leaving it unset
+- Fixed the FPGA driver Makefile assuming every Linux distribution was Ubuntu, which blocked
+  dkms-install on Secure Boot hosts running other distributions and referenced the wrong signing key
+
 
 * changes v7.1.2 -> v8.0.0
 

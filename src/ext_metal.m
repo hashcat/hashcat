@@ -3003,13 +3003,601 @@ int hc_mtlEncodeComputeCommand_abort (void *hashcat_ctx, void *device_param_ptr,
   }
 }
 
+// Apple's runtime compiler opens the files a kernel includes itself, through the absolute path in
+// INCLUDE_PATH. On macOS 27 (Metal 383) it only opens files below the directory of the executable
+// that asks for the build: an #include of any other file that exists fails with "file not found".
+// A build tree, with OpenCL/ next to the hashcat binary, still works, but an installed hashcat, with
+// the kernels in share/hashcat/OpenCL and the binary in bin/, builds no kernel at all (#5072). The
+// includes are therefore resolved here, in hashcat's process, and the compiler is handed one source
+// that includes nothing but the compiler's own headers, such as <metal_stdlib>. Where the compiler
+// still reads the files, it gets the same text it would have read, so the result is the same there.
+//
+// A kernel names a file in one of three ways: M2S(INCLUDE_PATH/inc_x) from a kernel, "inc_x" from
+// one header to another, and a macro defined as M2S(INCLUDE_PATH/inc_x) further up, such as
+// COMPARE_M. Each is replaced by the contents of the file, framed in #line, so that a build error
+// still names the file and the line it is in. An #include in a block the preprocessor skips takes
+// its closing #line with it, so the line count is given again after each #else, #elif and #endif as
+// well, which is what clang's -frewrite-includes does for the same reason.
+//
+// A file is expanded wherever it is included, since its include guard decides what it adds there,
+// but not inside its own expansion: the guard would leave it empty there anyway, and the expansion
+// would not end. An #include in a comment or on a line that a backslash splices with another is
+// left alone, and so is an include in angle brackets, a name that is not a plain file name, a macro
+// defined as two different files, and a file that cannot be read or holds a NUL byte, so that the
+// compiler reports those as before.
+
+#define MTL_INCLUDE_DEPTH_MAX  32
+#define MTL_INCLUDE_MACROS_MAX 64
+#define MTL_INCLUDE_NAME_LEN   256
+
+typedef struct mtl_include
+{
+  const char *include_path;
+
+  char  *buf;
+  size_t len;
+  size_t sz;
+
+  char *macro_name[MTL_INCLUDE_MACROS_MAX];
+  char *macro_file[MTL_INCLUDE_MACROS_MAX];
+  int   macro_cnt;
+
+  const char *stack[MTL_INCLUDE_DEPTH_MAX];
+  int         depth;
+
+} mtl_include_t;
+
+static int hc_mtlIncludeAppend (mtl_include_t *inc, const char *s, const size_t n)
+{
+  if ((inc->len + n + 1) > inc->sz)
+  {
+    const size_t add = (inc->sz > (n + 1)) ? inc->sz : (n + 1);
+
+    char *buf = (char *) hcrealloc (inc->buf, inc->sz, add);
+
+    if (buf == NULL) return -1;
+
+    inc->buf = buf;
+    inc->sz += add;
+  }
+
+  memcpy (inc->buf + inc->len, s, n);
+
+  inc->len += n;
+
+  inc->buf[inc->len] = 0;
+
+  return 0;
+}
+
+static const char *hc_mtlIncludeSkipSpace (const char *p, const char *end)
+{
+  while ((p < end) && ((*p == ' ') || (*p == '\t') || (*p == '\r'))) p++;
+
+  return p;
+}
+
+static const char *hc_mtlIncludeWord (const char *p, const char *end, const char *word)
+{
+  const size_t word_len = strlen (word);
+
+  // p past end would turn the length left into a huge one
+
+  if ((p > end) || ((size_t) (end - p) < word_len)) return NULL;
+
+  if (memcmp (p, word, word_len) != 0) return NULL;
+
+  return p + word_len;
+}
+
+static const char *hc_mtlIncludeIdent (const char *p, const char *end, char *out, const size_t out_sz)
+{
+  size_t n = 0;
+
+  while ((p < end) && (isalnum ((unsigned char) *p) || (*p == '_')))
+  {
+    if ((n + 1) >= out_sz) return NULL;
+
+    out[n++] = *p++;
+  }
+
+  out[n] = 0;
+
+  if ((n == 0) || isdigit ((unsigned char) out[0])) return NULL;
+
+  return p;
+}
+
+// a plain file name in the kernel directory, nothing that reaches out of it
+
+static const char *hc_mtlIncludeFile (const char *p, const char *end, const char stop, char *out, const size_t out_sz)
+{
+  size_t n = 0;
+
+  while ((p < end) && (*p != stop))
+  {
+    const char c = *p;
+
+    if ((isalnum ((unsigned char) c) == 0) && (c != '_') && (c != '-') && (c != '.')) return NULL;
+
+    if ((n + 1) >= out_sz) return NULL;
+
+    out[n++] = *p++;
+  }
+
+  out[n] = 0;
+
+  if ((p == end) || (n == 0) || (out[0] == '.')) return NULL;
+
+  return p + 1;
+}
+
+// M2S(INCLUDE_PATH/name)
+
+static const char *hc_mtlIncludeM2S (const char *p, const char *end, char *out, const size_t out_sz)
+{
+  if ((p = hc_mtlIncludeWord (p, end, "M2S")) == NULL) return NULL;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  if ((p = hc_mtlIncludeWord (p, end, "(")) == NULL) return NULL;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  if ((p = hc_mtlIncludeWord (p, end, "INCLUDE_PATH")) == NULL) return NULL;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  if ((p = hc_mtlIncludeWord (p, end, "/")) == NULL) return NULL;
+
+  return hc_mtlIncludeFile (p, end, ')', out, out_sz);
+}
+
+// A name defined as two different files is not resolved at all: which of the two is in force can
+// depend on a condition only the preprocessor decides, so an #include of it is left to the compiler.
+
+static void hc_mtlIncludeDefine (mtl_include_t *inc, const char *name, const char *file)
+{
+  for (int i = 0; i < inc->macro_cnt; i++)
+  {
+    if (strcmp (inc->macro_name[i], name) != 0) continue;
+
+    if ((inc->macro_file[i] != NULL) && (strcmp (inc->macro_file[i], file) != 0))
+    {
+      hcfree (inc->macro_file[i]);
+
+      inc->macro_file[i] = NULL;
+    }
+
+    return;
+  }
+
+  if (inc->macro_cnt == MTL_INCLUDE_MACROS_MAX) return;
+
+  inc->macro_name[inc->macro_cnt] = hcstrdup (name);
+  inc->macro_file[inc->macro_cnt] = hcstrdup (file);
+
+  inc->macro_cnt++;
+}
+
+// Whether the line is an #include of a file in the kernel directory, and which. A #define of a name
+// as M2S(INCLUDE_PATH/name) is remembered on the way, for an #include of that name further down.
+
+static bool hc_mtlIncludeTarget (mtl_include_t *inc, const char *line, const char *end, char *file, const size_t file_sz)
+{
+  const char *p = hc_mtlIncludeSkipSpace (line, end);
+
+  if ((p = hc_mtlIncludeWord (p, end, "#")) == NULL) return false;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  const char *q = NULL;
+
+  if ((q = hc_mtlIncludeWord (p, end, "define")) != NULL)
+  {
+    char name[MTL_INCLUDE_NAME_LEN];
+
+    q = hc_mtlIncludeSkipSpace (q, end);
+
+    if ((q = hc_mtlIncludeIdent (q, end, name, sizeof (name))) == NULL) return false;
+
+    q = hc_mtlIncludeSkipSpace (q, end);
+
+    if ((q = hc_mtlIncludeM2S (q, end, file, file_sz)) == NULL) return false;
+
+    if (hc_mtlIncludeSkipSpace (q, end) != end) return false;
+
+    hc_mtlIncludeDefine (inc, name, file);
+
+    return false;
+  }
+
+  if ((p = hc_mtlIncludeWord (p, end, "include")) == NULL) return false;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  if ((p < end) && (*p == '"'))
+  {
+    p = hc_mtlIncludeFile (p + 1, end, '"', file, file_sz);
+  }
+  else if ((q = hc_mtlIncludeM2S (p, end, file, file_sz)) != NULL)
+  {
+    p = q;
+  }
+  else
+  {
+    char name[MTL_INCLUDE_NAME_LEN];
+
+    p = hc_mtlIncludeIdent (p, end, name, sizeof (name));
+
+    if (p == NULL) return false;
+
+    int i;
+
+    for (i = 0; i < inc->macro_cnt; i++)
+    {
+      if (strcmp (inc->macro_name[i], name) == 0) break;
+    }
+
+    if (i == inc->macro_cnt) return false;
+
+    if (inc->macro_file[i] == NULL) return false;
+
+    if (strlen (inc->macro_file[i]) >= file_sz) return false;
+
+    strcpy (file, inc->macro_file[i]);
+  }
+
+  if (p == NULL) return false;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  if ((p != end) && (hc_mtlIncludeWord (p, end, "//") == NULL)) return false;
+
+  return true;
+}
+
+// Whether the line is an #else, #elif or #endif. The #line that follows an expanded file is skipped
+// with it when the #include is in a block the preprocessor skips, so the line count is given again
+// after each of these, where a skipped block ends.
+
+static bool hc_mtlIncludeEndsBlock (const char *line, const char *end)
+{
+  const char *p = hc_mtlIncludeSkipSpace (line, end);
+
+  if ((p = hc_mtlIncludeWord (p, end, "#")) == NULL) return false;
+
+  p = hc_mtlIncludeSkipSpace (p, end);
+
+  char name[MTL_INCLUDE_NAME_LEN];
+
+  if (hc_mtlIncludeIdent (p, end, name, sizeof (name)) == NULL) return false;
+
+  if (strcmp (name, "else")     == 0) return true;
+  if (strcmp (name, "elif")     == 0) return true;
+  if (strcmp (name, "elifdef")  == 0) return true;
+  if (strcmp (name, "elifndef") == 0) return true;
+  if (strcmp (name, "endif")    == 0) return true;
+
+  return false;
+}
+
+// Whether the line ends in a backslash, which splices the next line onto it: the next line then
+// continues this one and starts no directive of its own, and nothing can be put after this one
+// without being spliced onto it. Blanks after the backslash still splice, with a warning, in clang
+// and gcc alike.
+
+static bool hc_mtlIncludeSpliced (const char *line, const char *end)
+{
+  while ((end > line) && ((end[-1] == '\r') || (end[-1] == ' ') || (end[-1] == '\t'))) end--;
+
+  return (end > line) && (end[-1] == '\\');
+}
+
+// The comments a line leaves open for the next one: a block comment, or a line comment that a
+// backslash at its end carries on to the next line. Both come in as what the line before left open.
+
+static void hc_mtlIncludeComments (const char *p, const char *end, bool *block_comment, bool *line_comment)
+{
+  const bool spliced = hc_mtlIncludeSpliced (p, end);
+
+  if (*line_comment == true)
+  {
+    // the whole line belongs to the line comment of the line before it
+
+    *line_comment = spliced;
+
+    return;
+  }
+
+  char quote = 0;
+
+  while (p < end)
+  {
+    if (*block_comment == true)
+    {
+      if (((end - p) >= 2) && (p[0] == '*') && (p[1] == '/'))
+      {
+        *block_comment = false;
+
+        p += 2;
+      }
+      else
+      {
+        p++;
+      }
+    }
+    else if (quote != 0)
+    {
+      // an escape takes the character after it along, if the line has one, so that p never goes
+      // past end
+
+      if ((*p == '\\') && ((end - p) >= 2)) p++;
+      else if (*p == quote) quote = 0;
+
+      p++;
+    }
+    else if ((*p == '"') || (*p == '\''))
+    {
+      quote = *p++;
+    }
+    else if (((end - p) >= 2) && (p[0] == '/') && (p[1] == '/'))
+    {
+      *line_comment = spliced;
+
+      return;
+    }
+    else if (((end - p) >= 2) && (p[0] == '/') && (p[1] == '*'))
+    {
+      *block_comment = true;
+
+      p += 2;
+    }
+    else
+    {
+      p++;
+    }
+  }
+}
+
+static char *hc_mtlIncludeRead (const char *include_path, const char *file)
+{
+  char *path = NULL;
+
+  hc_asprintf (&path, "%s/%s", include_path, file);
+
+  FILE *fp = fopen (path, "rb");
+
+  hcfree (path);
+
+  if (fp == NULL) return NULL;
+
+  struct stat st;
+
+  if ((fstat (fileno (fp), &st) != 0) || (S_ISREG (st.st_mode) == 0))
+  {
+    fclose (fp);
+
+    return NULL;
+  }
+
+  const size_t len = (size_t) st.st_size;
+
+  char *buf = (char *) hcmalloc (len + 1);
+
+  if (buf == NULL)
+  {
+    fclose (fp);
+
+    return NULL;
+  }
+
+  const size_t num_read = fread (buf, 1, len, fp);
+
+  fclose (fp);
+
+  // a NUL byte would end the source there without a word, so such a file is left to the compiler
+
+  if ((num_read != len) || (memchr (buf, 0, len) != NULL))
+  {
+    hcfree (buf);
+
+    return NULL;
+  }
+
+  buf[len] = 0;
+
+  return buf;
+}
+
+static int hc_mtlIncludeExpand (void *hashcat_ctx, mtl_include_t *inc, const char *name, const char *source)
+{
+  if (inc->depth == MTL_INCLUDE_DEPTH_MAX)
+  {
+    event_log_error (hashcat_ctx, "%s(): includes nested deeper than %d at %s", __func__, MTL_INCLUDE_DEPTH_MAX, name);
+
+    return -1;
+  }
+
+  inc->stack[inc->depth++] = name;
+
+  bool block_comment = false;
+  bool line_comment  = false;
+
+  // whether the line before ended in a backslash
+
+  bool spliced = false;
+
+  // the line count only drifts once a file has been expanded into this one
+
+  bool expanded = false;
+
+  // a #line owed by an #else, #elif or #endif, given once the directive and any comment it opened
+  // have ended, so that it is neither spliced onto the directive nor put inside the comment
+
+  bool line_due = false;
+
+  u32 line_nr = 0;
+
+  const char *line = source;
+
+  while (*line != 0)
+  {
+    const char *eol  = strchr (line, '\n');
+    const char *next = (eol != NULL) ? eol + 1 : line + strlen (line);
+
+    if (eol == NULL) eol = next;
+
+    line_nr++;
+
+    char file[MTL_INCLUDE_NAME_LEN];
+
+    // A directive is only looked for on a line that starts a line of its own: not in a comment and
+    // not spliced onto the line before it. An #include is only resolved where the line is not
+    // spliced with the line after it either: that line belongs to the #include, its comment for
+    // instance, and would become a line of its own once the #include is replaced.
+
+    const bool splices_next = hc_mtlIncludeSpliced (line, eol);
+
+    const bool starts = (block_comment == false) && (line_comment == false) && (spliced == false);
+
+    const bool is_include = (starts == true) && (splices_next == false) && (hc_mtlIncludeTarget (inc, line, eol, file, sizeof (file)) == true);
+
+    if ((starts == true) && (expanded == true) && (hc_mtlIncludeEndsBlock (line, eol) == true)) line_due = true;
+
+    hc_mtlIncludeComments (line, eol, &block_comment, &line_comment);
+
+    spliced = splices_next;
+
+    bool in_stack = false;
+
+    if (is_include == true)
+    {
+      for (int i = 0; i < inc->depth; i++)
+      {
+        if (strcmp (inc->stack[i], file) == 0) in_stack = true;
+      }
+    }
+
+    char *content = ((is_include == true) && (in_stack == false)) ? hc_mtlIncludeRead (inc->include_path, file) : NULL;
+
+    int rc = 0;
+
+    if (in_stack == true)
+    {
+      // the include guard leaves it empty here, an empty line keeps the line numbers
+
+      rc = hc_mtlIncludeAppend (inc, "\n", 1);
+    }
+    else if (content == NULL)
+    {
+      rc = hc_mtlIncludeAppend (inc, line, next - line);
+
+      if ((rc == 0) && (line_due == true) && (splices_next == false) && (block_comment == false))
+      {
+        line_due = false;
+
+        char *marker = NULL;
+
+        // a last line without a newline gets one before the #line
+
+        hc_asprintf (&marker, "%s#line %u \"%s\"\n", (eol == next) ? "\n" : "", line_nr + 1, name);
+
+        rc = hc_mtlIncludeAppend (inc, marker, strlen (marker));
+
+        hcfree (marker);
+      }
+    }
+    else
+    {
+      char *marker = NULL;
+
+      expanded = true;
+
+      hc_asprintf (&marker, "#line 1 \"%s\"\n", file);
+
+      rc = hc_mtlIncludeAppend (inc, marker, strlen (marker));
+
+      hcfree (marker);
+
+      if (rc == 0) rc = hc_mtlIncludeExpand (hashcat_ctx, inc, file, content);
+
+      hcfree (content);
+
+      if (rc == 0)
+      {
+        hc_asprintf (&marker, "\n#line %u \"%s\"\n", line_nr + 1, name);
+
+        rc = hc_mtlIncludeAppend (inc, marker, strlen (marker));
+
+        hcfree (marker);
+      }
+    }
+
+    if (rc == -1)
+    {
+      inc->depth--;
+
+      return -1;
+    }
+
+    line = next;
+  }
+
+  inc->depth--;
+
+  return 0;
+}
+
+// The source with its includes resolved, to be freed by the caller, or NULL with the error reported
+
+static char *hc_mtlResolveIncludes (void *hashcat_ctx, const char *kernel_sources, const char *include_path)
+{
+  if (include_path == NULL) return hcstrdup (kernel_sources);
+
+  mtl_include_t inc;
+
+  memset (&inc, 0, sizeof (inc));
+
+  inc.include_path = include_path;
+
+  // "program_source" is the name the compiler gives the source it is handed
+
+  int rc = hc_mtlIncludeAppend (&inc, "", 0);
+
+  if (rc == 0) rc = hc_mtlIncludeExpand (hashcat_ctx, &inc, "program_source", kernel_sources);
+
+  for (int i = 0; i < inc.macro_cnt; i++)
+  {
+    hcfree (inc.macro_name[i]);
+    hcfree (inc.macro_file[i]);
+  }
+
+  if (rc == -1)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to resolve the includes of the kernel source", __func__);
+
+    hcfree (inc.buf);
+
+    return NULL;
+  }
+
+  return inc.buf;
+}
+
 static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library, const bool opt_size)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
   NSError *error = nil;
 
-  NSString *k_string = [NSString stringWithCString: kernel_sources encoding: NSUTF8StringEncoding];
+  char *source_resolved = hc_mtlResolveIncludes (hashcat_ctx, kernel_sources, cpath);
+
+  if (source_resolved == NULL) return -1;
+
+  NSString *k_string = [NSString stringWithCString: source_resolved encoding: NSUTF8StringEncoding];
+
+  hcfree (source_resolved);
 
   if (k_string != nil)
   {

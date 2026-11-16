@@ -2,6 +2,10 @@ FROM hashcat-binaries as build
 
 FROM rocm/rocm-terminal
 
+# RUN hands its line to /bin/sh, which reports only the last command of a pipeline, so a download
+# piped into a shell passes even when the download failed. bash with pipefail fails the step instead.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 

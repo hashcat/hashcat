@@ -8,6 +8,7 @@
 #include "event.h"
 #include "timer.h"
 #include "user_options.h"
+#include "status.h"
 #include "thread.h"
 
 /*
@@ -637,7 +638,9 @@ static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
 
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  const u64 words_off = status_ctx->words_off;
+  // The segment table counts lines, and under --slow-candidates a run position counts candidates.
+
+  const u64 words_off = status_get_base_word (hashcat_ctx, status_ctx->words_off);
 
   u64 next_first = 0;
 
@@ -659,7 +662,7 @@ static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
   // Through the seek, so that a source boundary the run is never going to reach is refused for the
   // same reasons any other position out of range is.
 
-  const int rc = bypass_seek (hashcat_ctx, next_first);
+  const int rc = bypass_seek (hashcat_ctx, status_get_base_pos (hashcat_ctx, next_first));
 
   const bool moved = (rc == 0);
 

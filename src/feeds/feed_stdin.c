@@ -168,6 +168,19 @@ typedef struct stdin_global
 
   u32 flush_sec;
 
+  // --limit on several devices, see stdin_ordered_next ()
+
+  bool ordered;
+
+  hc_thread_mutex_t mux_ordered;
+
+  struct stdin_thread *cursor;
+
+  // How many blocks the cursor has taken. A thread that found the cursor empty and waits for input
+  // compares it, so that a block another thread took for the cursor meanwhile wakes it too.
+
+  u64 cursor_gen;
+
 } stdin_global_t;
 
 
@@ -197,6 +210,13 @@ typedef struct stdin_thread
   size_t last_off;
   size_t last_len;
 
+  // Under --limit, this thread's own copy of the line it last handed out. The shared block it came
+  // from moves on under the other devices, and a re-read has to find the line again.
+
+  char *copy;
+
+  size_t copy_size;
+
   u64  pos;
   bool have;
   bool replay;
@@ -205,7 +225,7 @@ typedef struct stdin_thread
 
   bool flushable;
 
-  char pad[STDIN_CACHELINE - (((sizeof (int) + sizeof (char *) + (5 * sizeof (size_t)) + sizeof (u64) + 3) % STDIN_CACHELINE))];
+  char pad[STDIN_CACHELINE - (((sizeof (int) + (2 * sizeof (char *)) + (6 * sizeof (size_t)) + sizeof (u64) + 3) % STDIN_CACHELINE))];
 
 } stdin_thread_t;
 
@@ -488,6 +508,9 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   stdin_global->free_cnt         = 0;
   stdin_global->selects_returned = 0;
   stdin_global->flush_sec        = hashcat_ctx->user_options->stdin_timeout_flush;
+  stdin_global->ordered          = false;
+  stdin_global->cursor           = NULL;
+  stdin_global->cursor_gen       = 0;
 
   for (int i = 0; i < STDIN_BLOCK_CNT; i++)
   {
@@ -513,6 +536,27 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   stdin_global->sync_live = true;
 
   global_ctx->gbldata = stdin_global;
+
+  // --limit asks for the lines of a window. A device working through blocks of its own reads
+  // whichever lines its blocks hold, so several devices between them read past the end of the window
+  // and leave lines inside it unread. With a limit they take their lines from one shared position
+  // instead, see stdin_ordered_next (). A single device reads its blocks in the order they arrived
+  // already and keeps them.
+
+  if ((hashcat_ctx->user_options->limit > 0) && (hashcat_ctx->backend_ctx->backend_devices_active > 1))
+  {
+    hc_thread_mutex_init (stdin_global->mux_ordered);
+
+    stdin_global->ordered = true;
+
+    stdin_global->cursor = hc_alloc_aligned (STDIN_CACHELINE, sizeof (stdin_thread_t));
+
+    if (stdin_global->cursor == NULL) return false;
+
+    memset (stdin_global->cursor, 0, sizeof (stdin_thread_t));
+
+    stdin_global->cursor->blk = -1;
+  }
 
   if (hc_thread_create_ok (stdin_global->reader, stdin_reader, stdin_global) == false)
   {
@@ -558,6 +602,15 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     stdin_global->sync_live = false;
   }
 
+  if (stdin_global->ordered == true)
+  {
+    hc_free_aligned ((void **) &stdin_global->cursor);
+
+    hc_thread_mutex_delete (stdin_global->mux_ordered);
+
+    stdin_global->ordered = false;
+  }
+
 
   for (int i = 0; i < STDIN_BLOCK_CNT; i++)
   {
@@ -596,6 +649,9 @@ bool thread_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_
   stdin_thread->replay    = false;
   stdin_thread->flushable = false;
 
+  stdin_thread->copy      = NULL;
+  stdin_thread->copy_size = 0;
+
   thread_ctx->thrdata = stdin_thread;
 
   return true;
@@ -624,6 +680,8 @@ void thread_term (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread
 
     hc_thread_mutex_unlock (stdin_global->mux);
   }
+
+  hcfree (stdin_thread->copy);
 
   hc_free_aligned ((void **) &stdin_thread);
 
@@ -680,6 +738,7 @@ typedef enum stdin_next
   STDIN_NEXT_BLOCK,
   STDIN_NEXT_END,
   STDIN_NEXT_FLUSH,
+  STDIN_NEXT_NONE,
 
 } stdin_next_t;
 
@@ -761,6 +820,186 @@ static stdin_next_t stdin_block_next (stdin_global_t *stdin_global, stdin_thread
   return STDIN_NEXT_BLOCK;
 }
 
+// The cursor gives back the block it has finished and takes the next one that has arrived. It never
+// waits for one, so mux_ordered is never held over a wait: a device holding lines has to be able to
+// give up on its own deadline and flush them. gen is what stdin_block_await () compares.
+
+static stdin_next_t stdin_block_take (stdin_global_t *stdin_global, stdin_thread_t *cursor, u64 *gen)
+{
+  hc_thread_mutex_lock (stdin_global->mux);
+
+  if (cursor->blk != -1)
+  {
+    stdin_global->free_list[stdin_global->free_cnt] = cursor->blk;
+
+    stdin_global->free_cnt++;
+
+    hc_thread_cond_signal (stdin_global->cond_free);
+
+    cursor->blk = -1;
+  }
+
+  if (stdin_global->filled_cnt == 0)
+  {
+    const stdin_next_t rc_none = (stdin_global->eof == true) ? STDIN_NEXT_END : STDIN_NEXT_NONE;
+
+    gen[0] = stdin_global->cursor_gen;
+
+    hc_thread_mutex_unlock (stdin_global->mux);
+
+    return rc_none;
+  }
+
+  const int blk = stdin_global->filled_q[stdin_global->filled_tail];
+
+  stdin_global->filled_tail = (stdin_global->filled_tail + 1) % STDIN_BLOCK_CNT;
+
+  stdin_global->filled_cnt--;
+
+  // the threads waiting for input wake for this as well, see stdin_block_await ()
+
+  stdin_global->cursor_gen++;
+
+  hc_thread_cond_broadcast (stdin_global->cond_filled);
+
+  hc_thread_mutex_unlock (stdin_global->mux);
+
+  cursor->blk = blk;
+  cursor->buf = stdin_global->blocks[blk].buf;
+  cursor->len = stdin_global->blocks[blk].len;
+  cursor->off = 0;
+
+  return STDIN_NEXT_BLOCK;
+}
+
+// Wait, without the cursor, until a block arrives, the cursor takes one or the input ends. A thread
+// with no deadline waits as long as that takes. With one, false tells it that the deadline has passed
+// and it is to flush.
+
+static bool stdin_block_await (stdin_global_t *stdin_global, stdin_thread_t *stdin_thread, const u64 gen, const stdin_deadline_t *deadline)
+{
+  hc_thread_mutex_lock (stdin_global->mux);
+
+  while ((stdin_global->filled_cnt == 0) && (stdin_global->eof == false) && (stdin_global->cursor_gen == gen))
+  {
+    if (deadline == NULL)
+    {
+      hc_thread_cond_wait (stdin_global->cond_filled, stdin_global->mux);
+
+      continue;
+    }
+
+    if (stdin_wait_until (stdin_global, deadline) == true) continue;
+
+    if ((stdin_global->filled_cnt > 0) || (stdin_global->eof == true) || (stdin_global->cursor_gen != gen)) break;
+
+    stdin_thread->flushable = false;
+    stdin_thread->have      = false;
+
+    hc_thread_mutex_unlock (stdin_global->mux);
+
+    return false;
+  }
+
+  hc_thread_mutex_unlock (stdin_global->mux);
+
+  return true;
+}
+
+// Under --limit on several devices every device takes its next line from the one shared cursor, so
+// the lines leave in the order they arrived and the devices between them read the lines of the
+// window. That costs a lock per line, the cost the note at the top of this file measures, which is
+// why only such a run pays it. The thread keeps its own copy of the line, because the block it came
+// from moves on under the other devices.
+
+static int stdin_ordered_next (stdin_global_t *stdin_global, stdin_thread_t *stdin_thread, u8 *out_buf, const int out_size)
+{
+  stdin_thread_t *cursor = stdin_global->cursor;
+
+  // A thread that has handed out lines since its last flush waits only --stdin-timeout-flush seconds
+  // for its next line, as it does in stdin_block_next (). The time runs from its first wait, so a block
+  // that another device takes first does not start it again.
+
+  stdin_deadline_t deadline;
+
+  const stdin_deadline_t *timed = NULL;
+
+  hc_thread_mutex_lock (stdin_global->mux_ordered);
+
+  while (cursor->off >= cursor->len)
+  {
+    u64 gen = 0;
+
+    const stdin_next_t rc_take = stdin_block_take (stdin_global, cursor, &gen);
+
+    if (rc_take == STDIN_NEXT_BLOCK) continue;
+
+    hc_thread_mutex_unlock (stdin_global->mux_ordered);
+
+    if (rc_take == STDIN_NEXT_END)
+    {
+      if (stdin_global->read_error == true) return GENERIC_RC_ERROR;
+
+      return GENERIC_RC_EOF;
+    }
+
+    if ((timed == NULL) && (stdin_global->flush_sec > 0) && (stdin_thread->flushable == true))
+    {
+      stdin_deadline_set (&deadline, stdin_global->flush_sec);
+
+      timed = &deadline;
+    }
+
+    if (stdin_block_await (stdin_global, stdin_thread, gen, timed) == false) return GENERIC_RC_FLUSH;
+
+    hc_thread_mutex_lock (stdin_global->mux_ordered);
+  }
+
+  const char *line = &cursor->buf[cursor->off];
+
+  const size_t remaining = cursor->len - cursor->off;
+
+  size_t line_len = 0;
+
+  const size_t step = hc_line_next ((const u8 *) line, remaining, &line_len);
+
+  cursor->off += (step < remaining) ? (step + 1) : remaining;
+
+  if ((stdin_thread->copy == NULL) || (line_len > stdin_thread->copy_size))
+  {
+    const size_t copy_size = MAX (line_len, 256);
+
+    char *copy = (char *) hcrealloc (stdin_thread->copy, stdin_thread->copy_size, copy_size - stdin_thread->copy_size);
+
+    if (copy == NULL)
+    {
+      hc_thread_mutex_unlock (stdin_global->mux_ordered);
+
+      return GENERIC_RC_ERROR;
+    }
+
+    stdin_thread->copy      = copy;
+    stdin_thread->copy_size = copy_size;
+  }
+
+  memcpy (stdin_thread->copy, line, line_len);
+
+  hc_thread_mutex_unlock (stdin_global->mux_ordered);
+
+  stdin_thread->last_len = line_len;
+
+  stdin_thread->have      = true;
+  stdin_thread->flushable = true;
+
+  stdin_thread->pos++;
+
+  const size_t copy_len = MIN (line_len, (size_t) out_size);
+
+  memcpy (out_buf, stdin_thread->copy, copy_len);
+
+  return (int) line_len;
+}
+
 int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size)
 {
   stdin_global_t *stdin_global = global_ctx->gbldata;
@@ -780,9 +1019,18 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
 
     if (replay_len > (size_t) out_size) replay_len = (size_t) out_size;
 
-    memcpy (out_buf, stdin_thread->buf + stdin_thread->last_off, replay_len);
+    const char *last = (stdin_global->ordered == true) ? stdin_thread->copy : &stdin_thread->buf[stdin_thread->last_off];
+
+    memcpy (out_buf, last, replay_len);
 
     return (int) stdin_thread->last_len;
+  }
+
+  if (stdin_global->ordered == true)
+  {
+    const int rc_ordered = stdin_ordered_next (stdin_global, stdin_thread, out_buf, out_size);
+
+    return rc_ordered;
   }
 
   while (stdin_thread->off >= stdin_thread->len)

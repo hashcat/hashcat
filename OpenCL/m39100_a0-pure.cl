@@ -20,17 +20,19 @@
 
 typedef struct krb5tgs_1
 {
-  u32 account_info[512];
+  u32 raw_token[512];
+
   u32 user[128];
   u32 realm[128];
-  u32 format;
 
-  u32 salt_buf[32];
-  u32 salt_len;
+  u32 kdc_salt[32];
+  u32 kdc_salt_len;
 
   u32 checksum[4];
   u32 edata2[5120];
   u32 edata2_len;
+
+  u32 format;
 
 } krb5tgs_1_t;
 
@@ -157,7 +159,7 @@ KERNEL_FQ KERNEL_FA void m39100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_1_t))
 
   COPY_PW (pws[gid]);
 
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt_len;
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
@@ -167,7 +169,7 @@ KERNEL_FQ KERNEL_FA void m39100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_1_t))
 
     u32 w[64];
 
-    krb5_des_build_buf (tmp.i, tmp.pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_len, w);
+    krb5_des_build_buf (tmp.i, tmp.pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
 
     u32 key[2];
 
@@ -220,7 +222,7 @@ KERNEL_FQ KERNEL_FA void m39100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_1_t))
 
   COPY_PW (pws[gid]);
 
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt_len;
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
@@ -230,7 +232,7 @@ KERNEL_FQ KERNEL_FA void m39100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_1_t))
 
     u32 w[64];
 
-    krb5_des_build_buf (tmp.i, tmp.pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_len, w);
+    krb5_des_build_buf (tmp.i, tmp.pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
 
     u32 key[2];
 

@@ -2848,9 +2848,14 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
 
-  // highest position of that attack
+  // highest position of that attack, read under the same lock that RESERVE and COMMIT hold while
+  // they realloc short_buf and long_buf
+
+  hc_thread_mutex_lock (brain_server_db_attack->mux_ag);
 
   u64 highest = brain_server_highest_attack (brain_server_db_attack);
+
+  hc_thread_mutex_unlock (brain_server_db_attack->mux_ag);
 
   if (brain_send (client_fd, &highest, sizeof (highest), SEND_FLAGS, NULL, NULL) == false)
   {
