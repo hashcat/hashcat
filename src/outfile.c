@@ -501,6 +501,19 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       crackpos *= mask_ctx->bfs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
+    else
+    {
+      // The three above amplify inside the launch, so a position there is the base word's times the
+      // width of that amplifier. A feed on its device engine has no width to multiply by, and counts
+      // its keyspace in base words, so the work item's own position is the position. The feed's host
+      // engine does not arrive here: it keeps ATTACK_KERN_STRAIGHT and the straight branch above
+      // already gives it the right position, with the rule count as the width.
+      //
+      // This is the last branch rather than a fourth test so that a kern with no amplifier reports
+      // its position rather than 0.
+
+      crackpos += word_pos;
+    }
   }
 
   *out_pos = crackpos;
