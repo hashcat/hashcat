@@ -2487,7 +2487,9 @@ def attack_6_single(r):
 
       write_dict(dict1_a6, dict1_lines + [pass_b[:a6_split]])
 
-      mask = mask_literalize(b"?d" * (len(pass_b) - a6_split), pass_b[a6_split:])
+      # Keep the full mask length, but bound the search to four variable digits per word.
+      tail = pass_b[a6_split:]
+      mask = tail[:-4].replace(b"?", b"??") + mask_literalize(b"?d" * len(tail[-4:]), tail[-4:])
 
       rc, out = run_hashcat(r.opts, r.mode, target, None, attack=6,
                             extra=hybrid_extra([dict1_a6, mask]))
