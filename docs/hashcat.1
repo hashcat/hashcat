@@ -9,7 +9,7 @@ hashcat \- advanced password recovery
 .SH OPTIONS
 .TP
 .B \-m, \-\-hash\-type " Num"
-Hash\-type, references below (otherwise autodetect)
+Hash\-type, references below (else autodetect)
 .br
 Example: \-m 1000
 .TP
@@ -27,7 +27,7 @@ Example: \-a 3
 Print version
 .TP
 .B \-h, \-\-help
-Print help. Use \-hh to show all supported hash\-modes
+Print help. Use \-hh for all supported hash\-modes
 .br
 Example: \-h or \-hh
 .TP
@@ -75,17 +75,17 @@ Expected number of lines on stdin, for the ETA
 Example: \-\-stdin\-count=1000000
 .TP
 .B \-\-stdin\-timeout\-abort " Num"
-Abort if there is no input from stdin for X seconds
+Abort if stdin gives no input for X seconds
 .br
 Example: \-\-stdin\-timeout\-abort=300
 .TP
 .B \-\-stdin\-timeout\-flush " Num"
-Crack a partial batch after X idle seconds on stdin
+Crack a partial batch after X idle seconds
 .br
 Example: \-\-stdin\-timeout\-flush=5
 .TP
 .B \-\-machine\-readable
-Display the status view in a machine\-readable format
+Display the status view in machine\-readable form
 .TP
 .B \-\-keep\-guessing
 Keep guessing the hash after it has been cracked
@@ -102,7 +102,7 @@ Specify hcstat2 file to use
 Example: \-\-markov\-hcstat2=my.hcstat2
 .TP
 .B \-\-markov\-disable
-Disables markov\-chains, emulates classic brute\-force
+Disable markov\-chains, use classic brute\-force
 .TP
 .B \-\-markov\-classic
 Enables classic markov\-chains, no per\-position
@@ -111,12 +111,12 @@ Enables classic markov\-chains, no per\-position
 Enables inverse markov\-chains, no per\-position
 .TP
 .B \-t, \-\-markov\-threshold " Num"
-Threshold X when to stop accepting new markov\-chains
+Stop accepting new markov\-chains above X
 .br
 Example: \-t 50
 .TP
 .B \-\-metal\-compiler\-runtime " Num"
-Abort Metal kernel build after X seconds of runtime
+Abort Metal kernel build after X seconds
 .br
 Example: \-\-metal\-compiler\-runtime=180
 .TP
@@ -131,7 +131,7 @@ Define specific session name
 Example: \-\-session=mysession
 .TP
 .B \-\-restore
-Show the command line to resume \-\-session, then stop
+Show how to resume \-\-session, then stop
 .TP
 .B \-\-restore\-disable
 Do not write restore file
@@ -166,7 +166,7 @@ Sets seconds between outfile checks to X
 Example: \-\-outfile\-check\-timer=30
 .TP
 .B \-\-wordlist\-autohex\-disable
-Disable the conversion of $HEX[] from the wordlist
+Disable $HEX[] conversion from the wordlist
 .TP
 .B \-p, \-\-separator " Char"
 Separator char for hashlists and outfile
@@ -174,13 +174,13 @@ Separator char for hashlists and outfile
 Example: \-p :
 .TP
 .B \-\-stdout
-Do not crack a hash, instead print candidates only
+Do not crack, print the candidates instead
 .TP
 .B \-\-show
-Compare hashlist with potfile; show cracked hashes
+Compare hashlist with potfile, show cracked
 .TP
 .B \-\-left
-Compare hashlist with potfile; show uncracked hashes
+Compare hashlist with potfile, show uncracked
 .TP
 .B \-\-username
 Enable ignoring of usernames in hashfile
@@ -225,17 +225,17 @@ Output file for debugging rules
 Example: \-\-debug\-file=good.log
 .TP
 .B \-\-induction\-dir " Dir"
-Specify the induction directory to use for loopback
+Specify the induction directory for loopback
 .br
 Example: \-\-induction=inducts
 .TP
 .B \-\-outfile\-check\-dir " Dir"
-Specify the directory to monitor 3rd party outfiles
+Directory to monitor for 3rd party outfiles
 .br
 Example: \-\-outfile\-check\-dir=x
 .TP
 .B \-\-cache\-path " Dir"
-Specify the directory hashcat caches everything in
+Specify the directory hashcat caches in
 .br
 Example: \-\-cache\-path=/mnt/hccache
 .TP
@@ -291,7 +291,7 @@ Example: \-\-pkzip\-member\-index=0
 Run benchmark of selected hash\-modes
 .TP
 .B \-B, \-\-benchmark\-pure
-Run benchmark of selected hash\-modes, pure kernels
+Benchmark the selected hash\-modes, pure kernels
 .TP
 .B \-\-benchmark\-all
 Run benchmark of all hash\-modes (requires \-b)
@@ -313,7 +313,7 @@ Example: \-\-benchmark\-max=1000
 Return expected speed of the attack, then quit
 .TP
 .B \-\-progress\-only
-Return ideal progress step size and time to process
+Return the ideal progress step size and time
 .TP
 .B \-\-bitmap\-min " Num"
 Sets minimum bits allowed for bitmaps to X
@@ -343,7 +343,7 @@ Locks to CPU devices, separated with commas
 Example: \-\-cpu\-affinity=1,2,3
 .TP
 .B \-\-hook\-threads " Num"
-Sets number of threads for a hook (per compute unit)
+Sets number of threads for a hook, per unit
 .br
 Example: \-\-hook\-threads=8
 .TP
@@ -383,28 +383,28 @@ Spawn X virtual instances on a real device
 Example: \-Y 8
 .TP
 .B \-R, \-\-backend\-devices\-virthost " Num"
-Sets the real device that runs the virtual instances
+Sets the real device behind the virtual ones
 .br
 Example: \-R 2
 .TP
 .B \-D, \-\-opencl\-device\-types " Str"
-OpenCL device\-types to use, separated with commas
+OpenCL device\-types to use, comma separated
 .br
 Example: \-D 1
 .TP
 .B \-O, \-\-optimized\-kernel\-enable
-Enable optimized kernels (limits password length)
+Enable optimized kernels, limits password length
 .TP
 .B \-M, \-\-multiply\-accel\-disable
-Disable multiply kernel\-accel with processor count
+Do not multiply kernel\-accel by processor count
 .TP
 .B \-n, \-\-kernel\-accel " Num"
-Manual workload tuning, set outerloop step size to X
+Manual workload tuning, outerloop step size X
 .br
 Example: \-n 64
 .TP
 .B \-u, \-\-kernel\-loops " Num"
-Manual workload tuning, set innerloop step size to X
+Manual workload tuning, innerloop step size X
 .br
 Example: \-u 256
 .TP
@@ -422,7 +422,7 @@ Example: \-\-backend\-vector\-width=4
 Disable ordering candidates by password length
 .TP
 .B \-\-hwmon\-disable
-Disable temperature and fanspeed reads and triggers
+Disable hwmon reads and temperature triggers
 .TP
 .B \-\-hwmon\-temp\-abort " Num"
 Abort if temperature reaches X degrees Celsius
@@ -446,27 +446,27 @@ Show keyspace base:mod values and quit
 Show total candidate count (base*mod) and quit
 .TP
 .B \-\-lookup " Str"
-Show where this attack reaches candidate X and quit
+Show where this attack reaches candidate X, quit
 .br
 Example: \-\-lookup=hashcat
 .TP
 .B \-j, \-\-rule\-left " Rule"
-Single rule applied to each word from left wordlist
+Single rule applied to each left wordlist word
 .br
 Example: \-j 'c'
 .TP
 .B \-k, \-\-rule\-right " Rule"
-Single rule applied to each word from right wordlist
+Single rule applied to each right wordlist word
 .br
 Example: \-k '^\-'
 .TP
 .B \-r, \-\-rules\-file " File"
-Multiple rules applied to each word from wordlists
+Multiple rules applied to each wordlist word
 .br
 Example: \-r rules/best66.rule
 .TP
 .B \-\-rules\-concat
-Use the \-r files as one list instead of chaining them
+Use the \-r files as one list, not as a chain
 .TP
 .B \-g, \-\-generate\-rules " Num"
 Generate X random rules
@@ -480,7 +480,7 @@ Force min X functions per rule
 Force max X functions per rule
 .TP
 .B \-\-generate\-rules\-func\-sel " Str"
-Pool of rule operators valid for random rule engine
+Pool of rule operators for the random engine
 .br
 Example: \-\-generate\-rules\-func\-sel=ioTlc
 .TP
@@ -537,7 +537,7 @@ Stop mask incrementing at X
 Example: \-\-increment\-max=8
 .TP
 .B \-S, \-\-slow\-candidates
-Enable slower (but advanced) candidate generators
+Enable slower but advanced candidate generators
 .TP
 .B \-\-bypass\-delay " Num"
 Seconds delay between checking bypass threshold
@@ -550,7 +550,7 @@ Minimum amount of founds to avoid being bypassed
 Example: \-\-bypass\-threshold=5
 .TP
 .B \-\-bypass\-eta " Num"
-Bypass queue items estimated to run longer (seconds)
+Bypass queue items estimated longer (seconds)
 .br
 Example: \-\-bypass\-eta=3600
 .TP
@@ -558,7 +558,7 @@ Example: \-\-bypass\-eta=3600
 Enable brain server
 .TP
 .B \-\-brain\-server\-timer " Num"
-Update the brain server dump each X seconds (min:60)
+Dump the brain server each X seconds (min:60)
 .br
 Example: \-\-brain\-server\-timer=300
 .TP
@@ -568,10 +568,10 @@ Directory the brain server keeps its dumps in
 Example: \-\-brain\-server\-dump\-dir=/var/lib/brain
 .TP
 .B \-z, \-\-brain\-client
-Enable brain client, activates \-S unless features=2
+Enable brain client, \-S unless features=2
 .TP
 .B \-\-brain\-feed
-Hash stdin into a running brain, needs \-\-brain\-session
+Hash stdin into a brain, needs \-\-brain\-session
 .TP
 .B \-\-brain\-client\-features " Num"
 Define brain client features, see below
@@ -620,7 +620,7 @@ Example: \-\-encrypt\-with\-pubkey=public.pem
 .SH BRAIN CLIENT FEATURES
 .nf
   # | Features
- ===+========
+ ===+===========================================
   1 | Send hashed passwords
   2 | Send attack positions
   3 | Send hashed passwords and attack positions
@@ -632,7 +632,7 @@ device. That is the one to use for a fast hash.
 .SH OUTFILE FORMATS
 .nf
   # | Format
- ===+========
+ ===+===================
   1 | hash[:salt]
   2 | plain
   3 | hex_plain
@@ -643,7 +643,7 @@ device. That is the one to use for a fast hash.
 .SH DEBUGGING MODES
 .nf
   # | Format
- ===+========
+ ===+===================================================
   1 | Finding\-Rule
   2 | Original\-Word
   3 | Original\-Word:Finding\-Rule
@@ -656,7 +656,7 @@ device. That is the one to use for a fast hash.
 .SH ATTACK MODES
 .nf
   # | Mode
- ===+======
+ ===+=============================================
   0 | Straight
   1 | Combination
   3 | Brute\-force
@@ -671,7 +671,7 @@ device. That is the one to use for a fast hash.
 .SH BUILT\-IN CHARSETS
 .nf
   ? | Charset
- ===+=========
+ ===+====================================
   l | abcdefghijklmnopqrstuvwxyz [a\-z]
   u | ABCDEFGHIJKLMNOPQRSTUVWXYZ [A\-Z]
   d | 0123456789                 [0\-9]
@@ -684,7 +684,7 @@ device. That is the one to use for a fast hash.
 .SH ATTACK\-MODE 12 MARKERS
 .nf
   ? | Marker
- ===+========
+ ===+==================================================
   w | the word from the wordlist, required, once
   q | a word from a second wordlist, optional, after ?w
 
@@ -693,7 +693,7 @@ device. That is the one to use for a fast hash.
 .SH OPENCL DEVICE TYPES
 .nf
   # | Device Type
- ===+=============
+ ===+============
   1 | CPU
   2 | GPU
 
@@ -708,7 +708,7 @@ Hardware reached through an assimilation bridge is selected by the hash\-mode, n
 .nf
   Attack\-          | Hash\- |
   Mode             | Type  | Example command
- ==================+=======+==================================================================
+ ==================+=======+===============================================================================================
   Wordlist         | $P$   | hashcat \-a 0 \-m 400 example400.hash example.dict
   Wordlist + Rules | MD5   | hashcat \-a 0 \-m 0 example0.hash example.dict \-r rules/best66.rule
   Brute\-Force      | MD5   | hashcat \-a 3 \-m 0 example0.hash ?a?a?a?a?a?a
