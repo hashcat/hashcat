@@ -5112,15 +5112,15 @@ def run_parallel_selftest(args):
 
     text = out.decode("utf-8", "replace")
 
-    if rc != 0:
+    if "> Warning :" in text:
+      sweep_slow += "%d " % mode
+      record("Warning")
+    elif rc != 0:
       sweep_fault += "%d " % mode
       record("Fault")
     elif "> OK :" in text:
       sweep_ok += 1
       record("OK")
-    elif "> Warning :" in text:
-      sweep_slow += "%d " % mode
-      record("Warning")
     elif "> Fault :" in text:
       sweep_fault += "%d " % mode
       record("Fault")
