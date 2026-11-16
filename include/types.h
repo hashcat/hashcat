@@ -2207,6 +2207,10 @@ typedef struct hc_device_param
   float   exec_us_last[HC_DEV_KERN_CNT];
   u32     exec_loops_last[HC_DEV_KERN_CNT];
 
+  // the kernels test every salt of the list in one launch, see module_salt_sweep ()
+
+  bool    salt_sweep;
+
   // a launch predicted from its salt, see launch_salt_t, and the launch size the records of each kind of
   // chunk were taken at, in work items and in amplifier items per work item
 
@@ -4732,6 +4736,7 @@ typedef struct module_ctx
   u64         (*module_extra_tmp_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *);
   char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   bool        (*module_jit_cache_disable)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  bool        (*module_salt_sweep)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 

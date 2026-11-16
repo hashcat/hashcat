@@ -2339,9 +2339,10 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
 
     // The fastest launches stand for the device when every launch does the same work, as with the one
     // hash of the benchmark. The salts of a list take turns in the speed ring and can cost different
-    // amounts, so there the fastest launches are only the cheapest salts, and every launch counts.
+    // amounts, so there the fastest launches are only the cheapest salts, and every launch counts. A
+    // device that tests every salt in one launch does the same work in each of them.
 
-    const bool salts_take_turns = (salts_in_turn (hashcat_ctx) > 1);
+    const bool salts_take_turns = (salts_in_turn (hashcat_ctx) > 1) && (device_param->salt_sweep == false);
 
     const double rate_floor = (salts_take_turns == true) ? 0 : rate_best * BENCHMARK_SLOT_FRACTION;
 

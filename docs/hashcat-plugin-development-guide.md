@@ -640,6 +640,20 @@ The callback writes up to `variants_size` entries and returns the number written
 
 The scrypt modes use this callback to select the TMTO and whether four lanes compute each candidate. See `src/modules/scrypt_common.c`. Modes that leave the callback unassigned use the existing tuning behavior.
 
+### module_salt_sweep() ###
+
+The `module_salt_sweep()` callback declares that the mode's kernels test every salt of the hash list in one launch on a device. hashcat normally launches a fast-hash kernel once for each salt and tests the same candidates against the salts in turn. A kernel that holds many salts at once can test a candidate against all of them for little more than the cost of one, and saves the launches and the work each of them repeats.
+
+```
+static bool module_salt_sweep (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const hashes_t *hashes, const hc_device_param_t *device_param)
+```
+
+hashcat asks once for each device, before it asks `module_jit_build_options()`, and stores the answer in `device_param->salt_sweep`. It does not ask for a slow hash, whose kernels keep the state of one salt from one launch to the next, nor under attack mode 9 or `--stdout`, and the answer is false there. The kernels of a device have to sweep exactly when `device_param->salt_sweep` is true, so a module that builds a different kernel for the sweep reads that field in `module_jit_build_options()` rather than deciding a second time.
+
+A sweep launch covers salts 0 to `SALTS_CNT` - 1, which the kernel reads from `salt_bufs` itself. `DIGESTS_CNT` is the number of digests in the whole list and `DIGESTS_OFFSET_HOST` is 0, so `mark_hash()` has room for a crack of any of them. The self-test runs the same kernel with `SALTS_CNT` set to 1. A salt that is already cracked stays in the launch, and `check_cracked()` drops a second crack of a digest that is already cracked.
+
+hashcat books a sweep launch as one launch for every salt that is not yet cracked, so the progress counters, the speed and `--progress-only` read as they would with a launch for each salt. Autotune times the whole sweep. Modes that leave the callback unassigned get a launch for each salt.
+
 ## Kernel ##
 
 The kernel is the second required part of a plugin. Kernel compilation is relatively expensive, so hashcat and the compute runtimes cache compiled binaries to reduce startup time.
@@ -750,6 +764,7 @@ These are the members, with the macro to read each one:
 * `u64 gid_max (GID_CNT)`: Gives the number of valid work items. Each kernel must compare `get_global_id (0)` with this value because the launch size may be rounded up to a multiple of the workgroup size. Processing a padded work item can produce an out-of-bounds host read when hashcat reconstructs the corresponding password.
 * u32 pre_len, u32 mid_len, u32 post_len, u32 has_q (COMBS_PRE_LEN, COMBS_MID_LEN, COMBS_POST_LEN, COMBS_HAS_Q): These describe where the word markers sit in an attack mode 12 mask, counted in mask positions. The mask is cut into three pieces: the positions before `?w`, the mid_len positions after it, and whatever is left after `?q`. Field `has_q` indicates whether the mask contains `?q`. The optimized kernels take these as numbers because they are the same for every amplifier item, which makes the shift cheaper than reading it per item.
 * u64 pcfg_lane_stride (PCFG_LANE_STRIDE): This is how many candidates one lane covers in a PCFG device engine launch. It is only meaningful in an _a4 kernel.
+* u32 salts_cnt (SALTS_CNT): This is the number of salts in salt_bufs: every salt of the hash list, or 1 in the self-test. Only a kernel that tests every salt in one launch reads it, see `module_salt_sweep()` above.
 * u32 module_tune (MODULE_TUNE): This is the way to run the kernels that autotune picked from `module_tune_variants()`, see that section above. It is zero for a mode without that callback.
 
 Kernel attribute macros provide the fixed prototype. Choose the macro appropriate for the kernel type:
@@ -1196,7 +1211,7 @@ Header `shared.h` was split, so include the header that now owns each helper. Pa
 
 The C source of a plugin written for hashcat 8.0.0 needs no change. Its `module_init()` assigns `MODULE_DEFAULT` to every callback it does not implement, and hashcat accepts that as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
 
-Four hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above, and `module_tune_variants`, see `module_tune_variants()` above. Leaving them unassigned preserves the previous behavior.
+Five hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above, `module_tune_variants`, see `module_tune_variants()` above, and `module_salt_sweep`, see `module_salt_sweep()` above. Leaving them unassigned preserves the previous behavior. The kernel parameters gained `salts_cnt`, which only the kernels of a mode with `module_salt_sweep` read.
 
 A module now only has to assign the callbacks it implements, see `module_init()` above, so a hook added in a later version appears only in the modules that use it. The following command removes the `MODULE_DEFAULT` assignments from a module, which is how the in-tree modules look now:
 
