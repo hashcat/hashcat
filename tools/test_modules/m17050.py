@@ -5,6 +5,8 @@
 ## License.....: MIT
 ##
 
+import hashlib
+
 from Crypto.Cipher import AES
 
 from lib import gpg
@@ -46,7 +48,13 @@ def module_test_properties():
 def module_generate_hash(word, salt, iterations=None):
   count    = random_number(200000000, 300000000)
   salt_raw = random_bytes(8)
-  nonce    = random_bytes(NONCE_LEN)
+
+  # The nonce comes from the salt and the password, not from the generator, for the reason
+  # lib/gpg.py gives in aes_cfb_generate (): module_17050.c takes it as the digest, and the two
+  # hashes of a SHARED_SALT pair are drawn from one generator state, so a drawn nonce would come
+  # out equal for both and the pair would reach hashcat as one hash instead of two on one salt.
+
+  nonce = hashlib.sha1(salt_raw + word).digest()[:NONCE_LEN]
 
   name, length = MARKERS[random_number(0, len(MARKERS) - 1)]
 
