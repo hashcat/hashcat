@@ -40,6 +40,7 @@ int         status_get_guess_mod_count                (const hashcat_ctx_t *hash
 double      status_get_guess_mod_percent              (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_charset                  (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mask_length              (const hashcat_ctx_t *hashcat_ctx);
+u32         status_get_guess_rules_count              (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_candidates_dev           (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 char       *status_get_hash_name                      (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_hash_target                    (const hashcat_ctx_t *hashcat_ctx);
@@ -47,12 +48,16 @@ u32         status_get_digests_done                   (const hashcat_ctx_t *hash
 u32         status_get_digests_done_pot               (const hashcat_ctx_t *hashcat_ctx);
 u32         status_get_digests_done_zero              (const hashcat_ctx_t *hashcat_ctx);
 u32         status_get_digests_done_new               (const hashcat_ctx_t *hashcat_ctx);
+u32         status_get_digests_done_attack            (const hashcat_ctx_t *hashcat_ctx);
 u32         status_get_digests_cnt                    (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_digests_percent                (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_digests_percent_new            (const hashcat_ctx_t *hashcat_ctx);
+double      status_get_digests_percent_attack         (const hashcat_ctx_t *hashcat_ctx);
 u32         status_get_salts_done                     (const hashcat_ctx_t *hashcat_ctx);
 u32         status_get_salts_cnt                      (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_amplifier_cnt                  (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_base_word                      (const hashcat_ctx_t *hashcat_ctx, const u64 pos);
+u64         status_get_base_pos                       (const hashcat_ctx_t *hashcat_ctx, const u64 word);
 u32         status_get_iteration_cnt                  (const hashcat_ctx_t *hashcat_ctx, const int salt_pos);
 double      status_get_salts_percent                  (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_msec_running                   (const hashcat_ctx_t *hashcat_ctx);
@@ -61,8 +66,13 @@ double      status_get_msec_real                      (const hashcat_ctx_t *hash
 char       *status_get_time_started_absolute          (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_started_relative          (const hashcat_ctx_t *hashcat_ctx);
 time_t      status_get_sec_etc                        (const hashcat_ctx_t *hashcat_ctx);
+time_t      status_get_sec_etc_queue                  (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_absolute        (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_relative        (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_time_estimated_absolute_queue  (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_time_estimated_relative_queue  (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_queue_keyspace                 (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_queue_progress_done            (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_restore_point                  (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_restore_total                  (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_restore_percent                (const hashcat_ctx_t *hashcat_ctx);
@@ -97,6 +107,13 @@ double      status_get_cpt_avg_min                    (const hashcat_ctx_t *hash
 double      status_get_cpt_avg_hour                   (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_cpt_avg_day                    (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_cpt                            (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_recovered_est_min              (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_recovered_est_hour             (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_recovered_est_day              (const hashcat_ctx_t *hashcat_ctx);
+u32         status_get_recovered_limit                (const hashcat_ctx_t *hashcat_ctx);
+double      status_get_recovered_limit_percent        (const hashcat_ctx_t *hashcat_ctx);
+
+void        status_curve_sample                       (hashcat_ctx_t *hashcat_ctx);
 int         status_get_salt_pos_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 u64         status_get_innerloop_pos_dev              (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 u64         status_get_innerloop_left_dev             (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
@@ -124,6 +141,8 @@ int         status_get_corespeed_dev                  (const hashcat_ctx_t *hash
 int         status_get_memoryspeed_dev                (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 u64         status_get_progress_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 double      status_get_runtime_msec_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+double      status_get_progress_only_msec             (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_progress_only_estimate         (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_kernel_accel_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 u64         status_get_kernel_power_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_loops_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);

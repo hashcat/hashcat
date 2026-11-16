@@ -10,7 +10,7 @@ import re
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import split_hash_salt_word
+from lib.test_helpers import split_hash_word
 
 # Oracle o5logon, the AUTH_SESSKEY padding check. The key is sha1 (pass . AUTH_VFR_DATA) zero
 # extended to 24 bytes, which selects AES-192. A server whose capture this mode can crack pads the
@@ -59,15 +59,22 @@ def module_generate_hash(word, salt, vfr=None):
   return "$o5logon$%s*%s" % (sesskey.hex().upper(), vfr.hex().upper())
 
 
+# The line carries its salt inside the hash, as the AUTH_VFR_DATA after the asterisk, so it is split
+# into hash and word only and the AUTH_VFR_DATA is taken from the hash.
+
 def module_verify_hash(line):
-  parts = split_hash_salt_word(line)
+  parts = split_hash_word(line)
 
   if parts is None:
     return None
 
-  hash_in, salt, word = parts
+  hash_in, word = parts
 
-  if LINE.match(hash_in) is None:
+  m = LINE.match(hash_in)
+
+  if m is None:
     return None
 
-  return (module_generate_hash(word, salt), word)
+  vfr = bytes.fromhex(m.group(2))
+
+  return (module_generate_hash(word, "", vfr), word)

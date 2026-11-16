@@ -295,6 +295,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_progress_reset (hashcat_ctx);
 
     status_ctx->msec_paused = 0;
+
+    status_ctx->attack_digests_done_new = hashcat_ctx->hashes->digests_done_new;
   }
 
   status_ctx->words_off = 0;
@@ -655,6 +657,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     hc_timer_set (&status_ctx->timer_running);
 
     time (&status_ctx->runtime_start);
+
+    status_ctx->bypass_eta_checked    = false;
+    status_ctx->bypass_eta_words_from = status_ctx->words_cur;
   }
 
   const time_t runtime_start = status_ctx->runtime_start;
@@ -664,6 +669,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    */
 
   if (round_continues == false) EVENT (EVENT_CRACKER_STARTING);
+
+  // This round prints a final status of its own, so the one the round before it held back is no
+  // longer due.
+
+  status_ctx->finished_pending = false;
 
   status_ctx->devices_status = STATUS_RUNNING;
 
@@ -870,15 +880,22 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   // crack that finished the hash list, an abort and a quit all end the run here, and each of them
   // wants the final status printed rather than swallowed.
   //
-  // inner1_loop is what actually decides to run the next round, and it decides on run_main_level3.
-  // Asking the same question the same way is what keeps a round from being the last one silently.
+  // A queue of rounds, the masks of --increment or of a mask file as much as the phases of -a 9
+  // splitting its own hash file, is one run and ends with one final status, as those phases always
+  // did. A wrapper reading --machine-readable otherwise saw STATUS 5 after the first length of an
+  // --increment run and took the task for finished. The status is held rather than dropped, because
+  // the next round may never start: --limit can end the window inside the queue, and a mask can be
+  // passed over for its length.
+  //
+  // inner1_loop and outer_loop decide on run_main_level3 and run_main_level2 whether to run the next
+  // round. Asking the same question the same way is what keeps a round from being the last one silently.
 
-  bool round_follows = false;
+  const bool dict_follows = (straight_ctx->dicts_pos + 1 < straight_ctx->dicts_cnt);
+  const bool mask_follows = (mask_ctx->masks_pos     + 1 < mask_ctx->masks_cnt);
 
-  if (user_options_extra->association_autosplit == true)
-  {
-    round_follows = ((status_ctx->run_main_level3 == true) && (status_ctx->devices_status == STATUS_EXHAUSTED) && (straight_ctx->dicts_pos + 1 < straight_ctx->dicts_cnt));
-  }
+  const bool round_follows = (status_ctx->run_main_level3 == true) && (status_ctx->run_main_level2 == true) && (status_ctx->devices_status == STATUS_EXHAUSTED) && ((dict_follows == true) || (mask_follows == true));
+
+  status_ctx->finished_pending = round_follows;
 
   if (round_follows == false) EVENT (EVENT_CRACKER_FINISHED);
 
@@ -1224,6 +1241,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     if (hashes->hashes_cnt == 0)
     {
       event_log_error (hashcat_ctx, "No hashes loaded.");
+
+      event_log_advice (hashcat_ctx, "The format this hash-mode expects is shown by --hash-info -m %d, and docs/hashcat-example-hashes.md has an example hash for every hash-mode.", user_options->hash_mode);
+      event_log_advice (hashcat_ctx, NULL);
 
       status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
@@ -1672,6 +1692,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
 
   /**
+   * the key of --encrypt-with-pubkey, against the longest password this hash mode and attack report
+   */
+
+  if (pubkey_ctx_check_size (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
+  /**
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 
@@ -1693,6 +1724,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    */
 
   EVENT (EVENT_POTFILE_NUM_CRACKED);
+
+  /**
+   * take over the restore file name from an earlier session of the same name
+   */
+
+  restore_keep_earlier (hashcat_ctx);
 
   /**
    * the bridge this hash mode selects
@@ -1978,6 +2015,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_ctx->words_walk_base = 0;
   status_ctx->words_walk_cnt  = 0;
 
+  status_ctx->finished_pending = false;
+
+  // Restored into a later round of a queue: the rounds before it ran in the session being
+  // restored, and what they held is part of the queue's progress. The walk that measures the
+  // queue starts at this round, so the sum of the rounds before it is seeded here, the same sum
+  // mask_ctx_queue_keyspace () reports for the whole queue. Only words_walk_cnt is seeded: it is
+  // advanced by words_cnt, which counts candidates the way masks_prefix_cnt does, while
+  // words_walk_base advances by words_base, which counts base words.
+
+  if ((mask_ctx->masks_pos > 0) && (mask_ctx->masks_prefix_cnt != NULL))
+  {
+    status_ctx->words_walk_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_pos];
+  }
+
   int rc_outer = 0;
 
   if (mask_ctx->masks_cnt)
@@ -1999,6 +2050,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   else
   {
     if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
+  }
+
+  // A round held its final status back for one that never started, because --limit ended the window
+  // or the remaining masks were passed over. That round was the last, so its status is due now.
+
+  if (status_ctx->finished_pending == true)
+  {
+    status_ctx->finished_pending = false;
+
+    EVENT (EVENT_CRACKER_FINISHED);
   }
 
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
@@ -2164,6 +2225,69 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hc_iconv_shutdown ();
 
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
+}
+
+// A broken driver can leave a runtime call that never returns, and the startup then waits on
+// "Please be patient" with nothing to say which runtime it is. Once a runtime has taken longer than
+// a working one does, this names it and the option that leaves it out.
+
+static const u32 BACKEND_WATCHDOG_SEC = 60;
+
+static HC_THREAD_FUNC thread_backend_watchdog (void *p)
+{
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
+
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  backend_phase_t phase = BACKEND_PHASE_NONE;
+
+  u32 slices = 0;
+
+  bool warned = false;
+
+  while (backend_ctx->init_done == false)
+  {
+    usleep (100000);
+
+    if (backend_ctx->init_phase != phase)
+    {
+      phase  = backend_ctx->init_phase;
+      slices = 0;
+      warned = false;
+
+      continue;
+    }
+
+    slices++;
+
+    if (warned == true) continue;
+
+    if (phase == BACKEND_PHASE_NONE) continue;
+
+    const bool overdue = (slices >= (BACKEND_WATCHDOG_SEC * 10));
+
+    if (overdue == false) continue;
+
+    warned = true;
+
+    backend_slow_t slow;
+
+    slow.phase   = phase;
+    slow.seconds = BACKEND_WATCHDOG_SEC;
+
+    EVENT_DATA (EVENT_BACKEND_RUNTIME_SLOW, &slow, sizeof (slow));
+  }
+
+  return 0;
+}
+
+static void backend_watchdog_stop (hashcat_ctx_t *hashcat_ctx, const bool watchdog, hc_thread_t *watchdog_thr)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  backend_ctx->init_done = true;
+
+  if (watchdog == true) hc_thread_wait (1, watchdog_thr);
 }
 
 int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime)
@@ -2356,6 +2480,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   if (user_options_check_files (hashcat_ctx) == -1) return -1;
 
   /**
+   * A mask on the command line is parsed before the backend is set up and the hashes are loaded
+   */
+
+  if (mask_ctx_check_arg (hashcat_ctx) == -1) return -1;
+
+  /**
    * Load bridge a bit too early actually, but we need to know the unit count so we can automatically configure virtualization for the user
    */
 
@@ -2376,9 +2506,25 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * Init backend library loader
    */
 
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  backend_ctx->init_phase = BACKEND_PHASE_NONE;
+  backend_ctx->init_done  = false;
+
+  hc_thread_t watchdog_thr;
+
+  const bool watchdog = hc_thread_create_ok (watchdog_thr, thread_backend_watchdog, hashcat_ctx);
+
   EVENT (EVENT_BACKEND_RUNTIMES_INIT_PRE);
 
-  if (backend_ctx_init (hashcat_ctx) == -1) return -1;
+  const int rc_backend_init = backend_ctx_init (hashcat_ctx);
+
+  if (rc_backend_init == -1)
+  {
+    backend_watchdog_stop (hashcat_ctx, watchdog, &watchdog_thr);
+
+    return -1;
+  }
 
   EVENT (EVENT_BACKEND_RUNTIMES_INIT_POST);
 
@@ -2388,7 +2534,11 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   EVENT (EVENT_BACKEND_DEVICES_INIT_PRE);
 
-  if (backend_ctx_devices_init (hashcat_ctx, comptime) == -1) return -1;
+  const int rc_devices_init = backend_ctx_devices_init (hashcat_ctx, comptime);
+
+  backend_watchdog_stop (hashcat_ctx, watchdog, &watchdog_thr);
+
+  if (rc_devices_init == -1) return -1;
 
   EVENT (EVENT_BACKEND_DEVICES_INIT_POST);
 
@@ -3371,8 +3521,10 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->digests_done_pot            = status_get_digests_done_pot           (hashcat_ctx);
   hashcat_status->digests_done_zero           = status_get_digests_done_zero          (hashcat_ctx);
   hashcat_status->digests_done_new            = status_get_digests_done_new           (hashcat_ctx);
+  hashcat_status->digests_done_attack         = status_get_digests_done_attack        (hashcat_ctx);
   hashcat_status->digests_percent             = status_get_digests_percent            (hashcat_ctx);
   hashcat_status->digests_percent_new         = status_get_digests_percent_new        (hashcat_ctx);
+  hashcat_status->digests_percent_attack      = status_get_digests_percent_attack     (hashcat_ctx);
   hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);
   hashcat_status->hash_name                   = status_get_hash_name                  (hashcat_ctx);
   hashcat_status->guess_base                  = status_get_guess_base                 (hashcat_ctx);
@@ -3386,6 +3538,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->guess_mod_percent           = status_get_guess_mod_percent          (hashcat_ctx);
   hashcat_status->guess_charset               = status_get_guess_charset              (hashcat_ctx);
   hashcat_status->guess_mask_length           = status_get_guess_mask_length          (hashcat_ctx);
+  hashcat_status->guess_rules_count           = status_get_guess_rules_count          (hashcat_ctx);
   hashcat_status->guess_mode                  = status_get_guess_mode                 (hashcat_ctx);
   hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
   hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);
@@ -3425,6 +3578,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
   hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);
   hashcat_status->time_started_relative       = status_get_time_started_relative      (hashcat_ctx);
+
+  hashcat_status->queue_keyspace                = status_get_queue_keyspace                (hashcat_ctx);
+  hashcat_status->queue_progress_done           = status_get_queue_progress_done           (hashcat_ctx);
+  hashcat_status->queue_time_estimated_absolute = status_get_time_estimated_absolute_queue (hashcat_ctx);
+  hashcat_status->queue_time_estimated_relative = status_get_time_estimated_relative_queue (hashcat_ctx);
   hashcat_status->cpt_cur_min                 = status_get_cpt_cur_min                (hashcat_ctx);
   hashcat_status->cpt_cur_hour                = status_get_cpt_cur_hour               (hashcat_ctx);
   hashcat_status->cpt_cur_day                 = status_get_cpt_cur_day                (hashcat_ctx);
@@ -3432,6 +3590,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->cpt_avg_hour                = status_get_cpt_avg_hour               (hashcat_ctx);
   hashcat_status->cpt_avg_day                 = status_get_cpt_avg_day                (hashcat_ctx);
   hashcat_status->cpt                         = status_get_cpt                        (hashcat_ctx);
+  hashcat_status->recovered_est_min           = status_get_recovered_est_min          (hashcat_ctx);
+  hashcat_status->recovered_est_hour          = status_get_recovered_est_hour         (hashcat_ctx);
+  hashcat_status->recovered_est_day           = status_get_recovered_est_day          (hashcat_ctx);
+  hashcat_status->recovered_limit             = status_get_recovered_limit            (hashcat_ctx);
+  hashcat_status->recovered_limit_percent     = status_get_recovered_limit_percent    (hashcat_ctx);
 
   // multiple devices
 

@@ -123,6 +123,7 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `tiger(x)` `tiger128(x)` `tiger160(x)` `tiger2(x)` `tiger192_4(x)` `tth(x)` | Tiger with 3 passes, as lowercase hex in the byte order printed by PHP and the reference implementation. `tiger128` and `tiger160` keep its first 16 and 20 bytes, `tiger192` is `tiger`, and `tiger2` is Tiger2, which pads with 0x80 instead of 0x01. `tiger192_4` is Tiger with 4 passes, what PHP calls tiger192,4. `tth(x)` is the Tiger tree hash of one leaf, Tiger over a 0x00 byte and `x`. It matches TTH for inputs of up to 1024 bytes. A longer input gives an inverted digest, so it cannot crack the TTH of that input. It has no `hmac_` form |
 | `mysql3(x)` | The password hash of MySQL before 4.1, 8 bytes as lowercase hex. It skips spaces and tabs as MySQL does. It can be the result, as in mode 200, or appear inside another call, as in `md5(mysql3(pass))`. It has no `hmac_` form |
 | `xxh64(x)` `xxh32(x)` | xxHash64 and xxHash32, 8 and 4 bytes as lowercase hex in their canonical big endian form. `xxh64(x, seed)` and `xxh32(x, seed)` start from a seed, as hx's `murmur3` does, and without one the seed is 0. The seed is read as a big endian number from the first 8 or 4 bytes of a single value such as `salt`, `fromhex(salt)` or a string. They have no `hmac_` form |
+| `lookup8(x)` | Bob Jenkins' lookup8 `hash()`, 8 bytes as lowercase hex in big endian form, the way its 64 bit value prints. `lookup8(x, level)` starts from a level, read like the seed of `xxh64`, and without one the level is 0. It has no `hmac_` form |
 | `lm(x)` | The LM hash, 16 bytes as lowercase hex. It keeps the first 14 bytes of `x`, converts ASCII letters to uppercase and pads with zero bytes. Each half of 7 bytes is a DES key that encrypts `KGS!@#$%`. It has no `hmac_` form |
 | `mdc2(x)` | MDC-2 with DES, 16 bytes as lowercase hex, as OpenSSL computes it. It has no `hmac_` form, because its 8-byte block is shorter than its digest |
 | `sne128(x)` `sne256(x)` | Snefru-128 and Snefru-256 with 8 rounds, as lowercase hex. `snefru128(x)` and `snefru256(x)` are the same calls. Their HMAC blocks are 48 and 32 bytes, the data each block takes |
@@ -530,7 +531,8 @@ which hashes the password alone and takes the hex digest as its hash line. These
 to 40176, so they appear in `-hh` and `--example-hashes` like any other hash-mode.
 MD6-256 is not among them, because hash-mode 34600 already covers it and uses `md6256(pass)` for its
 pure kernels. Neither are xxHash64 and xxHash32. Hash-modes 39500 and 39600 cover them with the seed
-as the salt, and use `xxh64(pass, salt)` and `xxh32(pass, salt)` for their pure kernels.
+as the salt, and use `xxh64(pass, salt)` and `xxh32(pass, salt)` for their pure kernels. The same
+goes for lookup8, which hash-mode 44400 covers with the level as the salt and `lookup8(pass, salt)`.
 
 | Mode | Name | Recipe |
 |---|---|---|
@@ -703,10 +705,10 @@ as the salt, and use `xxh64(pass, salt)` and `xxh32(pass, salt)` for their pure 
   one of them, a string or a hash call, or `utf16le` of one of these. Concatenations are not
   supported. Keys longer than the hash family's block size are hashed first, as HMAC requires. For a
   `utf16le` key, that is the length of its UTF-16LE form.
-- The seed of `xxh64` and `xxh32` must be a single part as well, but not `utf16le`. A call with a
-  seed cannot take `^N`.
+- The seed of `xxh64` and `xxh32` and the level of `lookup8` must be a single part as well, but not
+  `utf16le`. A call with a seed or a level cannot take `^N`.
 - `utf16le` accepts `pass`, `salt`, hex output and ASCII strings. It does not accept raw bytes or
-  feed the BLAKE2, Streebog and xxHash families yet, not even as an HMAC key. A password or salt with
+  feed the BLAKE2, Streebog, xxHash and lookup8 families yet, not even as an HMAC key. A password or salt with
   invalid UTF-8 cannot match a recipe that applies `utf16le` to it, including as an HMAC key or as
   the key or salt of `pbkdf2`.
 - `utf16be` decodes UTF-8 strictly: overlong forms, surrogates, code points above U+10FFFF and

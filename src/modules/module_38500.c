@@ -24,7 +24,8 @@ static const u64   KERN_TYPE      = 38500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5tgs$3$*user$realm$test/spn*$bf121bf846245e8f7ca288e61797866d$dd842b865809244a05fcb67176bfd4e5443389c9f37b2c336aa2fb1ac4ddcc518444a576ae7f94a2cc21eb1349ba843e3cc1b641362838f97a2a06c6e169580ee3f76c8a57b6f15113bb20b650b3dd806864388bfd05c55d8b6c822648b10e08b574b5e3c4383b6103f1556c81cca31cd20af1965df0a2cb7adb9d21521c9c1f2abfdf6a93a1299a5e2eee00d3a202da9d4921f3e370da4b0afe75c26f48d92497ca36b88f5203936222eeb4e87e99efefd0edc0c8bce0e26a88e383f1b7a7f7";
@@ -36,7 +37,12 @@ static const char *SIGNATURE_KRB5TGS = "$krb5tgs$3$";
 // the kernel assembles the password and the salt in a 256 byte buffer, so the two limits have to
 // stay within it together
 
-#define MAX_SALT_LEN 128
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_RAW_TOKEN_LEN 2048
+#define MAX_KDC_SALT_LEN 1022
+#define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
 
@@ -44,13 +50,13 @@ static const char *SIGNATURE_KRB5TGS = "$krb5tgs$3$";
 
 typedef struct krb5tgs_3
 {
-  u32 account_info[512];
+  u32 raw_token[512];
 
-  u32 user[MAX_SALT_LEN / 4];
-  u32 realm[MAX_SALT_LEN / 4];
+  u32 user[128];
+  u32 realm[128];
 
-  u32 salt_buf[MAX_SALT_LEN / 4];
-  u32 salt_len;
+  u32 kdc_salt[MAX_DES_SALT_LEN / 4];
+  u32 kdc_salt_len;
 
   u32 checksum[4];
   u32 edata2[MAX_EDATA2_LEN / 4];
@@ -86,9 +92,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memset (krb5tgs, 0, sizeof (krb5tgs_3_t));
 
-    /**
-   * format 1: $krb5tgs$3$*user$realm$spn*$checksum$encrypted  (asterisk block)
-   * format 2: $krb5tgs$3$user$realm$checksum$encrypted
+  /**
+   * format 1: $krb5tgs$3$user$realm$checksum$edata2
+   * format 2: $krb5tgs$3$*user$realm$spn*$checksum$edata2  (asterisk block)
    */
 
   token.signatures_cnt    = 1;
@@ -113,26 +119,26 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (line_buf[sig_len] == '*')
   {
-    // format 1: $krb5tgs$3$*user$realm$spn*$checksum$encrypted  (asterisk block)
+    // format 2: $krb5tgs$3$*user$realm$spn*$checksum$edata2  (asterisk block)
 
-    const char *account_info_start = line_buf + sig_len;
+    const char *raw_token_start = line_buf + sig_len;
 
-    const int account_info_left = line_len - (int) (account_info_start + 1 - line_buf);
+    const int raw_token_left = line_len - (int) (raw_token_start + 1 - line_buf);
 
-    const char *account_info_stop = (const char *) hc_strchr_next ((const u8 *) account_info_start + 1, account_info_left, '*');
+    const char *raw_token_stop = (const char *) hc_strchr_next ((const u8 *) raw_token_start + 1, raw_token_left, '*');
 
-    if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+    if (raw_token_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-    account_info_stop++;
-    account_info_stop++;
+    raw_token_stop++;
+    raw_token_stop++;
 
-    const int account_info_len = (int) (account_info_stop - account_info_start);
+    const int raw_token_len = (int) (raw_token_stop - raw_token_start);
 
-    if (account_info_len >= (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
+    if (raw_token_len >= (int) sizeof (krb5tgs->raw_token)) return (PARSER_SALT_LENGTH);
 
     token.token_cnt  = 4;
 
-    token.len[1]     = account_info_len;
+    token.len[1]     = raw_token_len;
     token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
     checksum_token   = 2;
@@ -153,7 +159,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-    memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
+    memcpy (krb5tgs->raw_token, token.buf[1], token.len[1]);
 
     user_pos = token.buf[1] + 1;
 
@@ -179,7 +185,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    // format 2: $krb5tgs$3$user$realm$checksum$encrypted
+    // format 1: $krb5tgs$3$user$realm$checksum$edata2
 
     token.token_cnt  = 5;
 
@@ -188,12 +194,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -222,20 +228,20 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if ((user_len < 1) || (realm_len < 1)) return (PARSER_SALT_LENGTH);
 
-  if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
+  if ((user_len + realm_len) > MAX_DES_SALT_LEN) return (PARSER_SALT_LENGTH);
 
   memcpy (krb5tgs->user,  user_pos,  user_len);
   memcpy (krb5tgs->realm, realm_pos, realm_len);
 
-  u8 *salt_ptr = (u8 *) krb5tgs->salt_buf;
+  u8 *kdc_salt_ptr = (u8 *) krb5tgs->kdc_salt;
 
-  memcpy (salt_ptr, realm_pos, realm_len);
+  memcpy (kdc_salt_ptr, realm_pos, realm_len);
 
-  uppercase (salt_ptr, realm_len);
+  uppercase (kdc_salt_ptr, realm_len);
 
-  memcpy (salt_ptr + realm_len, user_pos, user_len);
+  memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
 
-  krb5tgs->salt_len = realm_len + user_len;
+  krb5tgs->kdc_salt_len = realm_len + user_len;
 
   const u8 *checksum_pos = token.buf[checksum_token];
 
@@ -300,7 +306,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   {
     line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5TGS,
-      (const char *) krb5tgs->account_info,
+      (const char *) krb5tgs->raw_token,
       byte_swap_32 (krb5tgs->checksum[0]),
       byte_swap_32 (krb5tgs->checksum[1]),
       byte_swap_32 (krb5tgs->checksum[2]),

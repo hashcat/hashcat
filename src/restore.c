@@ -15,6 +15,8 @@
 #include "folder.h"
 #include "restore.h"
 
+#include <time.h>
+
 static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -176,6 +178,22 @@ static char *restore_shell_quote (const char *src)
       continue;
     }
 
+    // fish reads \\ and \' inside single quotes as escapes, so a backslash left inside them can
+    // swallow the closing quote there. Like the single quote, it is written outside the quotes,
+    // where every shell reads \\ as one backslash.
+
+    if (c == '\\')
+    {
+      dst[dst_len + 0] = '\'';
+      dst[dst_len + 1] = '\\';
+      dst[dst_len + 2] = '\\';
+      dst[dst_len + 3] = '\'';
+
+      dst_len += 4;
+
+      continue;
+    }
+
     dst[dst_len] = c;
 
     dst_len++;
@@ -193,11 +211,13 @@ static char *restore_shell_quote (const char *src)
 }
 
 // No quoting makes a byte the terminal reads as a command safe to hand back to the user as something
-// to paste, so a file holding one gets no pasteable line at all. On Windows three printable
+// to paste, so a file holding one gets no pasteable line at all. On Windows five printable
 // characters join that list. cmd.exe expands %VAR% inside double quotes and there is no quoting that
 // stops it. With delayed expansion enabled the same happens to !VAR!. And cmd.exe does not let a
 // backslash escape a double quote, so a double quote inside an argument would end the quoted region
-// and hand the rest of the argument to the shell. A restore file hashcat wrote holds none of them.
+// and hand the rest of the argument to the shell. PowerShell, the default shell on current Windows,
+// expands $name and $(...) inside double quotes and reads a backtick as an escape, including one in
+// front of the closing quote. No double quoting is safe in both shells, so these are refused too.
 
 static bool restore_str_is_pasteable (const char *src)
 {
@@ -214,6 +234,8 @@ static bool restore_str_is_pasteable (const char *src)
     if (c == '%') return false;
     if (c == '!') return false;
     if (c == '"') return false;
+    if (c == '$') return false;
+    if (c == '`') return false;
     #endif
   }
 
@@ -596,6 +618,69 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// A new session takes the restore file name of an earlier one of the same name, and its first
+// update would replace what that session left. The earlier file is moved aside instead, named after
+// the time it was last written, so a run started again by mistake loses nothing of the session it
+// interrupted. This runs once during startup rather than at the first update, which was a point in
+// the middle of the run that moved with the speed of the attack. A file that cannot be moved aside
+// turns the restore file off for this run rather than being replaced.
+
+void restore_keep_earlier (hashcat_ctx_t *hashcat_ctx)
+{
+  restore_ctx_t        *restore_ctx  = hashcat_ctx->restore_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (restore_ctx->enabled == false) return;
+
+  // A run under --restore-position continues the file it read, so that is the one it replaces.
+
+  if (user_options->restore_position == true) return;
+
+  const char *eff_restore_file = restore_ctx->eff_restore_file;
+
+  struct stat st;
+
+  if (stat (eff_restore_file, &st) == -1) return;
+
+  struct tm tm;
+
+  char stamp[32];
+
+  if ((localtime_r (&st.st_mtime, &tm) == NULL) || (strftime (stamp, sizeof (stamp), "%Y-%m-%d_%H-%M-%S", &tm) == 0))
+  {
+    strncpy (stamp, "old", sizeof (stamp));
+  }
+
+  char *kept = NULL;
+
+  hc_asprintf (&kept, "%s.%s", eff_restore_file, stamp);
+
+  for (u32 i = 2; hc_path_exist (kept) == true; i++)
+  {
+    hcfree (kept);
+
+    hc_asprintf (&kept, "%s.%s-%u", eff_restore_file, stamp, i);
+  }
+
+  if (rename (eff_restore_file, kept) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", eff_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "This is the restore file of an earlier session, and it could not be moved aside. This run writes no restore file.");
+
+    hcfree (kept);
+
+    restore_ctx->enabled = false;
+
+    return;
+  }
+
+  event_log_warning (hashcat_ctx, "Moved the restore file of an earlier session %s to %s.", user_options->session, kept);
+  event_log_warning (hashcat_ctx, "To continue that session, run hashcat with --restore-file-path %s --restore.", kept);
+  event_log_warning (hashcat_ctx, NULL);
+
+  hcfree (kept);
+}
+
 int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -642,7 +727,11 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   if (rename (new_restore_file, eff_restore_file) == -1)
   {
     event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+
+    return 0;
   }
+
+  restore_ctx->written = true;
 
   return 0;
 }
@@ -739,9 +828,9 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
     else
     {
       #if defined (_WIN)
-      event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, or a %%, ! or double quote that cmd.exe would act on, so it");
-      event_log_warning (hashcat_ctx, "is not printed as a command line to run. Every argument is listed instead, with each byte");
-      event_log_warning (hashcat_ctx, "outside ASCII written as \\xNN.");
+      event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, or a %%, !, double quote, $ or backtick that cmd.exe or");
+      event_log_warning (hashcat_ctx, "PowerShell would act on, so it is not printed as a command line to run. Every argument is");
+      event_log_warning (hashcat_ctx, "listed instead, with each byte outside ASCII written as \\xNN.");
       #else
       event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, so it is not printed as a command line to run. Every");
       event_log_warning (hashcat_ctx, "argument is listed instead, with each byte outside ASCII written as \\xNN.");
@@ -965,6 +1054,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   restore_ctx->words_cur_prev = -1;
 
   restore_ctx->write_failed = false;
+
+  restore_ctx->written = false;
 
   return 0;
 }

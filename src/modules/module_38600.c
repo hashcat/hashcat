@@ -24,7 +24,8 @@ static const u64   KERN_TYPE      = 38600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5asrep$3$user$realm$a2afda2f7f57adde2d3359f7427b0f7d$73fa8102fd97b2d911b0217306de09f2c3291373695cedb678c14d0d7a0e085754520ae4326daad0e40c26851d711e64a3cd4c83239e8b62aa99c718db38de8d01ccd3069efb1fc1c3cdfa75911a01944d920bd1cdf191469dc47b59140cb727e8732563eb9edaa1d33af55bf2586920050a69f092157a1c6f7cdc4a7e0860255073dc5afe1793c44fccc0377d4b0c701ff2cee8e8868f96ad1f730d51a0cc76aad0834e0a1d15e1e233b79222ca4a9f56041c53f6ba0ad679175119041b30a10762d11f7d1ceea17195dee83bdafe9024e288a2abb94b254a204cb9e2a53e647bb32d8bc89f5e340bb4f6ece082abc1";
@@ -36,7 +37,11 @@ static const char *SIGNATURE_KRB5ASREP = "$krb5asrep$3$";
 // the kernel assembles the password and the salt in a 256 byte buffer, so the two limits have to
 // stay within it together
 
-#define MAX_SALT_LEN 128
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_KDC_SALT_LEN 1022
+#define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
 
@@ -48,12 +53,12 @@ static const char *SIGNATURE_KRB5ASREP = "$krb5asrep$3$";
 
 typedef struct krb5asrep_3
 {
-  u32 user[MAX_SALT_LEN / 4];
-  u32 realm[MAX_SALT_LEN / 4];
-  u32 joined;
+  u32 user[128];
+  u32 realm[128];
+  u32 format;
 
-  u32 salt_buf[MAX_SALT_LEN / 4];
-  u32 salt_len;
+  u32 kdc_salt[MAX_DES_SALT_LEN / 4];
+  u32 kdc_salt_len;
 
   u32 checksum[4];
   u32 edata2[MAX_EDATA2_LEN / 4];
@@ -87,9 +92,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memset (krb5asrep, 0, sizeof (krb5asrep_3_t));
 
-    /**
-   * format 1: $krb5asrep$3$user@realm:checksum$encrypted  (joined)
-   * format 2: $krb5asrep$3$user$realm$checksum$encrypted
+  /**
+   * format 1: $krb5asrep$3$user@realm:checksum$edata2  (joined)
+   * format 2: $krb5asrep$3$user$realm$checksum$edata2
    */
 
   token.signatures_cnt    = 1;
@@ -126,7 +131,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (joined == true)
   {
-    // format 1: $krb5asrep$3$user@realm:checksum$encrypted  (joined)
+    // format 1: $krb5asrep$3$user@realm:checksum$edata2  (joined)
     token.token_cnt  = 4;
 
     checksum_token   = 2;
@@ -134,7 +139,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = ':';
     token.len_min[1] = 3;
-    token.len_max[1] = MAX_SALT_LEN;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
@@ -150,7 +155,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    // format 2: $krb5asrep$3$user$realm$checksum$encrypted
+    // format 2: $krb5asrep$3$user$realm$checksum$edata2
 
     token.token_cnt  = 5;
 
@@ -159,12 +164,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -214,26 +219,26 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if ((user_len < 1) || (realm_len < 1)) return (PARSER_SALT_LENGTH);
 
-  if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
+  if ((user_len + realm_len) > MAX_DES_SALT_LEN) return (PARSER_SALT_LENGTH);
 
   memcpy (krb5asrep->user,  user_pos,  user_len);
   memcpy (krb5asrep->realm, realm_pos, realm_len);
 
   // the Kerberos salt is the realm in upper case followed by the principal, with no separator
 
-  u8 *salt_ptr = (u8 *) krb5asrep->salt_buf;
+  u8 *kdc_salt_ptr = (u8 *) krb5asrep->kdc_salt;
 
-  memcpy (salt_ptr, realm_pos, realm_len);
+  memcpy (kdc_salt_ptr, realm_pos, realm_len);
 
-  uppercase (salt_ptr, realm_len);
+  uppercase (kdc_salt_ptr, realm_len);
 
-  memcpy (salt_ptr + realm_len, user_pos, user_len);
+  memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
 
-  krb5asrep->salt_len = realm_len + user_len;
+  krb5asrep->kdc_salt_len = realm_len + user_len;
 
   // the esalt was zeroed above, so only the joined shape has to say so
 
-  if (joined == true) krb5asrep->joined = 1;
+  if (joined == true) krb5asrep->format = 1;
 
   // the line keeps the first two blocks of the ciphertext apart from the rest, the way the etype 23
   // and etype 3 TGS-REP formats do, although nothing here is a checksum of its own: the checksum of
@@ -298,7 +303,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int line_len;
 
-  if (krb5asrep->joined == 1)
+  if (krb5asrep->format == 1)
   {
     line_len = snprintf (line_buf, line_size, "%s%s@%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,

@@ -287,6 +287,7 @@ static void module_ctx_defaults (module_ctx_t *module_ctx)
   if (module_ctx->module_hook_salt_size          == NULL) module_ctx->module_hook_salt_size          = MODULE_DEFAULT;
   if (module_ctx->module_hook_size               == NULL) module_ctx->module_hook_size               = MODULE_DEFAULT;
   if (module_ctx->module_jit_build_options       == NULL) module_ctx->module_jit_build_options       = MODULE_DEFAULT;
+  if (module_ctx->module_salt_sweep              == NULL) module_ctx->module_salt_sweep              = MODULE_DEFAULT;
   if (module_ctx->module_jit_cache_disable       == NULL) module_ctx->module_jit_cache_disable       = MODULE_DEFAULT;
   if (module_ctx->module_kern_bits               == NULL) module_ctx->module_kern_bits               = MODULE_DEFAULT;
   if (module_ctx->module_kern_type               == NULL) module_ctx->module_kern_type               = MODULE_DEFAULT;

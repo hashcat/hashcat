@@ -45,7 +45,7 @@ typedef enum fpga_status
 
 #define FPGA_ABI_CURRENT    4
 
-#define FPGA_SET_CURRENT    7
+#define FPGA_SET_CURRENT    8
 
 #define FPGA_ABI_STR_(x)    #x
 #define FPGA_ABI_STR(x)     FPGA_ABI_STR_(x)

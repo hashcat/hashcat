@@ -71,13 +71,13 @@ and nothing else. See
 
 #### Reduced iteration counts ####
 
-Normal runs, including `-S`, retain their original iteration counts. Pass `--artificially-low-iteration-count` to `tools/test.py`, or set `ARTIFICIALLY_LOW_ITERATION_COUNT=true`, to generate supported test vectors with a fixed count of 2. The generated hash stores that count in its real format, and hashcat decodes it normally. No hashcat runtime override is used.
+`tools/test.py` generates supported test vectors with a fixed count of 2 by default, including with `-S`. Pass `--full-iteration-count`, or set `ARTIFICIALLY_LOW_ITERATION_COUNT=false`, to use the original counts. The existing `--artificially-low-iteration-count` flag explicitly selects reduced counts. Command-line flags take precedence over the environment variable. The generated hash stores that count in its real format, and hashcat decodes it normally. No hashcat runtime override is used.
 
 A supported oracle adds a literal `reduced` section to `module_test_properties()`, containing `{'parameters': {'iterations': 2}}`. The manager reads this declaration without importing optional dependencies. Each oracle child reads its own properties to initialize `ITERATION_PARAMETERS`. Verification uses the count decoded from the hash. Explicit iteration arguments to `passthrough` and `potthrough` take precedence over the reduced default.
 
 Only formats whose generators support an encoded count of 2 opt in. Other formats, missing test modules, and external archives or containers keep their normal costs. The modes 13733, 13772, 13773, 29433, 29472 and 29473 reported in issue 5003 have no Python test module and are not covered by this option.
 
-With this option, `-S` generates a supported reduced vector instead of using the published self-test vector. Missing oracle dependencies fall back to the published vector. Other oracle errors fail the test. The setting also applies to ordinary and edge tests. Manual CI runs expose an unchecked checkbox. Scheduled and PR runs retain their original counts.
+With reduced counts, `-S` generates a supported reduced vector instead of using the published self-test vector. Missing oracle dependencies fall back to the published vector. Other oracle errors fail the test. The setting also applies to ordinary and edge tests. PR CI runs use reduced counts. Manual CI runs default to a checked reduced-count checkbox, which can be cleared for full counts. Weekly scheduled runs use full counts.
 
 `module_test_properties()` requires `constraints` and may contain `normal.parameters` for generator defaults and `reduced.parameters` for the fixed reduced count. `test_iteration_parameters(module_test_properties())` reads those properties inside the oracle process and applies reduced parameters when `ARTIFICIALLY_LOW_ITERATION_COUNT=true`. Explicit generator arguments take precedence. The manager reads the literal iteration declarations without importing crypto dependencies or evaluating constraints that may refer to module constants.
 
@@ -97,3 +97,7 @@ def module_test_properties():
     },
   }
 ```
+
+#### CI timing estimates ####
+
+Weekly and manual `test.yml` runs measure each hash mode and test kind, separately for normal and reduced iterations, to target roughly one hour per shard. Runs on `master` save successful [measurements in the Actions cache](https://github.com/hashcat/hashcat/actions/caches). Failed or unfinished tests retain their previous estimates. If the cache is missing, planning falls back to weight-based sharding.

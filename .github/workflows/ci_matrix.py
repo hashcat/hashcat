@@ -17,18 +17,21 @@
 ## because most modes are a multiple of 100 and four shards would get them all.
 
 import json
+import math
 import os
 import re
 import subprocess
 import sys
 import zlib
-
-# test.py takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
-# runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
+from statistics import median
 
 # Edge checks cover both kernel families and five vector widths. The 96 edge shards plus
 # 48 shards for each ordinary kind and 16 container shards fit GitHub's 256-job matrix limit.
 SHARDS = {"test": 48, "edge": 96, "fuzz": 16, "container": 16}
+
+# Target an hour per test job, including setup and 20 percent variation in measured mode times.
+TEST_SHARD_SECONDS = 3600
+TEST_SETUP_SECONDS = 300
 
 # A pull request is bounded by this many modes. Past it the rest is left to the
 # weekly run, and the summary says which were left out.
@@ -142,6 +145,58 @@ def test_matrix(groups, kinds):
             for i, group in enumerate(groups)]
 
 
+def timed_test_groups(modes, timings, limit):
+    # Balance measured costs and conservative estimates for untimed modes within the job budget.
+    if not modes:
+        return []
+    if not timings:
+        return balance_shards(modes, limit)
+
+    unit_seconds = max(60, math.ceil(median(seconds / mode_weight(mode)
+                                           for mode, seconds in timings.items())))
+    costs = {mode: math.ceil(timings.get(mode, unit_seconds * mode_weight(mode)) * 1.2)
+             for mode in modes}
+    budget = TEST_SHARD_SECONDS - TEST_SETUP_SECONDS
+    count = min(limit, len(modes), max(1, math.ceil(sum(costs.values()) / budget)))
+    groups = [[] for _ in range(count)]
+    loads = [0] * count
+
+    for mode in sorted(modes, key=lambda mode: (costs[mode], mode), reverse=True):
+        shard = min(range(count), key=lambda i: (loads[i], i))
+        groups[shard].append(mode)
+        loads[shard] += costs[mode]
+
+    return [sorted(group) for group in groups if group]
+
+
+def ci_timings(modes, reduced=False):
+    # Missing reduced measurements retain the saved normal cost.
+    path = os.path.join(os.path.dirname(__file__), "ci_timings.json")
+    if not os.path.isfile(path):
+        return {}
+    with open(path) as source:
+        data = json.load(source)
+    timings = {}
+    for mode in modes:
+        seconds = dict(data["normal"].get(str(mode), {}))
+        if reduced:
+            seconds.update(data["reduced"].get(str(mode), {}))
+        for kind, value in seconds.items():
+            timings.setdefault(kind, {})[mode] = value
+    return timings
+
+
+def kernel_test_matrix(modes, kinds, reduced=False):
+    # Balance each test kind independently using its normal or reduced mode timings.
+    timings = ci_timings(modes, reduced)
+    matrix = []
+    for kind in kinds:
+        limit = SHARDS["edge" if kind == "edge" else "test"]
+        groups = timed_test_groups(modes, timings.get(kind, {}), limit)
+        matrix += test_matrix(groups, [kind])
+    return matrix
+
+
 def test_modes(option):
     # Ask test.py for mode lists that cannot be inferred from the files on disk.
     out = subprocess.run([sys.executable, "tools/test.py", option],
@@ -186,7 +241,7 @@ FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|t
 # Everything test.py builds on or runs through that does not belong to one mode.
 
 TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.py"
-                         r"|tools/test_module_runner\.py|tools/test_modules/lib/.*"
+                         r"|tools/test_module_runner\.py|tools/test_iterations\.py|tools/test_modules/lib/.*"
                          r"|tools/install_modules\.sh|tools/requirements\.txt"
                          r"|\.github/workflows/(test\.yml|ci_matrix\.py))$")
 
@@ -294,16 +349,20 @@ def main():
     kernel_kinds   = [k for k in test_kinds if k not in ("container", "edge")]
     want_container = "container" in test_kinds
     want_edge      = "edge" in test_kinds
+    reduced = os.environ.get("ARTIFICIALLY_LOW_ITERATION_COUNT", "false").lower()
+    if reduced not in ("true", "false"):
+        sys.exit("ARTIFICIALLY_LOW_ITERATION_COUNT must be true or false")
+    reduced = reduced == "true"
 
     matrix = []
     notes = []
 
     if scope == "all":
         if kind == "test":
-            matrix = test_matrix(balance_shards(pool, SHARDS["test"]), kernel_kinds)
+            matrix = kernel_test_matrix(pool, kernel_kinds, reduced)
 
             if want_edge:
-                matrix += test_matrix(balance_shards(pool, SHARDS["edge"]), ["edge"])
+                matrix += kernel_test_matrix(pool, ["edge"], reduced)
 
             if want_container:
                 matrix += container_matrix(balance_shards(cpool, SHARDS["container"]))
@@ -325,10 +384,10 @@ def main():
             notes.append("not testable here, skipped: " + " ".join(str(m) for m in sorted(not_testable)))
 
         if kind == "test":
-            matrix = test_matrix(balance_shards(asked_kernel, SHARDS["test"]), kernel_kinds)
+            matrix = kernel_test_matrix(asked_kernel, kernel_kinds, reduced)
 
             if want_edge:
-                matrix += test_matrix(balance_shards(asked_kernel, SHARDS["edge"]), ["edge"])
+                matrix += kernel_test_matrix(asked_kernel, ["edge"], reduced)
 
             if asked_cont:
                 matrix += container_matrix(balance_shards(asked_cont, SHARDS["container"]))

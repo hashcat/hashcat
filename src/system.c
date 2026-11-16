@@ -201,6 +201,33 @@ int select_read_timeout_console (const int sec)
 {
   const HANDLE hStdIn = GetStdHandle (STD_INPUT_HANDLE);
 
+  // An anonymous pipe handle is always signalled, so waiting on it returns at once whether or not
+  // anything has arrived, and the read after it blocks. A silent pipe then never times out, and
+  // --stdin-timeout-abort never fires. PeekNamedPipe () returns the number of bytes waiting, so a
+  // pipe is polled with it for the time the caller allows.
+
+  if (GetFileType (hStdIn) == FILE_TYPE_PIPE)
+  {
+    const ULONGLONG deadline = GetTickCount64 () + ((ULONGLONG) sec * 1000);
+
+    while (1)
+    {
+      DWORD avail = 0;
+
+      // A peek that fails counts as readable, so that the read after it reports what happened: the
+      // end of the input for a writer that has gone away, an error otherwise. GetFileType () also
+      // calls a socket a pipe, and PeekNamedPipe () refuses one, so a socket is read as before.
+
+      if (PeekNamedPipe (hStdIn, NULL, 0, NULL, &avail, NULL) == FALSE) return 1;
+
+      if (avail > 0) return 1;
+
+      if (GetTickCount64 () >= deadline) return 0;
+
+      Sleep (10);
+    }
+  }
+
   const DWORD rc = WaitForSingleObject (hStdIn, sec * 1000);
 
   if (rc == WAIT_OBJECT_0)

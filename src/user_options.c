@@ -82,6 +82,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->brain_server               = BRAIN_SERVER;
   user_options->brain_server_timer         = BRAIN_SERVER_TIMER;
   user_options->brain_session              = BRAIN_SESSION;
+  user_options->brain_server_dump_dir      = NULL;
   user_options->brain_session_whitelist    = NULL;
   #endif
   user_options->color_cracked              = COLOR_CRACKED;
@@ -179,7 +180,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->skip                       = SKIP;
   user_options->slow_candidates            = SLOW_CANDIDATES;
   user_options->speed_only                 = SPEED_ONLY;
-  user_options->spin_damp                  = SPIN_DAMP;
   user_options->status                     = STATUS;
   user_options->status_json                = STATUS_JSON;
   user_options->pipeline_stats             = PIPELINE_STATS;
@@ -187,6 +187,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->status_timer               = STATUS_TIMER;
   user_options->stdin_count                = STDIN_COUNT;
   user_options->stdin_timeout_abort        = STDIN_TIMEOUT_ABORT;
+  user_options->stdin_timeout_flush        = STDIN_TIMEOUT_FLUSH;
   user_options->stdout_flag                = STDOUT_FLAG;
   user_options->usage                      = USAGE;
   user_options->username                   = USERNAME;
@@ -391,6 +392,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->stdin_count_chgd          = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
+      case IDX_STDIN_TIMEOUT_FLUSH:       user_options->stdin_timeout_flush       = hc_strtoul (optarg, NULL, 10);
+                                          user_options->stdin_timeout_flush_chgd  = true;                            break;
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
       case IDX_LENGTH_SORT_DISABLE:       user_options->length_sort_disable       = true;                            break;
@@ -472,6 +475,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_BYPASS_DELAY:              user_options->bypass_delay              = hc_strtoul (optarg, NULL, 10);
                                           user_options->bypass_delay_chgd         = true;                            break;
+      case IDX_BYPASS_ETA:                user_options->bypass_eta                = hc_strtoul (optarg, NULL, 10);
+                                          user_options->bypass_eta_chgd           = true;                            break;
       case IDX_BYPASS_THRESHOLD:          user_options->bypass_threshold          = hc_strtoul (optarg, NULL, 10);
                                           user_options->bypass_threshold_chgd     = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
@@ -483,8 +488,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->kernel_loops_chgd         = true;                            break;
       case IDX_KERNEL_THREADS:            user_options->kernel_threads            = hc_strtoul (optarg, NULL, 10);
                                           user_options->kernel_threads_chgd       = true;                            break;
-      case IDX_SPIN_DAMP:                 user_options->spin_damp                 = hc_strtoul (optarg, NULL, 10);
-                                          user_options->spin_damp_chgd            = true;                            break;
       case IDX_HWMON_DISABLE:             user_options->hwmon                     = false;                           break;
       case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_LOGFILE_DISABLE:           user_options->logfile                   = false;                           break;
@@ -524,6 +527,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->brain_port_chgd           = true;                            break;
       case IDX_BRAIN_SESSION:             user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
       case IDX_BRAIN_SESSION_WHITELIST:   user_options->brain_session_whitelist   = optarg;                          break;
+      case IDX_BRAIN_SERVER_DUMP_DIR:     user_options->brain_server_dump_dir     = optarg;                          break;
       #endif
       case IDX_COLOR_CRACKED:             user_options->color_cracked             = true;                            break;
       case IDX_HASH_COPY:                 user_options->hash_copy                 = true;                            break;
@@ -1247,7 +1251,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hwmon               = false;
     user_options->left                = false;
     user_options->logfile             = false;
-    user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile             = false;
     user_options->restore_enable      = false;
@@ -1299,7 +1302,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     //user_options->hwmon               = false;
     user_options->left                = false;
     user_options->logfile             = false;
-    user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile             = false;
     user_options->restore_enable      = false;
@@ -1336,7 +1338,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->increment           = INCREMENT_NONE;
     user_options->left                = false;
     user_options->logfile             = false;
-    user_options->spin_damp           = 0;
     user_options->potfile             = false;
     user_options->progress_only       = false;
     user_options->restore_enable      = false;
@@ -1863,8 +1864,16 @@ static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
   // base from the mask. Which kernel it will be is decided inside hashconfig_init, which has not run,
   // so the answer given here is the pure one and user_options_extra_init_late () upgrades it once the
   // kernel type is known.
+  //
+  // --slow-candidates builds every candidate on the host, which can put the mask in front. It has no
+  // producer for a mask base, so there the dictionary is the base whatever the kernel.
 
-  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2) return BASE_SOURCE_MASK;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2)
+  {
+    if (user_options->slow_candidates == true) return BASE_SOURCE_FEED;
+
+    return BASE_SOURCE_MASK;
+  }
 
   return BASE_SOURCE_FEED;
 }
@@ -3427,6 +3436,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
 
   #ifdef WITH_BRAIN
+  logfile_top_string (user_options->brain_server_dump_dir);
   logfile_top_string (user_options->brain_session_whitelist);
   #endif
   logfile_top_string (user_options->encrypt_with_pubkey);
@@ -3540,7 +3550,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);
-  logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
   logfile_top_uint   (user_options->json);
   logfile_top_uint   (user_options->status_json);

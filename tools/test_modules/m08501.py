@@ -5,37 +5,83 @@
 ## License.....: MIT
 ##
 
+import random
+
 from Crypto.Cipher import DES
 
-# AS/400 DES: the EBCDIC user name is DES encrypted under a key derived from the EBCDIC password,
-# each password byte xored with 0x55 and shifted left one bit. Convert::EBCDIC's table is Python's
-# cp037. Name and password are space padded to 8 bytes.
+# AS/400 DES: the EBCDIC user name is DES encrypted under a key derived from the EBCDIC
+# password, each password byte xored with 0x55 and shifted left one bit. Convert::EBCDIC's
+# table is Python's cp037. Name and password are space padded to 8 bytes.
+#
+# Passwords of 9-10 characters add a SECOND DES block: the same user name encrypted under a
+# key built from characters 9-10 (space padded). The stored hash is then both blocks, 32 hex.
+# User names of 9-10 characters are folded down to 8 bytes before encryption.
 
 
 def _ebcdic(s):
   return s.decode("latin-1").encode("cp037")
 
 
-def as400_des(username, password):
-  username = (username + b" " * 8)[:8]
-  password = (password + b" " * 8)[:8]
+def _fold_username(username):
+  buf = bytearray(b"\x40" * 10)
 
-  username_ebc = _ebcdic(username)
+  ebc = _ebcdic(username)
+
+  for i in range(min(len(ebc), 10)):
+    buf[i] = ebc[i]
+
+  if len(username) > 8:
+    buf[0] ^=  buf[8] & 0xC0
+    buf[1] ^= ((buf[8] & 0x30) << 2) & 0xff
+    buf[2] ^= ((buf[8] & 0x0C) << 4) & 0xff
+    buf[3] ^= ((buf[8] & 0x03) << 6) & 0xff
+    buf[4] ^=  buf[9] & 0xC0
+    buf[5] ^= ((buf[9] & 0x30) << 2) & 0xff
+    buf[6] ^= ((buf[9] & 0x0C) << 4) & 0xff
+    buf[7] ^= ((buf[9] & 0x03) << 6) & 0xff
+
+  return bytes(buf[:8])
+
+
+def _des_block(username_ebc, password_chars):
+  password = (password_chars + b" " * 8)[:8]
+
   password_ebc = _ebcdic(password)
 
   key = bytes(((b ^ 0x55) << 1) & 0xff for b in password_ebc)
 
-  ciphertext = DES.new(key, DES.MODE_ECB).encrypt(username_ebc)
+  return DES.new(key, DES.MODE_ECB).encrypt(username_ebc)
 
-  return ciphertext.hex()
+
+def as400_des(username, password):
+  username_ebc = _fold_username(username)
+
+  block1 = _des_block(username_ebc, password[:8])
+
+  rng = random.Random (username + b"\x00" + password)
+
+  if len(password) <= 8:
+    if rng.getrandbits (1):
+      return block1.hex()
+
+    return (block1 + b"\x40" * 8).hex()
+
+  block2 = _des_block(username_ebc, password[8:])
+
+  if rng.getrandbits (1):
+    return (block1 + block2).hex()
+
+  folded = bytes (b1 ^ b2 for b1, b2 in zip (block1, block2))
+
+  return folded.hex()
 
 
 def module_test_properties():
   return {
     'constraints': {
       'pure': {
-        'password_length': [0, 8],
-        'salt_length': [1, 8],
+        'password_length': [0, 10],
+        'salt_length': [1, 10],
       },
       'optimized': None,
       'combined_length': None,
@@ -44,7 +90,9 @@ def module_test_properties():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  hash_buf = as400_des(salt.upper().encode("latin-1"), word)
+  # the mode is OPTS_TYPE_PT_UPPER / OPTS_TYPE_ST_UPPER, so hashcat upper-cases both the
+  # candidate and the salt before hashing. Match that here or mixed-case words never verify.
+  hash_buf = as400_des(salt.upper().encode("latin-1"), word.upper())
 
   return "$as400$des$*%s*%s" % (salt.upper(), hash_buf.upper())
 

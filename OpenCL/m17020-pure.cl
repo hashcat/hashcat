@@ -442,7 +442,9 @@ KERNEL_FQ KERNEL_FA void m17020_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[digest_cur].iv[idx];
 
-  u32 decoded_data[384];
+  // One word more than the data fills, because check_decoded_data () reads the word after the
+  // checksum's last one, which at the maximum of 1536 bytes is word 384.
+  u32 decoded_data[385];
 
   const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 
@@ -523,7 +525,9 @@ KERNEL_FQ KERNEL_FA void m17020_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[digest_cur].iv[idx];
 
-  u32 decoded_data[384];
+  // One word more than the data fills, because check_decoded_data () reads the word after the
+  // checksum's last one, which at the maximum of 1536 bytes is word 384.
+  u32 decoded_data[385];
 
   const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 

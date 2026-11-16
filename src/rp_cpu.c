@@ -377,6 +377,27 @@ static int mangle_replace (char arr[RP_PASSWORD_SIZE], int arr_len, char oldc, c
   return arr_len;
 }
 
+static int mangle_replace_nth (char arr[RP_PASSWORD_SIZE], int arr_len, int occurrence, char oldc, char newc)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (arr[arr_pos] != oldc) continue;
+
+    if (cnt == occurrence)
+    {
+      arr[arr_pos] = newc;
+
+      break;
+    }
+
+    cnt++;
+  }
+
+  return arr_len;
+}
+
 static int mangle_replace_class_l (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
 {
   for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
@@ -1380,6 +1401,57 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         out_len = mangle_omit (out, out_len, upos, ulen);
         break;
 
+      case RULE_OP_MANGLE_INSERT_STRING:
+        {
+          // AN"STR": the character after N opens the string and its next occurrence closes it,
+          // after \xHH is decoded. cpu_rule_to_kernel_rule () compiles the same string into one
+          // append, prepend or insert per byte, and this runs those in the same order, so the host
+          // and the device also agree where the length limit cuts.
+
+          if ((rule_pos + 2) >= rule_len_new) return (RULE_RC_SYNTAX_ERROR);
+
+          const bool at_end = (rule_new[rule_pos + 1] == 'z');
+
+          upos = (at_end == true) ? 0 : conv_ctoi (rule_new[rule_pos + 1]);
+
+          if (upos == -1) return (RULE_RC_SYNTAX_ERROR);
+
+          const char quote = rule_new[rule_pos + 2];
+
+          const int str_pos = rule_pos + 3;
+
+          int str_end = str_pos;
+
+          while ((str_end < rule_len_new) && (rule_new[str_end] != quote)) str_end++;
+
+          if (str_end == rule_len_new) return (RULE_RC_SYNTAX_ERROR);
+
+          const int str_len = str_end - str_pos;
+
+          // positions above 35 have no character to write them back with
+
+          if ((at_end == false) && (str_len > 0) && ((upos + str_len - 1) > 35)) return (RULE_RC_SYNTAX_ERROR);
+
+          for (int i = 0; i < str_len; i++)
+          {
+            if (at_end == true)
+            {
+              out_len = mangle_append (out, out_len, rule_new[str_pos + i]);
+            }
+            else if (upos == 0)
+            {
+              out_len = mangle_prepend (out, out_len, rule_new[str_end - 1 - i]);
+            }
+            else
+            {
+              out_len = mangle_insert (out, out_len, upos + i, rule_new[str_pos + i]);
+            }
+          }
+
+          rule_pos = str_end;
+        }
+        break;
+
       case RULE_OP_MANGLE_INSERT:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
@@ -1438,6 +1510,14 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RULEPOS (rule_pos);
         NEXT_RULEPOS (rule_pos);
         out_len = mangle_replace (out, out_len, rule_new[rule_pos - 1], rule_new[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NTH:
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RULEPOS (rule_pos);
+        out_len = mangle_replace_nth (out, out_len, upos, rule_new[rule_pos - 1], rule_new[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:

@@ -658,7 +658,7 @@ static char *status_get_guess_feed (const hashcat_ctx_t *hashcat_ctx)
 
   if (global_ctx->segments_cnt > 1)
   {
-    const u64 words_cur = status_get_words_cur_furthest (hashcat_ctx);
+    const u64 words_cur = status_get_base_word (hashcat_ctx, status_get_words_cur_furthest (hashcat_ctx));
 
     u64 segment_idx = 0;
 
@@ -1060,6 +1060,18 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   return NULL;
 }
 
+u32 status_get_guess_rules_count (const hashcat_ctx_t *hashcat_ctx)
+{
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (straight_ctx == NULL) return 0;
+
+  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0)) return 0;
+
+  return straight_ctx->kernel_rules_cnt;
+}
+
 int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -1146,9 +1158,9 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   // build_plain returns up to PW_MAX * 2 bytes for a combinator candidate, and hexifying doubles it
   // again, so both buffers have to hold twice the longest candidate plus the terminator.
   //
-  // exec_hexify stops reading at PW_MAX, so a candidate longer than that is shown only as far as it
-  // got. The terminator goes where exec_hexify says it stopped rather than where the whole candidate
-  // would have ended, because the bytes in between were never written.
+  // exec_hexify stops reading at PW_MAX * 2, which build_plain never exceeds. The terminator goes where
+  // exec_hexify says it stopped rather than where the whole candidate would have ended, because the
+  // bytes in between would never have been written.
 
   u32 plain_buf1[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
   u32 plain_buf2[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
@@ -1244,6 +1256,19 @@ u32 status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
   return hashes->digests_done_new;
 }
 
+// The cracks of the current queue item, a mask or a wordlist out of several. They are counted from
+// the new cracks, so a hash removed by the outfile check directory belongs to no attack.
+
+u32 status_get_digests_done_attack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const u32 digests_done_attack = hashes->digests_done_new - status_ctx->attack_digests_done_new;
+
+  return digests_done_attack;
+}
+
 u32 status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
@@ -1269,6 +1294,17 @@ double status_get_digests_percent_new (const hashcat_ctx_t *hashcat_ctx)
   return ((double) hashes->digests_done_new / (double) hashes->digests_cnt) * 100;
 }
 
+double status_get_digests_percent_attack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashes->digests_cnt == 0) return 0;
+
+  const double digests_percent_attack = ((double) status_get_digests_done_attack (hashcat_ctx) / (double) hashes->digests_cnt) * 100;
+
+  return digests_percent_attack;
+}
+
 u32 status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
@@ -1292,6 +1328,34 @@ u64 status_get_amplifier_cnt (const hashcat_ctx_t *hashcat_ctx)
   if (user_options_extra->attack_kern == ATTACK_KERN_BF)       return mask_ctx->bfs_cnt;
 
   return 1;
+}
+
+// A run position as a base word, for everything that compares it with the lines of the feed's
+// sources. --slow-candidates expands the amplifier on the host, so there a position counts the
+// candidates of every base word.
+
+u64 status_get_base_word (const hashcat_ctx_t *hashcat_ctx, const u64 pos)
+{
+  if (hashcat_ctx->user_options->slow_candidates == false) return pos;
+
+  const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+  const u64 word = (amplifier > 1) ? (pos / amplifier) : pos;
+
+  return word;
+}
+
+// and back, the run position of the first candidate of a base word
+
+u64 status_get_base_pos (const hashcat_ctx_t *hashcat_ctx, const u64 word)
+{
+  if (hashcat_ctx->user_options->slow_candidates == false) return word;
+
+  const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+  const u64 pos = (amplifier > 1) ? (word * amplifier) : word;
+
+  return pos;
 }
 
 u32 status_get_iteration_cnt (const hashcat_ctx_t *hashcat_ctx, const int salt_pos)
@@ -1482,9 +1546,7 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
       {
         const u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
-        // Salts are worked one after another, so a live salt can pass --stdin-count before a cracked
-        // salt later in the order is credited with the words it skipped. The work ignored is then more
-        // than the work left, and there is no estimate to give.
+        // The work ignored can be more than the work left, and there is then no estimate to give.
 
         if (progress_ignore > progress_left_relative_skip) return 0;
 
@@ -1498,10 +1560,138 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
   return sec_etc;
 }
 
-char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
+u64 status_get_queue_keyspace (const hashcat_ctx_t *hashcat_ctx)
 {
-  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
+  // Zero and (u64) -1 are how mask_ctx_queue_keyspace () says there is no answer: no queue of
+  // masks, or a sum that did not fit.
+
+  if (status_ctx->words_queue_cnt == 0) return 0;
+  if (status_ctx->words_queue_cnt == (u64) -1) return 0;
+
+  // Progress counts one candidate per salt, so the total the queue is measured against counts them
+  // too.
+
+  if (overflow_check_u64_mul (status_ctx->words_queue_cnt, hashes->salts_cnt) == true) return 0;
+
+  const u64 queue_keyspace = status_ctx->words_queue_cnt * hashes->salts_cnt;
+
+  return queue_keyspace;
+}
+
+u64 status_get_queue_progress_done (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_get_queue_keyspace (hashcat_ctx) == 0) return 0;
+
+  // words_walk_cnt is every round sized so far, the one in progress included. Taking that round
+  // back out and adding what of it has actually run gives the queue-wide counterpart of
+  // status_get_progress_cur ().
+
+  u64 words_prev = 0;
+
+  if ((status_ctx->words_walk_cnt != (u64) -1) && (status_ctx->words_cnt != (u64) -1))
+  {
+    if (status_ctx->words_walk_cnt >= status_ctx->words_cnt)
+    {
+      words_prev = status_ctx->words_walk_cnt - status_ctx->words_cnt;
+    }
+  }
+
+  u64 queue_done = status_get_progress_cur (hashcat_ctx);
+
+  if (overflow_check_u64_mul (words_prev, hashes->salts_cnt) == false)
+  {
+    const u64 prev_cnt = words_prev * hashes->salts_cnt;
+
+    if (overflow_check_u64_add (queue_done, prev_cnt) == false)
+    {
+      queue_done += prev_cnt;
+    }
+  }
+
+  return queue_done;
+}
+
+time_t status_get_sec_etc_queue (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  time_t sec_etc = 0;
+
+  const u64 queue_keyspace = status_get_queue_keyspace (hashcat_ctx);
+
+  if (queue_keyspace > 0)
+  {
+    if (status_ctx->devices_status != STATUS_CRACKED)
+    {
+      const u64 queue_done = status_get_queue_progress_done (hashcat_ctx);
+
+      const double hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
+
+      if ((queue_keyspace > queue_done) && (hashes_msec_all > 0))
+      {
+        u64 queue_left = queue_keyspace - queue_done;
+
+        // A cracked salt is skipped for the rest of the round in progress and for every round after
+        // it, so its work comes out of the estimate the way status_get_progress_ignore () leaves it
+        // out of Time.Estimated. The rounds after the one in progress are sized per salt, and each
+        // cracked salt takes their whole keyspace with it.
+
+        u64 progress_ignore = status_get_progress_ignore (hashcat_ctx);
+
+        const hashes_t   *hashes   = hashcat_ctx->hashes;
+        const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+        if ((mask_ctx->masks_prefix_cnt != NULL) && (mask_ctx->masks_pos + 1 < mask_ctx->masks_cnt))
+        {
+          const u32 cracked_cnt = hashes->salts_done;
+
+          if (cracked_cnt > 0)
+          {
+            // The prefix sums were sized once at init, so this is a plain read, safe on the
+            // status thread.
+
+            const u64 prefix_cnt = mask_ctx->masks_prefix_cnt[mask_ctx->masks_pos + 1];
+
+            if ((prefix_cnt != UINT64_MAX) && (status_ctx->words_queue_cnt >= prefix_cnt))
+            {
+              const u64 rounds_left_cnt = status_ctx->words_queue_cnt - prefix_cnt;
+
+              if (overflow_check_u64_mul (rounds_left_cnt, cracked_cnt) == false)
+              {
+                const u64 queue_ignore = rounds_left_cnt * cracked_cnt;
+
+                if (overflow_check_u64_add (progress_ignore, queue_ignore) == false)
+                {
+                  progress_ignore += queue_ignore;
+                }
+              }
+            }
+          }
+        }
+
+        // The same salt ordering caveat as Time.Estimated: a live salt can pass the ignored work of
+        // a cracked one, and then there is no estimate to give.
+
+        if (progress_ignore > queue_left) return 0;
+
+        const u64 msec_left = (u64) ((queue_left - progress_ignore) / hashes_msec_all);
+
+        sec_etc = msec_left / 1000;
+      }
+    }
+  }
+
+  return sec_etc;
+}
+
+static char *status_format_time_estimated_absolute (const time_t sec_etc)
+{
   time_t now;
   time (&now);
 
@@ -1530,13 +1720,29 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   return strdup (etc);
 }
 
-char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+  char *etc = status_format_time_estimated_absolute (sec_etc);
+
+  return etc;
+}
+
+char *status_get_time_estimated_absolute_queue (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc_queue (hashcat_ctx);
+
+  char *etc = status_format_time_estimated_absolute (sec_etc);
+
+  return etc;
+}
+
+static char *status_format_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx, const time_t sec_etc)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
 
   struct tm *tmp;
   struct tm  tm;
@@ -1582,6 +1788,24 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
     hcfree (tmp_display);
   }
+
+  return display;
+}
+
+char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+  char *display = status_format_time_estimated_relative (hashcat_ctx, sec_etc);
+
+  return display;
+}
+
+char *status_get_time_estimated_relative_queue (const hashcat_ctx_t *hashcat_ctx)
+{
+  const time_t sec_etc = status_get_sec_etc_queue (hashcat_ctx);
+
+  char *display = status_format_time_estimated_relative (hashcat_ctx, sec_etc);
 
   return display;
 }
@@ -1781,6 +2005,18 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) words_cnt  *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    words_cnt  *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       words_cnt  *= mask_ctx->bfs_cnt;
+
+      // What a salt has done is counted in candidates, so a limit left in base words is smaller than
+      // that and the subtraction below wraps as soon as the device engine cracks a salt.
+
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        u64 amplifier = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+        if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) amplifier *= straight_ctx->kernel_rules_cnt;
+
+        words_cnt *= amplifier;
+      }
     }
   }
   // Important for ETA only
@@ -1965,6 +2201,19 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
+
+      // The restored progress books a skipped base word of the device engine as its mean cell, times
+      // the ruleset where the engine applies the rules itself. Taking it off in base words left almost
+      // the whole skipped stream in the progress, so -a 4 --skip started far above zero.
+
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        u64 amplifier = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+        if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) amplifier *= straight_ctx->kernel_rules_cnt;
+
+        progress_skip *= amplifier;
+      }
     }
   }
 
@@ -2052,10 +2301,20 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   return hashes_dev_msec;
 }
 
+// How close to the fastest launch of a run another launch has to be to count towards the figure a
+// benchmark prints.
+
+#define BENCHMARK_SLOT_FRACTION 0.98
+
+// A benchmark measures only its own launches, not the startup and autotune in front of them, which
+// is why it does not use the function above. The launches are not alike: the one that starts a chunk
+// of base words also pays about seven percent for preparing it, so a figure taken from a single
+// launch depends on where the keyspace happens to end. Pooling the launches that ran within the
+// fraction above of the fastest one keeps that out of the figure, and drops a launch that something
+// else on the device interrupted along with it.
+
 double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
-  // this function increases accuracy for benchmark modes
-
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   u64    speed_cnt  = 0;
@@ -2067,8 +2326,37 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
   {
     const u32 speed_pos = MAX (device_param->speed_pos, 1);
 
-    speed_cnt  += device_param->speed_cnt[speed_pos - 1];
-    speed_msec += device_param->speed_msec[speed_pos - 1];
+    double rate_best = 0;
+
+    for (u32 i = 0; i < speed_pos; i++)
+    {
+      if (device_param->speed_msec[i] <= 0) continue;
+
+      const double rate = (double) device_param->speed_cnt[i] / device_param->speed_msec[i];
+
+      rate_best = MAX (rate_best, rate);
+    }
+
+    // The fastest launches stand for the device when every launch does the same work, as with the one
+    // hash of the benchmark. The salts of a list take turns in the speed ring and can cost different
+    // amounts, so there the fastest launches are only the cheapest salts, and every launch counts. A
+    // device that tests every salt in one launch does the same work in each of them.
+
+    const bool salts_take_turns = (salts_in_turn (hashcat_ctx) > 1) && (device_param->salt_sweep == false);
+
+    const double rate_floor = (salts_take_turns == true) ? 0 : rate_best * BENCHMARK_SLOT_FRACTION;
+
+    for (u32 i = 0; i < speed_pos; i++)
+    {
+      if (device_param->speed_msec[i] <= 0) continue;
+
+      const double rate = (double) device_param->speed_cnt[i] / device_param->speed_msec[i];
+
+      if (rate < rate_floor) continue;
+
+      speed_cnt  += device_param->speed_cnt[i];
+      speed_msec += device_param->speed_msec[i];
+    }
   }
 
   double hashes_dev_msec = 0;
@@ -2133,7 +2421,13 @@ char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int back
   return display;
 }
 
-int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
+// The cracks inside a trailing window, summed off the per second history. A slot whose second falls
+// outside the window is either older than it or was never written, and reads as nothing either way,
+// so a window shorter than the run needs no special case and neither does a run shorter than the
+// window: before a minute has passed the minute count is everything cracked so far, which is what a
+// count over the last minute means.
+
+static int cpt_cur (const hashcat_ctx_t *hashcat_ctx, const time_t window)
 {
   const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -2146,74 +2440,35 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   const time_t now = time (NULL);
 
-  int cpt_cur_min = 0;
+  int cracked = 0;
 
-  for (int i = 0; i < CPT_CACHE; i++)
+  for (int i = 0; i < CPT_SECONDS; i++)
   {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-    if ((timestamp + 60) > now)
-    {
-      cpt_cur_min += cracked;
-    }
+    if ((cpt_ctx->cpt_buf[i].timestamp + window) > now) cracked += (int) cpt_ctx->cpt_buf[i].cracked;
   }
 
-  return cpt_cur_min;
+  return cracked;
+}
+
+int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
+{
+  const int cracked = cpt_cur (hashcat_ctx, 60);
+
+  return cracked;
 }
 
 int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const int cracked = cpt_cur (hashcat_ctx, 60 * 60);
 
-  if (status_ctx->accessible == false) return 0;
-
-  if (cpt_ctx->enabled == false) return 0;
-
-  const time_t now = time (NULL);
-
-  int cpt_cur_hour = 0;
-
-  for (int i = 0; i < CPT_CACHE; i++)
-  {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-    if ((timestamp + 3600) > now)
-    {
-      cpt_cur_hour += cracked;
-    }
-  }
-
-  return cpt_cur_hour;
+  return cracked;
 }
 
 int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const int cracked = cpt_cur (hashcat_ctx, 60 * 60 * 24);
 
-  if (status_ctx->accessible == false) return 0;
-
-  if (cpt_ctx->enabled == false) return 0;
-
-  const time_t now = time (NULL);
-
-  int cpt_cur_day = 0;
-
-  for (int i = 0; i < CPT_CACHE; i++)
-  {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-    if ((timestamp + 86400) > now)
-    {
-      cpt_cur_day += cracked;
-    }
-  }
-
-  return cpt_cur_day;
+  return cracked;
 }
 
 double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
@@ -2270,49 +2525,733 @@ double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
   return cpt_avg_day;
 }
 
-char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
+// Fit what is still to find against the candidates spent, as a number this attack never reaches plus
+// a power law falling onto it:
+//
+//   M(g) = never + A g^-beta
+//
+// With never fixed the rest is a straight line in log space, log (M - never) = log A - beta log g,
+// so never is the only thing gridded and the line behind it is solved in closed form. The error is
+// measured in digests rather than in logs, so the grid compares candidates in the unit the answer is
+// read in.
+//
+// Both coordinates come off counters hashcat already keeps exactly, so there is nothing to smooth
+// and no rate to difference. Differencing is what makes a rate too noisy to read: on an RTX 4090
+// measuring example0.hash, consecutive five second rates swung by an order of magnitude while the
+// cumulative pairs they were taken from carried no scatter at all.
+//
+// Nothing here is tuned. The fit decides for itself how much data it needs, which floor to settle
+// on and whether either answer is worth printing, all out of the scatter of the points about the
+// line. A threshold written into the source would be a guess about runs nobody has made yet.
+
+typedef struct curve_line
+{
+  // The line itself: the probit of the share against the logarithm of the candidates spent.
+
+  double inter;
+  double slope;
+
+  // What the residuals say about it. s is the scatter of the points about the line, xbar and sxx
+  // place the line's own span, and n is how many points carry it. Those four give the standard
+  // error of anything read off the line, and that error grows with how far beyond the span the
+  // question reaches, which is what makes a day ahead answerable later than a minute ahead.
+
+  double s;
+  double xbar;
+  double sxx;
+  double sse;
+
+  int    n;
+
+  bool   ok;
+
+} curve_line_t;
+
+// The share of the ever crackable digests found by a given point, as a normal distribution over the
+// logarithm of the candidates spent. A password's position in a grammar's output is spread over
+// orders of magnitude rather than over a range, which is why the logarithm is the variable that
+// behaves. A distribution over it also has to end, and that is the part a power law gets wrong: a
+// power law's remainder decays polynomially for ever, so an extrapolation keeps promising cracks
+// after the measured runs have stopped delivering any. Fitted to the first minute of a run on
+// example0.hash, a power law said 6178 digests by this time tomorrow and kept lowering that by
+// hundreds as the data arrived, where this shape said 5507 and then moved by seven.
+//
+// Fitted exactly as the power law was. For a fixed floor the model is a straight line, this time
+// against the probit of the share rather than the logarithm of the remainder, so the same closed
+// form solves it and the same search finds the floor.
+
+static double curve_ndtr (const double x)
+{
+  const double p = 0.5 * (1.0 + erf (x / sqrt (2.0)));
+
+  return p;
+}
+
+// The probit, by Newton on the function above, whose derivative is the normal density and so is
+// closed form. It runs until a step stops moving the answer, which is the arithmetic saying it is
+// done rather than a tolerance written here. An approximation's coefficient table would be a page
+// of constants in the source whatever their provenance, so there is none.
+
+static double curve_ndtri (const double p)
+{
+  const double pi = acos (-1.0);
+
+  double x = 0;
+
+  for (int i = 0; i < 64; i++)
+  {
+    const double pdf = exp (-0.5 * x * x) / sqrt (2.0 * pi);
+
+    if (pdf <= 0.0) break;
+
+    const double step = (curve_ndtr (x) - p) / pdf;
+
+    const double next = x - step;
+
+    if (next == x) break;
+
+    x = next;
+  }
+
+  return x;
+}
+
+// The straight line through the probit of the share against log (progress), by least squares, which
+// is the one fit that also says how far the points lie from it. Answers ok false when there is no
+// line to speak of: too few points to have a residual at all, a span of candidates too short to
+// separate a rising share from a flat one, or a share that has not moved, which fits every floor
+// perfectly with a slope made of rounding dust.
+
+static void curve_solve (const cpt_ctx_t *cpt_ctx, const u32 never, curve_line_t *out)
+{
+  out->ok = false;
+
+  if (cpt_ctx->curve_total <= never) return;
+
+  // The digests this attack can still reach, which is everything but the floor. The share is what
+  // it has reached of that, so the floor being searched for moves the share of every point.
+
+  const double amp = (double) (cpt_ctx->curve_total - never);
+
+  double sum_x  = 0;
+  double sum_y  = 0;
+  double sum_xx = 0;
+  double sum_xy = 0;
+  double sum_yy = 0;
+
+  int n = 0;
+
+  for (int i = 0; i < cpt_ctx->curve_cnt; i++)
+  {
+    if (cpt_ctx->curve_buf[i].on_curve  == false) continue;
+    if (cpt_ctx->curve_buf[i].progress  == 0)     continue;
+    if (cpt_ctx->curve_buf[i].remaining <= never) continue;
+
+    const double done = (double) (cpt_ctx->curve_total - cpt_ctx->curve_buf[i].remaining);
+
+    const double share = done / amp;
+
+    if (share <= 0.0) continue;
+    if (share >= 1.0) continue;
+
+    const double x = log ((double) cpt_ctx->curve_buf[i].progress);
+    const double y = curve_ndtri (share);
+
+    sum_x  += x;
+    sum_y  += y;
+    sum_xx += x * x;
+    sum_xy += x * y;
+    sum_yy += y * y;
+
+    n++;
+  }
+
+  // Two parameters, and one point left over to measure the scatter with. Fewer than that is an
+  // interpolation calling itself a fit, and it is the degrees of freedom saying so rather than a
+  // sample count anyone chose.
+
+  if (n < 3) return;
+
+  const double xbar = sum_x / (double) n;
+  const double ybar = sum_y / (double) n;
+
+  const double sxx = sum_xx - ((double) n * xbar * xbar);
+  const double syy = sum_yy - ((double) n * ybar * ybar);
+
+  if (sxx <= 0) return;
+
+  // A share that has not moved leaves syy at zero, give or take the last bits of the sums, and the
+  // slope is then whatever those bits round to. A run restarted on a list an earlier one stripped
+  // is exactly that case, and with the floor searched over a range rather than solved for, some of
+  // the floors tried come out of the rounding with a slope of the right sign and a perfect fit. On
+  // a 7900 XTX measuring example0.hash, 34 of the 64 floors an earlier version gridded did, and
+  // the arbitrary winner had the line claiming one more digest by this time tomorrow. Asking
+  // whether the share moved at all is what catches it, and it is the same quantity the scatter is
+  // measured against.
+
+  if (syy <= 0) return;
+
+  const double sxy = sum_xy - ((double) n * xbar * ybar);
+
+  const double slope = sxy / sxx;
+
+  // The share can only grow as the candidates are spent. A fit that says otherwise is not this
+  // curve.
+
+  if (slope <= 0) return;
+
+  const double inter = ybar - (slope * xbar);
+
+  double sse = 0;
+
+  for (int i = 0; i < cpt_ctx->curve_cnt; i++)
+  {
+    if (cpt_ctx->curve_buf[i].on_curve  == false) continue;
+    if (cpt_ctx->curve_buf[i].progress  == 0)     continue;
+    if (cpt_ctx->curve_buf[i].remaining <= never) continue;
+
+    const double done = (double) (cpt_ctx->curve_total - cpt_ctx->curve_buf[i].remaining);
+
+    const double share = done / amp;
+
+    if (share <= 0.0) continue;
+    if (share >= 1.0) continue;
+
+    const double x = log ((double) cpt_ctx->curve_buf[i].progress);
+    const double y = curve_ndtri (share);
+
+    const double d = y - (inter + (slope * x));
+
+    sse += d * d;
+  }
+
+  out->inter = inter;
+  out->slope = slope;
+  out->sse   = sse;
+  out->s    = sqrt (sse / (double) (n - 2));
+  out->xbar = xbar;
+  out->sxx  = sxx;
+  out->n    = n;
+  out->ok   = true;
+}
+
+// The floor is the one number the line cannot solve for, so it is searched for. The residual is not
+// a bowl: on a run whose recoveries pause for a while it has a second, worse dip near a floor of
+// zero, and a search that only walks downhill falls into whichever one it starts above. A 7900 XTX
+// measuring example0.hash did exactly that at 243 seconds, where the day column jumped from 5423
+// to 6125 and the ceiling vanished, while an exhaustive grid over the same samples stayed at 5411.
+//
+// So the range is swept first and then refined. The sweep takes as many probes as there are points
+// on the curve, because a floor cannot be resolved more finely than the data that has to tell it
+// apart, and the refinement is a golden section inside the winning interval which stops when its
+// bracket is under one digest.
+
+static bool curve_floor (const cpt_ctx_t *cpt_ctx, const u32 top, u32 *best)
+{
+  const int probes = cpt_ctx->curve_cnt;
+
+  if (probes < 1) return false;
+
+  double  at   = 0;
+  double  sse  = 0;
+  bool    have = false;
+
+  const double step = (double) top / (double) probes;
+
+  for (int i = 0; i <= probes; i++)
+  {
+    const double try_at = (double) i * step;
+
+    curve_line_t f;
+
+    curve_solve (cpt_ctx, (u32) try_at, &f);
+
+    if (f.ok == false) continue;
+
+    if ((have == false) || (f.sse < sse))
+    {
+      at   = try_at;
+      sse  = f.sse;
+      have = true;
+    }
+  }
+
+  if (have == false) return false;
+
+  // The reciprocal of the golden ratio, which is what makes each step reuse one of the last step's
+  // two probes. It is a property of the search, not a setting.
+
+  const double gr = (sqrt (5.0) - 1.0) / 2.0;
+
+  double lo = at - step;
+  double hi = at + step;
+
+  if (lo < 0) lo = 0;
+  if (hi > (double) top) hi = (double) top;
+
+  double c = hi - (gr * (hi - lo));
+  double d = lo + (gr * (hi - lo));
+
+  curve_line_t fc;
+  curve_line_t fd;
+
+  curve_solve (cpt_ctx, (u32) c, &fc);
+  curve_solve (cpt_ctx, (u32) d, &fd);
+
+  while ((hi - lo) > 1.0)
+  {
+    const bool c_better = (fc.ok == true) && ((fd.ok == false) || (fc.sse <= fd.sse));
+
+    if (c_better == true)
+    {
+      hi = d;
+      d  = c;
+      fd = fc;
+      c  = hi - (gr * (hi - lo));
+
+      curve_solve (cpt_ctx, (u32) c, &fc);
+    }
+    else
+    {
+      lo = c;
+      c  = d;
+      fc = fd;
+      d  = lo + (gr * (hi - lo));
+
+      curve_solve (cpt_ctx, (u32) d, &fd);
+    }
+  }
+
+  const double mid = (lo + hi) / 2.0;
+
+  curve_line_t fm;
+
+  curve_solve (cpt_ctx, (u32) mid, &fm);
+
+  // The refinement only ever improves on the sweep's winner, and if it somehow cannot, the winner
+  // stands.
+
+  if ((fm.ok == true) && (fm.sse <= sse))
+  {
+    *best = (u32) mid;
+
+    return true;
+  }
+
+  *best = (u32) at;
+
+  return true;
+}
+
+// How wide the floor's answer really is: every floor whose fit is as good as the best one, allowing
+// for the scatter the best one leaves. That is the standard one parameter likelihood band, so its
+// width is the ceiling's error bar and nothing in it was picked. Bisecting outwards from the best
+// floor finds each edge to one digest.
+
+static u32 curve_floor_edge (const cpt_ctx_t *cpt_ctx, const u32 from, const u32 to, const double worst)
+{
+  u32 keep = from;
+
+  u32 lo = from;
+  u32 hi = to;
+
+  while (true)
+  {
+    const u32 mid = lo + ((hi - lo) / 2);
+
+    if (mid == lo) break;
+
+    curve_line_t f;
+
+    curve_solve (cpt_ctx, mid, &f);
+
+    if ((f.ok == true) && (f.sse <= worst))
+    {
+      keep = mid;
+      lo   = mid;
+    }
+    else
+    {
+      hi = mid;
+    }
+  }
+
+  return keep;
+}
+
+// Returns false when there is not enough curve to fit anything.
+
+static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
+{
+  cpt_ctx->curve_have    = false;
+  cpt_ctx->curve_bounded = false;
+
+  if (remaining == 0) return false;
+
+  u32 never = 0;
+
+  if (curve_floor (cpt_ctx, remaining - 1, &never) == false) return false;
+
+  curve_line_t f;
+
+  curve_solve (cpt_ctx, never, &f);
+
+  if (f.ok == false) return false;
+
+  cpt_ctx->curve_never = never;
+  cpt_ctx->curve_inter = f.inter;
+  cpt_ctx->curve_slope = f.slope;
+  cpt_ctx->curve_s     = f.s;
+  cpt_ctx->curve_xbar  = f.xbar;
+  cpt_ctx->curve_sxx   = f.sxx;
+  cpt_ctx->curve_n     = f.n;
+  cpt_ctx->curve_have  = true;
+
+  // The band the floor could be anywhere in. One more parameter than the line costs one degree of
+  // freedom, and a fit inside that much of the best one is a fit this data cannot tell apart from
+  // it.
+  //
+  // There are two ways to end up with no band at all, and the band is the whole searched range in
+  // both. Three points fit a three parameter model exactly, so there is no residual to hold a rival
+  // floor against. And with more points the winner can still fit them exactly, which scales the band
+  // to zero and has the fit claiming a precision the data cannot carry.
+
+  if (f.n <= 3)
+  {
+    cpt_ctx->curve_never_lo = 0;
+    cpt_ctx->curve_never_hi = remaining - 1;
+
+    return true;
+  }
+
+  cpt_ctx->curve_never_lo = never;
+  cpt_ctx->curve_never_hi = never;
+  cpt_ctx->curve_bounded  = true;
+
+  const double worst = f.sse * (1.0 + (1.0 / (double) (f.n - 3)));
+
+  cpt_ctx->curve_never_hi = curve_floor_edge (cpt_ctx, never, remaining - 1, worst);
+
+  // Downwards the same bisection runs with the ends swapped, so it is written out rather than
+  // folded into one function with a direction flag.
+
+  u32 lo = 0;
+  u32 hi = never;
+
+  cpt_ctx->curve_never_lo = never;
+
+  while (true)
+  {
+    const u32 mid = lo + ((hi - lo) / 2);
+
+    if (mid == lo) break;
+
+    curve_line_t g;
+
+    curve_solve (cpt_ctx, mid, &g);
+
+    if ((g.ok == true) && (g.sse <= worst))
+    {
+      cpt_ctx->curve_never_lo = mid;
+
+      hi = mid;
+    }
+    else
+    {
+      lo = mid;
+    }
+  }
+
+  // The bisections resolve each edge to one digest, so a band that comes back with no width is one
+  // where no other floor could be told from the winner. That is the exact fit above. A 7900 XTX did
+  // it five seconds into a run on example0.hash: four points lay on one line for a floor of 2384,
+  // the band around it was a single digest wide, and both lines then reported a list that stops at
+  // 4110 digests against the 5386 it went on to reach.
+
+  if (cpt_ctx->curve_never_lo >= cpt_ctx->curve_never_hi)
+  {
+    cpt_ctx->curve_never_lo = 0;
+    cpt_ctx->curve_never_hi = remaining - 1;
+
+    cpt_ctx->curve_bounded = false;
+  }
+
+  return true;
+}
+
+// A point every tick, thinned when the buffer fills. A tick is as fine as the timestamps go, and
+// keeping every second point when it fills doubles the spacing while leaving both the span and the
+// shape intact. There is no threshold on how much the candidate count must grow first: a span too
+// short to fit over shows up as a wide standard error, which is the same test everything else here
+// is decided by.
+
+void status_curve_sample (hashcat_ctx_t *hashcat_ctx)
+{
+  cpt_ctx_t          *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (cpt_ctx->enabled == false) return;
+  if (status_ctx->accessible == false) return;
+
+  const u64 progress = status_get_progress_done (hashcat_ctx);
+
+  if (progress == 0) return;
+
+  if (cpt_ctx->curve_cnt > 0)
+  {
+    if (progress <= cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1].progress) return;
+  }
+
+  if (cpt_ctx->curve_cnt == CURVE_SAMPLES)
+  {
+    for (int i = 0; i < (CURVE_SAMPLES / 2); i++)
+    {
+      cpt_ctx->curve_buf[i] = cpt_ctx->curve_buf[i * 2];
+    }
+
+    cpt_ctx->curve_cnt = CURVE_SAMPLES / 2;
+  }
+
+  const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
+  const u32 digests_done = status_get_digests_done (hashcat_ctx);
+
+  if (digests_done > digests_cnt) return;
+
+  const u32 remaining = digests_cnt - digests_done;
+
+  cpt_ctx->curve_total = digests_cnt;
+
+  // A list carrying cracks in from a potfile is not on its curve until this run cracks one of its
+  // own, because until then the remainder it reports was reached by candidates somebody else spent.
+
+  const u32 digests_done_pot = status_get_digests_done_pot (hashcat_ctx);
+
+  bool on_curve = true;
+
+  if (digests_done_pot > 0)
+  {
+    if (digests_done <= digests_done_pot) on_curve = false;
+  }
+
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].progress  = progress;
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].remaining = remaining;
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].when      = time (NULL);
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].on_curve  = on_curve;
+
+  cpt_ctx->curve_cnt++;
+
+  curve_fit (cpt_ctx, remaining);
+}
+
+// The candidates a second the run has achieved, over its whole span. A window would be a choice of
+// window, and the span is what the run has actually done. It lags a speed that is still climbing,
+// which makes the conversion conservative, and the conversion is the only part of the outlook that
+// knows about time at all.
+
+static double curve_rate (const cpt_ctx_t *cpt_ctx)
+{
+  if (cpt_ctx->curve_cnt < 2) return 0;
+
+  const curve_point_t *first = &cpt_ctx->curve_buf[0];
+  const curve_point_t *last  = &cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1];
+
+  const time_t span = last->when - first->when;
+
+  if (span <= 0) return 0;
+  if (last->progress <= first->progress) return 0;
+
+  const double rate = (double) (last->progress - first->progress) / (double) span;
+
+  return rate;
+}
+
+// What the run will have recovered after this many more seconds, and how wide that answer is. The
+// width is the regression's own prediction standard error, which carries the scatter of the points
+// and the leverage of asking about a point beyond their span. A day ahead is further beyond the span
+// than an hour, so it earns a wider band from the same fit rather than from a rule about horizons.
+//
+// Answers zero when there is nothing worth saying, which the view reads as nothing to say. That
+// covers a fit that has not happened, a fit that never bounded its floor, and a fit whose band is as
+// wide as the gain it is claiming: a projection of thirty more digests give or take forty is not an
+// outlook.
+
+static u32 curve_project (const hashcat_ctx_t *hashcat_ctx, const time_t seconds)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
-  const time_t now = time (NULL);
+  if (cpt_ctx->enabled == false) return 0;
+  if (cpt_ctx->curve_have == false) return 0;
+  if (cpt_ctx->curve_slope <= 0) return 0;
+  if (cpt_ctx->curve_n < 3) return 0;
 
+  // A share of the digests above the floor is not an answer when the search never bounded the floor
+  // at all. An exact fit is that case: it admits no rival, so the band around it comes out with no
+  // width and the whole searched range is the honest answer instead. A 7900 XTX did it five seconds
+  // into a run on example0.hash, where four points lay on one line for a floor of 2384 and both
+  // lines reported a list that stops at 4110 digests against the 5386 it went on to reach.
+  //
+  // A band that merely reaches zero is a different thing and is not refused. That was tried and
+  // measured on other attack modes, where it reads as the floor being unresolved and is not: a
+  // straight wordlist attack over a list of found passwords recovers 6479 of this list's 6494
+  // digests, so a floor of zero is very nearly right there, and the projection off one lands within
+  // 0.2 percent of the count the run exhausted at. Refusing those would cost a correct answer at
+  // every tick of such a run.
+
+  if (cpt_ctx->curve_bounded == false) return 0;
+
+  const double rate = curve_rate (cpt_ctx);
+
+  if (rate <= 0) return 0;
+
+  const curve_point_t *last = &cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1];
+
+  const double ahead = (double) last->progress + (rate * (double) seconds);
+
+  const double x = log (ahead);
+
+  const double d = x - cpt_ctx->curve_xbar;
+
+  const double se = cpt_ctx->curve_s * sqrt (1.0 + (1.0 / (double) cpt_ctx->curve_n) + ((d * d) / cpt_ctx->curve_sxx));
+
+  const double mid = cpt_ctx->curve_inter + (cpt_ctx->curve_slope * x);
+
+  const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
+  const u32 digests_done = status_get_digests_done (hashcat_ctx);
+
+  if (digests_cnt <= cpt_ctx->curve_never) return 0;
+
+  const double amp = (double) (digests_cnt - cpt_ctx->curve_never);
+
+  // The share is bounded by its own shape, so the band on it is too, and a band that would reach
+  // past the floor cannot.
+
+  const double done    = amp * curve_ndtr (mid);
+  const double done_lo = amp * curve_ndtr (mid - se);
+  const double done_hi = amp * curve_ndtr (mid + se);
+
+  // A projection at or below what is already in hand is the fit disagreeing with the counters, and
+  // the counters are the truth. It used to be raised to the recovered count, which reads as a
+  // considered answer that the run is finished. Saying nothing is the honest form of not knowing.
+
+  if (done <= (double) digests_done) return 0;
+
+  const double gain = done - (double) digests_done;
+  const double band = (done_hi - done_lo) / 2.0;
+
+  if (gain <= band) return 0;
+
+  const u32 out = (u32) done;
+
+  return out;
+}
+
+int status_get_recovered_est_min (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 est = curve_project (hashcat_ctx, 60);
+
+  return (int) est;
+}
+
+int status_get_recovered_est_hour (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 est = curve_project (hashcat_ctx, 60 * 60);
+
+  return (int) est;
+}
+
+int status_get_recovered_est_day (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 est = curve_project (hashcat_ctx, 60 * 60 * 24);
+
+  return (int) est;
+}
+
+// Where this attack ends up if it runs forever, which is the floor the fit settled on read as a
+// count of digests. It is reported only when the data can tell that floor apart from its
+// neighbours: the band of floors the fit cannot distinguish has to be narrower than the gain the
+// ceiling is claiming over what is already in hand. A band reaching down to no floor at all is the
+// data saying it has not seen the bend yet.
+
+u32 status_get_recovered_limit (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  if (cpt_ctx->enabled == false) return 0;
+  if (cpt_ctx->curve_have == false) return 0;
+  if (cpt_ctx->curve_never == 0) return 0;
+  if (cpt_ctx->curve_never_lo == 0) return 0;
+
+  const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
+  const u32 digests_done = status_get_digests_done (hashcat_ctx);
+
+  if (cpt_ctx->curve_never >= digests_cnt) return 0;
+
+  const u32 limit = digests_cnt - cpt_ctx->curve_never;
+
+  if (limit <= digests_done) return 0;
+
+  const u32 gain = limit - digests_done;
+  const u32 band = (cpt_ctx->curve_never_hi - cpt_ctx->curve_never_lo) / 2;
+
+  if (gain <= band) return 0;
+
+  return limit;
+}
+
+double status_get_recovered_limit_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u32 digests_cnt = status_get_digests_cnt (hashcat_ctx);
+
+  if (digests_cnt == 0) return 0;
+
+  const u32 recovered_limit = status_get_recovered_limit (hashcat_ctx);
+
+  const double percent = ((double) recovered_limit / (double) digests_cnt) * 100;
+
+  return percent;
+}
+
+char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
+{
   char *cpt;
 
   const int cpt_cur_min  = status_get_cpt_cur_min  (hashcat_ctx);
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
   const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
 
-  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
-  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
-  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+  // The three counts are counts and need no waiting: before an hour has passed the hour count is
+  // everything cracked so far, which is what a count over the last hour means. They used to be
+  // withheld until their whole period had gone by, which left the line reading N/A throughout the
+  // first minute, and on a run whose rate collapses that is where nearly all of the recovery is.
 
-  if ((cpt_ctx->cpt_start + (60 * 60 * 24)) < now)
+  // The second half of the line used to be the same mean three times over, per minute, per hour and
+  // per day, each the one before it multiplied by 60. What a reader wants from it is the outlook, how
+  // much will be recovered by then, and a mean cannot answer that on a run whose rate collapses. So
+  // the three windows now hold what the curve says the total will be once that much more time has
+  // passed, which is a projection in candidates converted back into the clock. The mean is still
+  // available through status_get_cpt_avg_min () and the two multiplied out forms through _hour () and
+  // _day ().
+
+  const int est_min  = status_get_recovered_est_min  (hashcat_ctx);
+  const int est_hour = status_get_recovered_est_hour (hashcat_ctx);
+  const int est_day  = status_get_recovered_est_day  (hashcat_ctx);
+
+  if (est_min > 0)
   {
-    hc_asprintf (&cpt, "CUR:%u,%u,%u AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,%d EST:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
-  }
-  else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
-  {
-    hc_asprintf (&cpt, "CUR:%u,%u,N/A AVG:%.2f,%.2f,N/A (Min,Hour,Day)",
-      cpt_cur_min,
-      cpt_cur_hour,
-      cpt_avg_min,
-      cpt_avg_hour);
-  }
-  else if ((cpt_ctx->cpt_start + 60) < now)
-  {
-    hc_asprintf (&cpt, "CUR:%u,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
-      cpt_cur_min,
-      cpt_avg_min);
+      est_min,
+      est_hour,
+      est_day);
   }
   else
   {
-    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:N/A,N/A,N/A (Min,Hour,Day)");
+    hc_asprintf (&cpt, "CUR:%d,%d,%d EST:N/A,N/A,N/A (Min,Hour,Day)",
+      cpt_cur_min,
+      cpt_cur_hour,
+      cpt_cur_day);
   }
 
   return cpt;
@@ -2643,6 +3582,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   const int num_corespeed   = hm_get_corespeed_with_devices_idx   ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
   const int num_memoryspeed = hm_get_memoryspeed_with_devices_idx ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
   const int num_buslanes    = hm_get_buslanes_with_devices_idx    ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
+  const int num_busgen      = hm_get_busgen_with_devices_idx      ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
   const int64_t num_power   = hm_get_power_with_devices_idx       ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx);
 
   int output_len = 0;
@@ -2792,7 +3732,14 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4dMHz ", num_memoryspeed);
   }
 
-  if (num_buslanes >= 0)
+  // The generation goes beside the lanes as Bus:16x4. A field of its own would cost 6 columns on a
+  // line that is already one of the longest in the status block, this costs 2.
+
+  if ((num_buslanes >= 0) && (num_busgen > 0))
+  {
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%ux%u ", num_buslanes, num_busgen);
+  }
+  else if (num_buslanes >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%u ", num_buslanes);
   }
@@ -2900,6 +3847,89 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
   if (device_param->skipped_warning == true) return 0;
 
   return device_param->outerloop_msec;
+}
+
+// --progress-only measures each device on a slice of the attack. The base words per millisecond add
+// up across the devices, and the base words of the whole attack divided by that sum is how long it
+// would run. A bridge reports one total over its units, measured over the slowest of them.
+
+double status_get_progress_only_msec (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const bridge_ctx_t  *bridge_ctx  = hashcat_ctx->bridge_ctx;
+  const status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
+  u64    progress_all         = 0;
+  double runtime_msec_highest = 0;
+  double words_per_msec       = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const u64    progress_dev     = status_get_progress_dev     (hashcat_ctx, backend_devices_idx);
+    const double runtime_msec_dev = status_get_runtime_msec_dev (hashcat_ctx, backend_devices_idx);
+
+    progress_all += progress_dev;
+
+    runtime_msec_highest = MAX (runtime_msec_highest, runtime_msec_dev);
+
+    if (runtime_msec_dev > 0) words_per_msec += (double) progress_dev / runtime_msec_dev;
+  }
+
+  if (bridge_ctx->enabled == true)
+  {
+    words_per_msec = (runtime_msec_highest > 0) ? (double) progress_all / runtime_msec_highest : 0;
+  }
+
+  if (words_per_msec > 0)
+  {
+    const u64 words_end  = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
+    const u64 words_todo = (words_end >= status_ctx->words_skip) ? words_end - status_ctx->words_skip : 0;
+
+    const double msec_total = (double) words_todo / words_per_msec;
+
+    return msec_total;
+  }
+
+  return -1;
+}
+
+char *status_get_progress_only_estimate (const hashcat_ctx_t *hashcat_ctx)
+{
+  const double msec_total = status_get_progress_only_msec (hashcat_ctx);
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  snprintf (display, HCBUFSIZ_TINY, "N/A");
+
+  if (msec_total < 0) return display;
+
+  // gmtime_r takes a time_t, and an estimate past what it can hold is shown the way Time.Estimated
+  // shows one
+
+  const double sec_total = msec_total / 1000;
+
+  if (sec_total >= (double) INT32_MAX)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_MAX_EXCEEDED);
+
+    return display;
+  }
+
+  const time_t sec_run = (time_t) sec_total;
+
+  struct tm  tm;
+  struct tm *tmp = gmtime_r (&sec_run, &tm);
+
+  if (tmp == NULL)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_MAX_EXCEEDED);
+
+    return display;
+  }
+
+  format_timer_display (tmp, display, HCBUFSIZ_TINY);
+
+  return display;
 }
 
 int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
@@ -3096,6 +4126,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->session);
   hcfree (hashcat_status->time_estimated_absolute);
   hcfree (hashcat_status->time_estimated_relative);
+  hcfree (hashcat_status->queue_time_estimated_absolute);
+  hcfree (hashcat_status->queue_time_estimated_relative);
   hcfree (hashcat_status->time_started_absolute);
   hcfree (hashcat_status->time_started_relative);
   hcfree (hashcat_status->speed_sec_all);
@@ -3109,22 +4141,24 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->brain_tx_all);
   #endif
 
-  hashcat_status->hash_target             = NULL;
-  hashcat_status->hash_name               = NULL;
-  hashcat_status->session                 = NULL;
-  hashcat_status->time_estimated_absolute = NULL;
-  hashcat_status->time_estimated_relative = NULL;
-  hashcat_status->time_started_absolute   = NULL;
-  hashcat_status->time_started_relative   = NULL;
-  hashcat_status->speed_sec_all           = NULL;
-  hashcat_status->guess_base              = NULL;
-  hashcat_status->guess_mod               = NULL;
-  hashcat_status->guess_mod_q             = NULL;
-  hashcat_status->guess_charset           = NULL;
-  hashcat_status->cpt                     = NULL;
+  hashcat_status->hash_target                   = NULL;
+  hashcat_status->hash_name                     = NULL;
+  hashcat_status->session                       = NULL;
+  hashcat_status->time_estimated_absolute       = NULL;
+  hashcat_status->time_estimated_relative       = NULL;
+  hashcat_status->queue_time_estimated_absolute = NULL;
+  hashcat_status->queue_time_estimated_relative = NULL;
+  hashcat_status->time_started_absolute         = NULL;
+  hashcat_status->time_started_relative         = NULL;
+  hashcat_status->speed_sec_all                 = NULL;
+  hashcat_status->guess_base                    = NULL;
+  hashcat_status->guess_mod                     = NULL;
+  hashcat_status->guess_mod_q                   = NULL;
+  hashcat_status->guess_charset                 = NULL;
+  hashcat_status->cpt                           = NULL;
   #ifdef WITH_BRAIN
-  hashcat_status->brain_rx_all            = NULL;
-  hashcat_status->brain_tx_all            = NULL;
+  hashcat_status->brain_rx_all                  = NULL;
+  hashcat_status->brain_tx_all                  = NULL;
   #endif
 
   // hwmon_fan_dev below is allocated by status_get_hwmon_fan_dev () next to speed_sec_dev,

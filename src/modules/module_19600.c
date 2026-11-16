@@ -25,22 +25,29 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5tgs$17$srv_http$synacktiv.local$849e31b3db1c1f203fa20b85$948690f5875125348286ad3346d27b43eaabc71896b620c16de7ddcdbd561628c650c508856a3f574261948b6db4b48332d30536e978046a423ad4368f9a69b4dc4642dab4e0d475d8299be718fd6f98ac85a771b457b2453e78c9411dfce572b19660fe7a5a8246d9b2a91ea2f14d1986ea0a77ecf9b8330bc8fd9ab540bcf46b74c5aa7005cfccd89ec05f66aeab30c6b2bf8595cf6c9a1b68ad885258850c4b1dd9265f270fb2af52fd76c16246df51ea67efc58a65c345686c84e43642febe908a";
 
 #include "hooks_common.c"
 
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 12
+#define MAX_KDC_SALT_LEN 1022
+#define MAX_EDATA2_LEN 20480
+
 typedef struct krb5tgs_17
 {
   u32 user[128];
-  u32 domain[128];
-  u32 account_info[512];
-  u32 account_info_len;
+  u32 realm[128];
+  u32 kdc_salt[256];
+  u32 kdc_salt_len;
 
   u32 checksum[3];
-  u32 edata2[5120];
+  u32 edata2[MAX_EDATA2_LEN / 4];
   u32 edata2_len;
 
 } krb5tgs_17_t;
@@ -55,6 +62,11 @@ typedef struct krb5tgs_17_tmp
 } krb5tgs_17_tmp_t;
 
 static const char *SIGNATURE_KRB5TGS = "$krb5tgs$17$";
+
+static u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
+}
 
 static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -88,11 +100,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   /**
-   * $krb5tgs$17$*user*realm*$checksum$edata2
-   * $krb5tgs$17$*user*realm*spn*$checksum$edata2
+   * format 1: $krb5tgs$17$user$realm$checksum$edata2
+   * format 2: $krb5tgs$17$user$realm$*spn*$checksum$edata2  (with optional SPN)
    */
 
-  // assume no signature found
+  // no signature found - reject
   if (line_len < 13) return (PARSER_SALT_LENGTH);
 
   // hc_strchr_next, not strchr: the field ends where the line ends. strchr () ended it at the
@@ -103,19 +115,19 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int is_spn_provided = 0;
 
-  // assume $krb5tgs$17$user$realm$checksum$edata2
+  // format 1: $krb5tgs$17$user$realm$checksum$edata2
   if (spn_info_start == NULL)
   {
     token.token_cnt  = 5;
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 512;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = 512;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -126,11 +138,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[4]     = '$';
     token.len_min[4] = 64;
-    token.len_max[4] = 40960;
+    token.len_max[4] = MAX_EDATA2_LEN * 2;
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  // assume $krb5tgs$17$user$realm$*spn*$checksum$edata2
+  // format 2: $krb5tgs$17$user$realm$*spn*$checksum$edata2  (with SPN field)
   else
   {
     // bounded for the same reason as the search above: the field ends where the line ends
@@ -141,7 +153,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     if (spn_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-    spn_info_stop++; // we want the * $char included
+    spn_info_stop++; // we want the * char included
     spn_info_stop++; // we want the $ char included
 
     const int spn_info_len = spn_info_stop - spn_info_start;
@@ -150,12 +162,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 512;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = 512;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.len[3]     = spn_info_len;
@@ -168,7 +180,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[5]     = '$';
     token.len_min[5] = 64;
-    token.len_max[5] = 40960;
+    token.len_max[5] = MAX_EDATA2_LEN * 2;
     token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
@@ -180,45 +192,45 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *user_pos;
-  const u8 *domain_pos;
+  const u8 *realm_pos;
   const u8 *checksum_pos;
   const u8 *data_pos;
 
   int user_len;
-  int domain_len;
+  int realm_len;
   int data_len;
-  int account_info_len;
+  int kdc_salt_len;
 
   user_pos = token.buf[1];
   user_len = token.len[1];
 
   memcpy (krb5tgs->user, user_pos, user_len);
 
-  domain_pos = token.buf[2];
-  domain_len = token.len[2];
+  realm_pos = token.buf[2];
+  realm_len = token.len[2];
 
-  memcpy (krb5tgs->domain, domain_pos, domain_len);
+  memcpy (krb5tgs->realm, realm_pos, realm_len);
 
   checksum_pos = token.buf[3 + is_spn_provided];
 
   data_pos = token.buf[4 + is_spn_provided];
   data_len = token.len[4 + is_spn_provided];
 
-  account_info_len = token.len[2] + token.len[1];
+  kdc_salt_len = token.len[2] + token.len[1];
 
-  u8 *account_info_ptr = (u8 *) krb5tgs->account_info;
+  u8 *kdc_salt_ptr = (u8 *) krb5tgs->kdc_salt;
 
-  // domain must be uppercase
+  // realm must be uppercase
 
-  u8 domain[512];
+  u8 realm[512];
 
-  memcpy (domain, domain_pos, domain_len);
-  uppercase (domain, domain_len);
+  memcpy (realm, realm_pos, realm_len);
+  uppercase (realm, realm_len);
 
-  memcpy (account_info_ptr, domain, domain_len);
-  memcpy (account_info_ptr + domain_len, user_pos, user_len);
+  memcpy (kdc_salt_ptr, realm, realm_len);
+  memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
 
-  krb5tgs->account_info_len = account_info_len;
+  krb5tgs->kdc_salt_len = kdc_salt_len;
 
   // hmac-sha1 is reduced to 12 bytes
   krb5tgs->checksum[0] = byte_swap_32 (hex_to_u32 (checksum_pos +  0));
@@ -243,11 +255,23 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5tgs->edata2_len = data_len / 2;
 
-  salt->salt_buf[0] = krb5tgs->checksum[0];
-  salt->salt_buf[1] = krb5tgs->checksum[1];
-  salt->salt_buf[2] = krb5tgs->checksum[2];
+  if (krb5tgs->kdc_salt_len > 256)
+  {
+    salt->salt_buf[0] = krb5tgs->checksum[0];
+    salt->salt_buf[1] = krb5tgs->checksum[1];
+    salt->salt_buf[2] = krb5tgs->checksum[2];
 
-  salt->salt_len = 12;
+    salt->salt_len = 12;
+  }
+  else
+  {
+    const int kdc_salt_words = (krb5tgs->kdc_salt_len + 3) / 4;
+
+    for (int i = 0; i < kdc_salt_words; i++)
+      salt->salt_buf[i] = krb5tgs->kdc_salt[i];
+
+    salt->salt_len = krb5tgs->kdc_salt_len;
+  }
 
   salt->salt_iter = 4096 - 1;
 
@@ -263,7 +287,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   const krb5tgs_17_t *krb5tgs = (const krb5tgs_17_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
+  char *data = (char *) hcmalloc ((MAX_EDATA2_LEN * 2) + 1);
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {
@@ -275,7 +299,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x$%s",
     SIGNATURE_KRB5TGS,
     (const char *) krb5tgs->user,
-    (const char *) krb5tgs->domain,
+    (const char *) krb5tgs->realm,
     krb5tgs->checksum[0],
     krb5tgs->checksum[1],
     krb5tgs->checksum[2],
@@ -291,6 +315,7 @@ void module_init (module_ctx_t *module_ctx)
   module_init_common (module_ctx);
 
   module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_tmp_size                 = module_tmp_size;
