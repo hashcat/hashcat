@@ -1184,9 +1184,6 @@ def a4_vectors(mode, pairs, optimized):
 def attacks_for(spec, mode):
   wanted = ATTACK_ORDER if spec == "all" else [int(spec)]
 
-  if spec == "all":
-    wanted = [a for a in wanted if not has_rule(mode, "ordinary", a, "exclude")]
-
   if mode in MASK_ONLY_MODES:
     return [a for a in wanted if a == 3]
 
