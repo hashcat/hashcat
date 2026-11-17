@@ -251,8 +251,6 @@ KERNEL_FQ KERNEL_FA void m17020_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].h[ 5] = SHA512M_F;
   tmps[gid].h[ 6] = SHA512M_G;
   tmps[gid].h[ 7] = SHA512M_H;
-
-  tmps[gid].len = 0;
 }
 
 KERNEL_FQ KERNEL_FA void m17020_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
@@ -303,15 +301,15 @@ KERNEL_FQ KERNEL_FA void m17020_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
+
+  // zero only if salt_len + pw_len exceeds the buffer, which pw_max keeps out of reach
+  if (salted_pw_block_len == 0) return;
+
   // get the prepared buffer from the gpg_tmp_t struct into a local buffer
   u32 salted_pw_block[96];
 
   for (int i = 0; i < 96; i++) salted_pw_block[i] = tmps[gid].salted_pw_block[i];
-
-  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
-
-  // do we really need this, since the salt is always length 8?
-  if (salted_pw_block_len == 0) return;
 
   /**
    * context load

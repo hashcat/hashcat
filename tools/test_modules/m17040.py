@@ -22,7 +22,12 @@ CIPHER_ALGO  = 3
 KEY_LEN      = 16
 IV_LEN       = 8
 MODULUS_SIZE = 4096
-BODY_LEN     = 648
+
+# module_17040.c accepts 256 to 3072 hex characters of protected data, so 128 to 1536 bytes, and
+# the last 20 of those are the SHA-1 checksum the kernel decides on.
+
+DATA_MIN = 128
+DATA_MAX = 1536
 
 
 def module_test_properties():
@@ -42,6 +47,23 @@ def _cfb(key, iv):
   return CAST.new(key, CAST.MODE_CFB, IV=iv, segment_size=64)
 
 
+def _body_len():
+  # Whether cast128_decrypt_cfb () steps a block past the payload depends on the data length
+  # modulo 8, and only at the maximum does that block reach past the buffers. Drawn uniformly the
+  # maximum would come up about once in 1400 hashes, so it is picked outright one time in eight,
+  # as gpg.sym_payload_len () does for the symmetric modes.
+
+  pick = random_number(0, 7)
+
+  if pick == 0:
+    return DATA_MIN - 20
+
+  if pick == 1:
+    return DATA_MAX - 20
+
+  return random_number(DATA_MIN - 20, DATA_MAX - 20)
+
+
 def _key(word, salt, s2k_type, count):
   if s2k_type == gpg.S2K_ITERATED:
     return gpg.s2k_iterated(word, salt, count, KEY_LEN, S2K_HASH)
@@ -56,10 +78,18 @@ def module_generate_hash(word, salt, iterations=None):
   count    = random_number(50000, 60000) if iterated else 0
 
   salt_raw = random_bytes(8)
-  iv       = random_bytes(IV_LEN)
+
+  # The IV comes from the salt and the password, not from the generator, for the reason
+  # lib/gpg.py gives in aes_cfb_generate (): module_17040.c takes the IV as the digest, and the
+  # two hashes of a SHARED_SALT pair are drawn from one generator state, so a drawn IV would come
+  # out equal for both and the pair would reach hashcat as one hash instead of two on one salt.
+  # SHA-256 rather than the mode's own SHA-1, because the plain salted S2K derives the key as
+  # sha1 (salt || password) too, and an IV drawn that way would be the first half of the key.
+
+  iv = hashlib.sha256(salt_raw + word).digest()[:IV_LEN]
 
   key  = _key(word, salt_raw, s2k_type, count)
-  body = random_bytes(BODY_LEN)
+  body = random_bytes(_body_len())
 
   plain = body + hashlib.sha1(body).digest()
 
