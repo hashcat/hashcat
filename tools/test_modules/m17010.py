@@ -27,12 +27,9 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"cipher_algo": 7, "iterations": 65536}, {"cipher_algo": 9, "iterations": 65536}],
     },
   }
-
-
-def module_association_parameters():
-  return [{"cipher_algo": 7, "iterations": 65536}, {"cipher_algo": 9, "iterations": 65536}]
 
 
 def module_generate_hash(word, salt, iterations=None, cipher_algo=None):

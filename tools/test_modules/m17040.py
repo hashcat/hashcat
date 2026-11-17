@@ -39,6 +39,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": 0}, {"iterations": 50000}],
     },
   }
 
@@ -72,10 +73,14 @@ def _key(word, salt, s2k_type, count):
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterated = random_number(0, 1) == 1
+  if iterations is None:
+    iterated = random_number(0, 1) == 1
+    count = random_number(50000, 60000) if iterated else 0
+  else:
+    count = int(iterations)
+    iterated = count > 0
 
   s2k_type = gpg.S2K_ITERATED if iterated else gpg.S2K_SALTED
-  count    = random_number(50000, 60000) if iterated else 0
 
   salt_raw = random_bytes(8)
 

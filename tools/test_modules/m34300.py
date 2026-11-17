@@ -44,6 +44,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": 2, "memory_kib": 4096, "parallelism": 1}],
     },
   }
 
@@ -76,16 +77,16 @@ def _build(time_cost, uuid, memory_kib, parallelism, master_seed, transform_seed
   return out
 
 
-def module_generate_hash(word, salt, iterations=None):
+def module_generate_hash(word, salt, iterations=None, memory_kib=None, parallelism=None):
   keyfile = random_bytes(KEYFILE_LEN) if random_number(0, 1) else b""
   userkey = random_bytes(USERKEY_LEN) if random_number(0, 1) else b""
 
   master_seed    = random_bytes(32)
   transform_seed = random_bytes(32)
 
-  time_cost   = random_number(1, 8)
-  memory_kib  = 1 << random_number(12, 18)
-  parallelism = random_number(1, 8)
+  time_cost   = random_number(1, 8) if iterations is None else int(iterations)
+  memory_kib  = (1 << random_number(12, 18)) if memory_kib is None else int(memory_kib)
+  parallelism = random_number(1, 8) if parallelism is None else int(parallelism)
 
   header = random_bytes(random_number(HEADER_MIN, HEADER_MAX))
 

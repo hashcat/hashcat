@@ -463,12 +463,11 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
   # unbalance the quoting around it. Hex contains neither, so a field stays separable whatever the
   # module puts in it, and the consumer decodes rather than parses.
 
-  line = "%d,%d,%d,%d,%d,%s,%s,%s" % (
-    mode, attack_type, 1 if optimized else 0, word_len, salt_len,
-    word.hex(), salt.encode("ascii").hex(), digest.encode("utf-8").hex())
+  line = (f"{mode},{attack_type},{1 if optimized else 0},{word_len},{salt_len},"
+          f"{word.hex()},{salt.encode('ascii').hex()},{digest.encode('utf-8').hex()}")
 
   if group is not None:
-    line += ",%d" % group
+    line += f",{group}"
 
   sys.stdout.write(line + "\n")
 
@@ -504,8 +503,8 @@ def edge(mod, mode, attack_type, optimized, association_groups=False):
 
   groups = None
 
-  if association_groups and attack_type == 9 and hasattr(mod, "module_association_parameters"):
-    groups = mod.module_association_parameters()
+  if association_groups and attack_type == 9:
+    groups = mod.module_test_properties()["constraints"].get("association_parameters")
 
   def emit(word_len, salt_len):
     if groups is None:

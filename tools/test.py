@@ -5499,12 +5499,11 @@ def edge_oracle(mode, attack, optimized):
   # The edge vectors for one mode, attack and kernel family, from the same engine test_edge.sh's
   # run_oracle uses. Each line is mode,attack,optimized,word_len,salt_len,word_hex,salt_hex,hash_hex;
   # the fields are hex so a comma or quote in the value never splits the line.
-  # Association vectors can append a group for variants with different kernel schedules.
-
   report_iterations(mode)
 
   cmd = [sys.executable, RUNNER, "edge", str(mode), str(attack), "1" if optimized else "0"]
 
+  # Association vectors are grouped on iteration count, as mixing them isn't allowed.
   if attack == 9:
     cmd.append("--association-groups")
 
@@ -5518,6 +5517,7 @@ def edge_oracle(mode, attack, optimized):
 
     fields = line.split(b",")
 
+    # The ninth field is optional and names the association group.
     if len(fields) not in (8, 9):
       continue
 
@@ -5983,12 +5983,12 @@ def edge_multi_cmd(ctx, selected, width, tmp):
   return [], None
 
 
+# Run each vector group as a separate multi-target check.
 def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   groups = {}
 
   for vector in vectors:
-    group = vector.get("association_group", 0) if ctx.attack == 9 else 0
-    groups.setdefault(group, []).append(vector)
+    groups.setdefault(vector.get("association_group", 0), []).append(vector)
 
   errors = 0
   cells = 0

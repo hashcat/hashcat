@@ -28,6 +28,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"t": 2, "m": 256, "p": 1}],
     },
   }
 

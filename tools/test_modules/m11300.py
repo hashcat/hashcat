@@ -15,7 +15,6 @@ from lib.test_helpers import random_hex_string, random_number
 # Bitcoin/Litecoin wallet.dat: SHA512 of the password plus salt, iterated, then AES-256-CBC over the
 # master key. key is digest[0:32], iv is digest[32:48].
 
-
 def module_test_properties():
   return {
     'constraints': {
@@ -25,6 +24,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"salt_iter": 150000}],
     },
   }
 
