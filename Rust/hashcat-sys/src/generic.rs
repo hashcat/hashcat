@@ -17,9 +17,9 @@ pub struct ThreadContext {
     pub module_name: String,
 
     pub salts: Vec<salt_t>,
-    pub esalts: Vec<generic_io_t>,
+    pub esalts: Vec<Vec<u8>>,
     pub st_salts: Vec<salt_t>,
-    pub st_esalts: Vec<generic_io_t>,
+    pub st_esalts: Vec<Vec<u8>>,
 
     pub bridge_parameter1: String,
     pub bridge_parameter2: String,
@@ -32,7 +32,7 @@ pub struct ThreadContext {
 }
 
 impl ThreadContext {
-    pub fn get_raw_esalt(&self, salt_id: usize, is_selftest: bool) -> &generic_io_t {
+    pub fn get_raw_esalt(&self, salt_id: usize, is_selftest: bool) -> &[u8] {
         // There is one esalt per hash but one salt per distinct salt, so the two only line up when
         // every salt holds one hash. A salt names the first of its hashes with digests_offset.
         let (salts, esalts) = if is_selftest {
@@ -42,6 +42,62 @@ impl ThreadContext {
         };
 
         &esalts[salts[salt_id].digests_offset as usize]
+    }
+}
+
+fn unpack_esalts(data: &[u8], count: usize) -> Vec<Vec<u8>> {
+    let mut pos = 0;
+    let mut salts = Vec::with_capacity(count);
+
+    for _ in 0..count {
+        let header = data
+            .get(pos..pos + 8)
+            .expect("truncated generic record header");
+        let hash_len = u32::from_ne_bytes(header[..4].try_into().unwrap()) as usize;
+        let salt_len = u32::from_ne_bytes(header[4..].try_into().unwrap()) as usize;
+        pos += 8;
+
+        let end = pos
+            .checked_add(hash_len)
+            .and_then(|n| n.checked_add(salt_len))
+            .expect("generic record length overflow");
+        let record = data.get(pos..end).expect("truncated generic record data");
+        salts.push(record[hash_len..].to_vec());
+        pos = end;
+    }
+
+    assert_eq!(pos, data.len(), "extra generic record data");
+
+    salts
+}
+
+#[cfg(test)]
+mod packed_tests {
+    use super::unpack_esalts;
+
+    #[test]
+    fn large_salt_and_multiple_records() {
+        let salt = vec![b'a'; 131_072];
+        let mut data = Vec::new();
+        data.extend_from_slice(&4_u32.to_ne_bytes());
+        data.extend_from_slice(&(salt.len() as u32).to_ne_bytes());
+        data.extend_from_slice(b"hash");
+        data.extend_from_slice(&salt);
+        data.extend_from_slice(&0_u32.to_ne_bytes());
+        data.extend_from_slice(&1_u32.to_ne_bytes());
+        data.push(b'z');
+
+        assert_eq!(unpack_esalts(&data, 2), vec![salt, vec![b'z']]);
+    }
+
+    #[test]
+    #[should_panic(expected = "truncated generic record data")]
+    fn truncated_record() {
+        let mut data = Vec::new();
+        data.extend_from_slice(&0_u32.to_ne_bytes());
+        data.extend_from_slice(&2_u32.to_ne_bytes());
+        data.push(b'a');
+        unpack_esalts(&data, 1);
     }
 }
 
@@ -184,20 +240,27 @@ fn new_context_inner(
 ) -> *mut c_void {
     assert!(!module_name.is_null());
     assert!(!salts_buf.is_null());
-    assert!(!esalts_buf.is_null());
+    assert!((esalts_cnt == 0) || (esalts_buf.is_null() == false));
     // A run without a self-test hash has no self-test salt, and the core says so with a count of 0.
     assert!((st_salts_cnt == 0) || (st_salts_buf.is_null() == false));
     assert!((st_esalts_cnt == 0) || (st_esalts_buf.is_null() == false));
     assert_eq!(salts_size as usize, mem::size_of::<salt_t>());
     assert_eq!(st_salts_size as usize, mem::size_of::<salt_t>());
-    assert_eq!(esalts_size as usize, mem::size_of::<generic_io_t>());
-    assert_eq!(st_esalts_size as usize, mem::size_of::<generic_io_t>());
     let module_name = unsafe { string_from_ptr(module_name) };
     let salts = unsafe { vec_from_raw_parts(salts_buf as *const salt_t, salts_cnt) };
-    let esalts = unsafe { vec_from_raw_parts(esalts_buf as *const generic_io_t, esalts_cnt) };
+    let esalts_data = if esalts_size == 0 {
+        &[][..]
+    } else {
+        unsafe { slice::from_raw_parts(esalts_buf as *const u8, esalts_size as usize) }
+    };
+    let esalts = unpack_esalts(esalts_data, esalts_cnt as usize);
     let st_salts = unsafe { vec_from_raw_parts(st_salts_buf as *const salt_t, st_salts_cnt) };
-    let st_esalts =
-        unsafe { vec_from_raw_parts(st_esalts_buf as *const generic_io_t, st_esalts_cnt) };
+    let st_esalts_data = if st_esalts_size == 0 {
+        &[][..]
+    } else {
+        unsafe { slice::from_raw_parts(st_esalts_buf as *const u8, st_esalts_size as usize) }
+    };
+    let st_esalts = unpack_esalts(st_esalts_data, st_esalts_cnt as usize);
 
     let bridge_parameter1 = unsafe { string_from_ptr(bridge_parameter1) };
     let bridge_parameter2 = unsafe { string_from_ptr(bridge_parameter2) };

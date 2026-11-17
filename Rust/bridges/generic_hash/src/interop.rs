@@ -19,6 +19,9 @@ use crate::generic_hash;
 static INFO: OnceLock<&'static str> = OnceLock::new();
 
 #[unsafe(no_mangle)]
+pub static GENERIC_ESALT_PACKED: u32 = 1;
+
+#[unsafe(no_mangle)]
 pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
     assert!(buf_size > 0);
     let info = INFO.get().unwrap_or(&"");
@@ -134,12 +137,7 @@ fn process_batch(
         .enumerate()
         .map(|(i, x)| {
             let esalt = ctx.get_raw_esalt(salt_id + (i * stride), is_selftest);
-            let salt = unsafe {
-                slice::from_raw_parts(
-                    esalt.salt_buf.as_ptr() as *const u8,
-                    esalt.salt_len as usize,
-                )
-            };
+            let salt = esalt;
             let pw =
                 unsafe { slice::from_raw_parts(x.pw_buf.as_ptr() as *const u8, x.pw_len as usize) };
             generic_hash::calc_hash(pw, salt)

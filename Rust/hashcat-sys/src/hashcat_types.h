@@ -69,12 +69,8 @@ typedef struct
 
 typedef struct
 {
-    u32 hash_buf[256];
     u32 hash_len;
-
-    u32 salt_buf[256];
     u32 salt_len;
-
 } generic_io_t;
 
 /// Context of a bridge, including parameters and function pointers for the different steps.

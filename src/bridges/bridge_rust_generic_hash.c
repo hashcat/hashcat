@@ -14,6 +14,7 @@
 #include "dynloader.h"
 #include "status_rc.h"
 #include "emu_inc_hash_md4.h"
+#include "bridge_generic.h"
 
 #if defined (_WIN)
 #include "processenv.h"
@@ -138,12 +139,73 @@ struct bridge_context
   RS_KERNEL_LOOP  kernel_loop;
   RS_NEW_CONTEXT  new_context;
   RS_DROP_CONTEXT drop_context;
+  bool packed_esalts;
 
   const char *bridge_parameter1;
   const char *bridge_parameter2;
   const char *bridge_parameter3;
   const char *bridge_parameter4;
 };
+
+typedef struct
+{
+  u8 hash_buf[1024];
+  u32 hash_len;
+  u8 salt_buf[1024];
+  u32 salt_len;
+
+} legacy_generic_io_t;
+
+static bool unpack_legacy_esalts (const u8 *packed, const u32 packed_len, const u32 count, u8 **out)
+{
+  *out = NULL;
+
+  if (count == 0) return packed_len == 0;
+
+  if ((packed == NULL) || ((u64) count * sizeof (legacy_generic_io_t) > INT_MAX)) return false;
+
+  legacy_generic_io_t *records = (legacy_generic_io_t *) hccalloc (count, sizeof (legacy_generic_io_t));
+
+  if (records == NULL) return false;
+
+  u32 pos = 0;
+
+  for (u32 i = 0; i < count; i++)
+  {
+    if (packed_len - pos < sizeof (generic_io_t)) goto fail;
+
+    generic_io_t header;
+
+    memcpy (&header, &packed[pos], sizeof (header));
+
+    pos += sizeof (header);
+
+    if ((header.hash_len > sizeof (records[i].hash_buf)) || (header.salt_len > sizeof (records[i].salt_buf))) goto fail;
+    if ((u64) header.hash_len + header.salt_len > packed_len - pos) goto fail;
+
+    memcpy (records[i].hash_buf, &packed[pos], header.hash_len);
+
+    pos += header.hash_len;
+
+    memcpy (records[i].salt_buf, &packed[pos], header.salt_len);
+
+    pos += header.salt_len;
+
+    records[i].hash_len = header.hash_len;
+    records[i].salt_len = header.salt_len;
+  }
+
+  if (pos != packed_len) goto fail;
+
+  *out = (u8 *) records;
+
+  return true;
+
+fail:
+  hcfree (records);
+
+  return false;
+}
 
 static const char *extract_module_name (const char *path)
 {
@@ -349,6 +411,8 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_RUST(bridge_context, new_context, RS_NEW_CONTEXT);
   HC_LOAD_FUNC_RUST(bridge_context, drop_context, RS_DROP_CONTEXT);
 
+  bridge_context->packed_esalts = hc_dlsym (bridge_context->lib, "GENERIC_ESALT_PACKED") != NULL;
+
   bridge_context->bridge_parameter1 = user_options->bridge_parameter1;
   bridge_context->bridge_parameter2 = user_options->bridge_parameter2;
   bridge_context->bridge_parameter3 = user_options->bridge_parameter3;
@@ -401,6 +465,53 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   const int st_cnt = (hashes->st_salts_buf == NULL) ? 0 : 1;
 
+  u8 *packed_esalts = NULL;
+  u8 *packed_st_esalts = NULL;
+  u32 packed_len = 0;
+  u32 packed_st_len = 0;
+
+  // Pack loaded hashes and the optional self-test hash for the Rust plugin.
+  if ((generic_hash_pack (hashconfig, hashes, false, &packed_esalts, &packed_len) == false) || (generic_hash_pack (hashconfig, hashes, true, &packed_st_esalts, &packed_st_len) == false))
+  {
+    hcfree (packed_esalts);
+    hcfree (packed_st_esalts);
+    free ((void *) module_name);
+
+    event_log_error (hashcat_ctx, "Cannot pack the generic bridge hash records.");
+
+    return false;
+  }
+
+  u8 *legacy_esalts = NULL;
+  u8 *legacy_st_esalts = NULL;
+
+  const u8 *esalts_buf = packed_esalts;
+  const u8 *st_esalts_buf = packed_st_esalts;
+  int esalts_size = packed_len;
+  int st_esalts_size = packed_st_len;
+
+  // Plugins without the packed marker receive the original fixed-size records.
+  if (bridge_context->packed_esalts == false)
+  {
+    if ((unpack_legacy_esalts (packed_esalts, packed_len, hashes->digests_cnt, &legacy_esalts) == false) || (unpack_legacy_esalts (packed_st_esalts, packed_st_len, st_cnt, &legacy_st_esalts) == false))
+    {
+      hcfree (legacy_esalts);
+      hcfree (legacy_st_esalts);
+      hcfree (packed_esalts);
+      hcfree (packed_st_esalts);
+      free ((void *) module_name);
+
+      event_log_error (hashcat_ctx, "Cannot fit generic bridge records in the legacy 1024-byte hash and salt fields.");
+
+      return false;
+    }
+
+    esalts_buf = legacy_esalts;
+    st_esalts_buf = legacy_st_esalts;
+    esalts_size = sizeof (legacy_generic_io_t);
+    st_esalts_size = sizeof (legacy_generic_io_t);
+  }
+
   unit_buf->unit_context = bridge_context->new_context(
     module_name,
 
@@ -409,16 +520,16 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
     hashes->salts_buf,
 
     hashes->digests_cnt,
-    hashconfig->esalt_size,
-    (const char *) hashes->esalts_buf,
+    esalts_size,
+    (const char *) esalts_buf,
 
     st_cnt,
     sizeof (salt_t),
     hashes->st_salts_buf,
 
     st_cnt,
-    hashconfig->esalt_size,
-    (const char *) hashes->st_esalts_buf,
+    st_esalts_size,
+    (const char *) st_esalts_buf,
 
     bridge_context->bridge_parameter1,
     bridge_context->bridge_parameter2,
@@ -427,6 +538,11 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
     hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION
   );
+
+  hcfree (packed_esalts);
+  hcfree (packed_st_esalts);
+  hcfree (legacy_esalts);
+  hcfree (legacy_st_esalts);
 
   // We should free module_name, but if a user changes the Rust code to
   // use it without copying, we could get a dangling pointer. So we are

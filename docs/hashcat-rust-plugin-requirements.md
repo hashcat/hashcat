@@ -53,6 +53,8 @@ This document explains how to build and use the hashcat Rust plugin on Linux, Wi
 
    You can also add unit tests before building. Run them with `cargo test`.
 
+   Plugins built from the current Rust bridge sources export `GENERIC_ESALT_PACKED` and receive hash and salt bytes in length-prefixed records. Older plugins without that symbol still receive the original fixed record format, which limits each hash and salt field to 1024 bytes.
+
 5. **Build the customized plugin**
 
    ```
