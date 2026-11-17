@@ -837,7 +837,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "All compute devices were lost during this attack, so nothing was computed.");
 
-    status_ctx->devices_status = STATUS_ERROR;
+    myerror (hashcat_ctx);
   }
 
   // update some timer
@@ -3425,12 +3425,28 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
 int hashcat_session_pause (hashcat_ctx_t *hashcat_ctx)
 {
-  return SuspendThreads (hashcat_ctx);
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
+  const int rc = SuspendThreads (hashcat_ctx);
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
+
+  return rc;
 }
 
 int hashcat_session_resume (hashcat_ctx_t *hashcat_ctx)
 {
-  return ResumeThreads (hashcat_ctx);
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
+  const int rc = ResumeThreads (hashcat_ctx);
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
+
+  return rc;
 }
 
 int hashcat_session_bypass (hashcat_ctx_t *hashcat_ctx)

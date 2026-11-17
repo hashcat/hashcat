@@ -32,7 +32,7 @@ DECLSPEC bool pcfg_md6_256 (PRIVATE_AS const u32 *w, const u32 len, PRIVATE_AS u
 {
   // the zero init is the padding: everything the key/control words and B do not cover stays zero
 
-  u64 A[2048] = { 0 }; // min 1753 for MD6-256
+  u64 A[128] = { 0 }; // 128-word circular buffer (MD6 reads only last 89 words)
   u64 N[29]   = { 0 };
   u64 B[4]    = { 0 };
 
@@ -124,10 +124,10 @@ DECLSPEC bool pcfg_md6_256 (PRIVATE_AS const u32 *w, const u32 len, PRIVATE_AS u
 
   u32 off = (MD6_256_ROUNDS - 1) * md6_c + md6_n;
 
-  dgst[0] = l32_from_64_S (A[off+15]);
-  dgst[1] = h32_from_64_S (A[off+15]);
-  dgst[2] = l32_from_64_S (A[off+14]);
-  dgst[3] = h32_from_64_S (A[off+14]);
+  dgst[0] = l32_from_64_S (A[(off+15) & 127]);
+  dgst[1] = h32_from_64_S (A[(off+15) & 127]);
+  dgst[2] = l32_from_64_S (A[(off+14) & 127]);
+  dgst[3] = h32_from_64_S (A[(off+14) & 127]);
 
   return true;
 }

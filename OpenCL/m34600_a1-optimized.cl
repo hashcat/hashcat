@@ -166,7 +166,7 @@ KERNEL_FQ KERNEL_FA void m34600_m04 (KERN_ATTR_BASIC ())
      * md6-256
      */
 
-    u64x A[2048] = { 0 }; // min 1753 for MD6-256
+    u64x A[128] = { 0 }; // 128-word circular buffer (MD6 reads only last 89 words)
     u64x N[33]   = { 0 };
     u64x B[8]    = { 0 };
 
@@ -274,10 +274,10 @@ KERNEL_FQ KERNEL_FA void m34600_m04 (KERN_ATTR_BASIC ())
 
     u32 off = (MD6_256_ROUNDS - 1) * md6_c + md6_n;
 
-    const u32x r0 = l32_from_64 (A[off+15]);
-    const u32x r1 = h32_from_64 (A[off+15]);
-    const u32x r2 = l32_from_64 (A[off+14]);
-    const u32x r3 = h32_from_64 (A[off+14]);
+    const u32x r0 = l32_from_64 (A[(off+15) & 127]);
+    const u32x r1 = h32_from_64 (A[(off+15) & 127]);
+    const u32x r2 = l32_from_64 (A[(off+14) & 127]);
+    const u32x r3 = h32_from_64 (A[(off+14) & 127]);
 
     COMPARE_M_SIMD (r0, r1, r2, r3);
   }
@@ -456,7 +456,7 @@ KERNEL_FQ KERNEL_FA void m34600_s04 (KERN_ATTR_BASIC ())
      * md6-256
      */
 
-    u64x A[2048] = { 0 }; // min 1753 for MD6-256
+    u64x A[128] = { 0 }; // 128-word circular buffer (MD6 reads only last 89 words)
     u64x N[33]   = { 0 };
     u64x B[8]    = { 0 };
 
@@ -564,10 +564,10 @@ KERNEL_FQ KERNEL_FA void m34600_s04 (KERN_ATTR_BASIC ())
 
     u32 off = (MD6_256_ROUNDS - 1) * md6_c + md6_n;
 
-    const u32x r0 = l32_from_64 (A[off+15]);
-    const u32x r1 = h32_from_64 (A[off+15]);
-    const u32x r2 = l32_from_64 (A[off+14]);
-    const u32x r3 = h32_from_64 (A[off+14]);
+    const u32x r0 = l32_from_64 (A[(off+15) & 127]);
+    const u32x r1 = h32_from_64 (A[(off+15) & 127]);
+    const u32x r2 = l32_from_64 (A[(off+14) & 127]);
+    const u32x r3 = h32_from_64 (A[(off+14) & 127]);
 
     COMPARE_S_SIMD (r0, r1, r2, r3);
   }

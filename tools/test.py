@@ -1177,15 +1177,18 @@ def a4_vectors(mode, pairs, optimized):
   if mode in LUKS_MODES or mode == 40023:
     return None
 
-  if not any(word == b"" for word, _ in pairs):
+  # Mode 20510 removes a six-byte prefix before feeding a candidate to the grammar.
+  min_length = 7 if mode == 20510 else 1
+
+  if not any(len(word) < min_length for word, _ in pairs):
     return None
 
-  spare = oracle_spare(mode, optimized, 1)
+  spare = oracle_spare(mode, optimized, min_length)
 
-  if spare is None or spare[0] == b"":
+  if spare is None or len(spare[0]) < min_length:
     return None
 
-  return [spare if word == b"" else (word, digest) for word, digest in pairs]
+  return [spare if len(word) < min_length else (word, digest) for word, digest in pairs]
 
 
 def attacks_for(spec, mode):
@@ -2503,7 +2506,9 @@ def attack_6_single(r):
 
       write_dict(dict1_a6, dict1_lines + [pass_b[:a6_split]])
 
-      mask = mask_literalize(b"?d" * (len(pass_b) - a6_split), pass_b[a6_split:])
+      # Keep the full mask length, but bound the search to four variable digits per word.
+      tail = pass_b[a6_split:]
+      mask = tail[:-4].replace(b"?", b"??") + mask_literalize(b"?d" * len(tail[-4:]), tail[-4:])
 
       rc, out = run_hashcat(r.opts, r.mode, target, None, attack=6,
                             extra=hybrid_extra([dict1_a6, mask]))

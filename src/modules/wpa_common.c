@@ -43,7 +43,7 @@ const module_option_t *wpa_module_register_options (void)
       .def          = NONCE_ERROR_CORRECTIONS,
       .brain_slot   = 2,
       .help_type    = "Num",
-      .help         = "The BF size range to replace AP's nonce last bytes",
+      .help         = "BF size range to replace AP's nonce last bytes",
       .help_example = "--nonce-error-corrections=16",
     },
     { .name = NULL },
