@@ -19,7 +19,7 @@ typedef struct
 
 } generic_io_t;
 
-// OPTS_TYPE_HASH_COPY owns the variable data. Only lengths travel through the fixed-size esalt arrays.
+// Return the retained hash line, or the self-test or empty benchmark fallback.
 static inline const char *generic_hash_original (const hashconfig_t *hashconfig, const hashinfo_t *hash_info, const generic_io_t *generic_io)
 {
   if ((hash_info != NULL) && (hash_info->orighash != NULL)) return hash_info->orighash;
@@ -29,6 +29,7 @@ static inline const char *generic_hash_original (const hashconfig_t *hashconfig,
   return hashconfig->st_hash;
 }
 
+// Reduce an arbitrary-length hash or salt field to four MD4 words for hashcat lookup.
 static inline void generic_hash_digest (const u8 *buf, const u32 len, u32 digest[4])
 {
   md4_ctx_t ctx;
@@ -53,7 +54,7 @@ static inline void generic_hash_digest (const u8 *buf, const u32 len, u32 digest
   memcpy (digest, ctx.h, 16);
 }
 
-// Packed records contain two native-endian lengths followed by the hash and salt bytes.
+// Pack each hash and salt as two native-endian lengths followed by their bytes.
 static inline bool generic_hash_pack (const hashconfig_t *hashconfig, const hashes_t *hashes, const bool selftest, u8 **out, u32 *out_len)
 {
   const u32 count = selftest ? ((hashes->st_esalts_buf != NULL) ? 1 : 0) : hashes->digests_cnt;
