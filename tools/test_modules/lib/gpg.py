@@ -266,12 +266,12 @@ def sym_mdc_plaintext(payload):
   return body + hashlib.sha1(body).digest()
 
 
-def sym_mdc_generate(word, hashname, hash_id):
+def sym_mdc_generate(word, hashname, hash_id, iterations=None):
   # The prefix is drawn per hash, so two messages built from one generator state differ in their
   # ciphertext and reach hashcat as two hashes rather than one.
 
   salt  = random_bytes(8)
-  count = random_number(1024, 65536)
+  count = random_number(1024, 65536) if iterations is None else int(iterations)
 
   key   = s2k_iterated(word, salt, count, SYM_KEY_LEN, hashname)
   plain = sym_mdc_plaintext(random_bytes(sym_payload_len()))

@@ -28,12 +28,13 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": (1024, 65536)}],
     },
   }
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return gpg.sym_mdc_generate(word, S2K_HASH, S2K_HASH_ID)
+  return gpg.sym_mdc_generate(word, S2K_HASH, S2K_HASH_ID, iterations)
 
 
 def module_verify_hash(line):

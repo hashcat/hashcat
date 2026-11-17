@@ -32,6 +32,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"cipher": 1, "iterations": 102400}, {"cipher": 2, "iterations": 102400}],
     },
     'reduced': {
       'parameters': {'iterations': 2},
