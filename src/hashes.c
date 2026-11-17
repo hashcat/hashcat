@@ -3876,6 +3876,91 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
   return -1;
 }
 
+static int hashes_override_iterations (hashcat_ctx_t *hashcat_ctx, hash_t *hashes_buf, const u32 hashes_cnt)
+{
+  const char *value = getenv ("HASHCAT_ITER_OVERRIDE");
+
+  if (value == NULL) return 0;
+
+  u64 iterations = 0;
+
+  for (u32 i = 0; value[i] != 0; i++)
+  {
+    if ((value[i] < '0') || (value[i] > '9'))
+    {
+      event_log_error (hashcat_ctx, "HASHCAT_ITER_OVERRIDE must be an integer from 0 to 4294967295.");
+
+      return -1;
+    }
+
+    iterations = iterations * 10 + (value[i] - '0');
+
+    if (iterations > 0xffffffffULL)
+    {
+      event_log_error (hashcat_ctx, "HASHCAT_ITER_OVERRIDE must be an integer from 0 to 4294967295.");
+
+      return -1;
+    }
+  }
+
+  if (value[0] == 0)
+  {
+    event_log_error (hashcat_ctx, "HASHCAT_ITER_OVERRIDE must be an integer from 0 to 4294967295.");
+
+    return -1;
+  }
+
+  event_log_warning (hashcat_ctx, "HASHCAT_ITER_OVERRIDE=%u: test-only iteration override requested.", (u32) iterations);
+
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  if (hashcat_ctx->user_options->remove == true)
+  {
+    event_log_error (hashcat_ctx, "HASHCAT_ITER_OVERRIDE cannot be used with --remove.");
+
+    return -1;
+  }
+
+  if ((hashconfig->opts_type & (OPTS_TYPE_ITERATION_OVERRIDE | OPTS_TYPE_SCRYPT_OVERRIDE)) == 0)
+  {
+    event_log_error (hashcat_ctx, "Hash mode %u does not support HASHCAT_ITER_OVERRIDE.", hashconfig->hash_mode);
+
+    return -1;
+  }
+
+  if (iterations == 0) return 0;
+
+  // Only loaded salts are changed. The startup self-test has its own salt.
+
+  for (u32 i = 0; i < hashes_cnt; i++)
+  {
+    salt_t *salt = hashes_buf[i].salt;
+
+    if ((hashconfig->opts_type & OPTS_TYPE_SCRYPT_OVERRIDE) != 0)
+    {
+      u32 n = 1024;
+
+      while (((u64) n * 2) <= iterations) n *= 2;
+
+      const u32 original_n = salt->scrypt_N;
+
+      if (n > original_n) n = original_n;
+
+      salt->scrypt_N = n;
+
+      if (salt->salt_iter  == original_n) salt->salt_iter  = n;
+      if (salt->salt_iter2 == original_n) salt->salt_iter2 = n;
+
+      continue;
+    }
+
+    if (salt->salt_iter  > iterations) salt->salt_iter  = (u32) iterations;
+    if (salt->salt_iter2 > iterations) salt->salt_iter2 = (u32) iterations;
+  }
+
+  return 0;
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -5130,6 +5215,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   }
 
   hashes->hashes_cnt = hashes_cnt;
+
+  if (hashes_override_iterations (hashcat_ctx, hashes_buf, hashes_cnt) == -1) return -1;
 
   if (hashes_cnt)
   {

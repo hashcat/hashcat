@@ -22,7 +22,8 @@ static const char *HASH_NAME      = "ENCsecurity Datavault (MD5/no keychain)";
 static const u64   KERN_TYPE      = 29930;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$encdv$1$1$3a427b9ee5851118$4f52176bb9a1b3b6";

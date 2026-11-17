@@ -19,10 +19,11 @@ def iterate(algo, data, iterations):
   return digest
 
 
-def generate_hash(version, algo, iterations, word, salt_field):
+def generate_hash(version, algo, iterations, word, salt_field, effective_iterations=None):
   data = (b"" if salt_field == "NONE" else salt_field.encode()) + word
+  effective_iterations = iterations if effective_iterations is None else effective_iterations
 
-  return "$sspr$%d$%d$%s$%s" % (version, iterations, salt_field, iterate(algo, data, iterations).hex())
+  return "$sspr$%d$%d$%s$%s" % (version, iterations, salt_field, iterate(algo, data, effective_iterations).hex())
 
 
 def parse(version, iterations, line):
