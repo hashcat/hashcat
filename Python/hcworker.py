@@ -22,7 +22,7 @@ import struct
 import sys
 import traceback
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 
 # Anything the interpreter itself printed to its standard output before this script ran, a .pth file in
 # site-packages or a sitecustomize.py that prints, would otherwise be read as the first frame. hashcat
@@ -173,6 +173,11 @@ def parse_init(payload: bytes, plugin, hcshared) -> dict:
 
   pos += 4
 
+  # A nonzero flag marks the new length-prefixed format, converted later for old plugins.
+  packed_generic = U32.unpack_from(payload, pos)[0]
+
+  pos += 4
+
   if salt_t_size != hcshared.SALT_T.size:
     raise ValueError("hashcat's salt_t is %d bytes and hcshared.SALT_T is %d. The Python folder does not belong to this build." % (salt_t_size, hcshared.SALT_T.size))
 
@@ -191,6 +196,16 @@ def parse_init(payload: bytes, plugin, hcshared) -> dict:
     params.append(blob.decode("utf-8", "replace") if len(blob) > 0 else None)
 
   salts_buf, esalts_buf, st_salts_buf, st_esalts_buf = blobs
+
+  if packed_generic:
+    layout = getattr(plugin, "GENERIC_ESALT_FORMAT", "fixed")
+
+    if layout == "fixed":
+      esalts_buf = hcshared.legacy_generic_esalts(esalts_buf)
+      st_esalts_buf = hcshared.legacy_generic_esalts(st_esalts_buf)
+      esalt_size = hcshared.GENERIC_LEGACY.size
+    elif layout != "packed":
+      raise ValueError("GENERIC_ESALT_FORMAT must be fixed or packed")
 
   extract_esalts = getattr(plugin, "extract_esalts", no_esalts)
 

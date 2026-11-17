@@ -98,3 +98,48 @@ def get_scrypt_r(salt: dict) -> int:
 
 def get_scrypt_p(salt: dict) -> int:
   return salt["scrypt_p"]
+
+
+GENERIC_HEADER = struct.Struct("=II")
+
+
+def extract_generic_esalts(esalts_buf: bytes) -> list:
+  esalts = []
+  pos = 0
+
+  while pos < len(esalts_buf):
+    if len(esalts_buf) - pos < GENERIC_HEADER.size:
+      raise ValueError("truncated generic bridge record header")
+
+    hash_len, salt_len = GENERIC_HEADER.unpack_from(esalts_buf, pos)
+    pos += GENERIC_HEADER.size
+
+    end = pos + hash_len + salt_len
+
+    if end > len(esalts_buf):
+      raise ValueError("truncated generic bridge record data")
+
+    esalts.append({"hash_buf": esalts_buf[pos:pos + hash_len],
+                   "salt_buf": esalts_buf[pos + hash_len:end]})
+    pos = end
+
+  return esalts
+
+
+GENERIC_LEGACY = struct.Struct("=1024sI1024sI")
+
+
+def legacy_generic_esalts(esalts_buf: bytes) -> bytes:
+  # Keep copied plugins compatible with their original fixed-size unpacker.
+  records = []
+
+  for esalt in extract_generic_esalts(esalts_buf):
+    hash_buf = esalt["hash_buf"]
+    salt_buf = esalt["salt_buf"]
+
+    if len(hash_buf) > 1024 or len(salt_buf) > 1024:
+      raise ValueError("this plugin uses fixed generic records limited to 1024 bytes per field")
+
+    records.append(GENERIC_LEGACY.pack(hash_buf, len(hash_buf), salt_buf, len(salt_buf)))
+
+  return b"".join(records)
