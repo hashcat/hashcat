@@ -743,11 +743,29 @@ static void hlfmt_user_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
 
 static int hlfmt_detect_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, const char *line_buf, const int line_len)
 {
+  // A shadow line is login:hash:lastchg:min:max:warn:inactive:expire:reserved, and the six ageing
+  // fields after the hash are day counts or empty. Counting the colons alone also matches a hash
+  // that has seven colons of its own once --username puts a login in front of it (-m 28200), and
+  // the whole file is then read as shadow and every line fails to parse.
+
   int sep_cnt = 0;
 
   for (int i = 0; i < line_len; i++)
   {
-    if (line_buf[i] == ':') sep_cnt++;
+    if (line_buf[i] == ':')
+    {
+      sep_cnt++;
+
+      continue;
+    }
+
+    if ((sep_cnt < 2) || (sep_cnt > 7)) continue;
+
+    if ((line_buf[i] >= '0') && (line_buf[i] <= '9')) continue;
+
+    if (line_buf[i] == '-') continue;
+
+    return 0;
   }
 
   if (sep_cnt == 8) return 1;

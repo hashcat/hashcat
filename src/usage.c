@@ -24,6 +24,10 @@ static const char *const USAGE_MINI[] =
 // rows of its own for them, because which hash-modes read them is up to the modules. The marker is
 // found by its text, not by its address: a toolchain that folds identical constants, as clang with
 // LTO does, can give an empty marker the address of every blank line in the table.
+//
+// The separators in this table stand at offsets 33, 40 and 91, in the header, in the rule and in every
+// row. module_options_usage () pads its rows to the same offsets from a format string of its own, so
+// re-padding this table means changing that format string as well.
 
 static const char USAGE_MODULE_OPTIONS[] = "<module options>";
 

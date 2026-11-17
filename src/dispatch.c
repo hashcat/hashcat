@@ -1805,9 +1805,7 @@ HC_THREAD_FUNC thread_calc (void *p)
 
   if (calc (hashcat_ctx, device_param) == -1)
   {
-    status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-    status_ctx->devices_status = STATUS_ERROR;
+    myerror (hashcat_ctx);
   }
 
   // Out of work for this round. The status display reads this to distinguish an idle device from a

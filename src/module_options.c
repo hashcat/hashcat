@@ -945,7 +945,9 @@ int module_options_check (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-// The rows go into --help where the table in usage.c leaves room for them, in the same columns.
+// The rows go into --help where the table in usage.c leaves room for them, in the same columns. The
+// separators have to land at offsets 33, 40 and 91, which is what the widths below produce, so a
+// re-padding of that table has to change them here as well.
 
 void module_options_usage (const user_options_t *user_options)
 {
@@ -965,11 +967,11 @@ void module_options_usage (const user_options_t *user_options)
 
     if (help_example[0] == 0)
     {
-      printf ("     --%-25s| %-4s | %-52s |", row->name, help_type, help);
+      printf ("     --%-26s| %-4s | %-48s |", row->name, help_type, help);
     }
     else
     {
-      printf ("     --%-25s| %-4s | %-52s | %s", row->name, help_type, help, help_example);
+      printf ("     --%-26s| %-4s | %-48s | %s", row->name, help_type, help, help_example);
     }
 
     fwrite (EOL, strlen (EOL), 1, stdout);

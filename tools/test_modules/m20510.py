@@ -35,6 +35,8 @@ def module_test_properties():
   return {
     'constraints': {
       'pure': {
+        # A six-byte password leaves an empty suffix, which attack 0 can crack. The grammar
+        # attack needs a nonempty suffix, so its runner substitutes a longer test vector.
         'password_length': [6, 250],
         'salt_length': None,
       },

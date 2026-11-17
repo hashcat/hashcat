@@ -6845,7 +6845,7 @@ static int salt_sweep_launch (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
     if (speed_only_stop (device_param, user_options->slow_candidates) == true) return 0;
   }
 
-  check_cracked (hashcat_ctx, device_param);
+  if (check_cracked (hashcat_ctx, device_param) == -1) return -1;
 
   return 0;
 }
@@ -7120,7 +7120,12 @@ static int run_cracker_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
         if (speed_only_stop (device_param, user_options->slow_candidates) == true) break;
       }
 
-      check_cracked (hashcat_ctx, device_param);
+      if (check_cracked (hashcat_ctx, device_param) == -1)
+      {
+        rc_final = -1;
+
+        break;
+      }
 
       if (status_ctx->run_thread_level2 == false) break;
     }

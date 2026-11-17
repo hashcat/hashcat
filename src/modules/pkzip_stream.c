@@ -444,7 +444,7 @@ static const module_option_t *module_register_options (void)
       .name         = "pkzip-member-index",
       .type         = MODULE_OPTION_TYPE_U32,
       .help_type    = "Num",
-      .help         = "Select a PKZIP member by zero-based central directory index",
+      .help         = "Select a PKZIP member by central directory index",
       .help_example = "--pkzip-member-index=0",
     },
     { .name = NULL },

@@ -69,15 +69,15 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --outfile-check-dir         | Dir  | Directory to monitor for 3rd party outfiles      | --outfile-check-dir=x
      --cache-path                | Dir  | Specify the directory hashcat caches in          | --cache-path=/mnt/hccache
      --logfile-disable           |      | Disable the logfile                              |
-     --eapol-message-pair       | Num  | Load only EAPOL message pairs matching X             | --eapol-message-pair=2
-     --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
-     --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png
-     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table
-     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3
-     --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt
-     --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450
-     --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500
-     --pkzip-member-index       | Num  | Select a PKZIP member by zero-based central directory index | --pkzip-member-index=0
+     --eapol-message-pair        | Num  | Load only EAPOL message pairs matching X         | --eapol-message-pair=2
+     --nonce-error-corrections   | Num  | BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
+     --truecrypt-keyfiles        | File | Keyfiles to use, separated with commas           | --truecrypt-keyf=x.png
+     --keyboard-layout-mapping   | File | Keyboard layout mapping table for special modes  | --keyb=tables/layouts/de.table
+     --scrypt-tmto               | Num  | Manually override TMTO value for scrypt to X     | --scrypt-tmto=3
+     --veracrypt-keyfiles        | File | Keyfiles to use, separated with commas           | --veracrypt-keyf=x.txt
+     --veracrypt-pim-start       | Num  | VeraCrypt personal iterations multiplier start   | --veracrypt-pim-start=450
+     --veracrypt-pim-stop        | Num  | VeraCrypt personal iterations multiplier stop    | --veracrypt-pim-stop=500
+     --pkzip-member-index        | Num  | Select a PKZIP member by central directory index | --pkzip-member-index=0
  -b, --benchmark                 |      | Run benchmark of selected hash-modes             |
  -B, --benchmark-pure            |      | Benchmark the selected hash-modes, pure kernels  |
      --benchmark-all             |      | Run benchmark of all hash-modes (requires -b)    |
