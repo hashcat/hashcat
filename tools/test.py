@@ -33,6 +33,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 import test_iterations
@@ -6691,11 +6692,6 @@ def bridge_vectors(mode, family, hash_path, word_path):
     return sum(1 for line in fh if line.strip())
 
 
-# A cracked bridge line is "<sha256 hex>*<mode>:<family>:<base64>:<password>", so a line that opens
-# with the 64 hex digit digest and a star is one recovered hash.
-BRIDGE_CRACK = re.compile(rb"(?m)^[0-9a-f]{64}\*")
-
-
 def run_bridge(args):
   # Crack every selected mode's own test oracle through the Python bridge (mode 73000), with -a 0 and
   # no mode kernel, so hashcat's parser and candidate handling are checked against the reference
@@ -6713,6 +6709,7 @@ def run_bridge(args):
     for mode in modes:
       hpath = os.path.join(tmp, "m%05d.hash" % mode)
       wpath = os.path.join(tmp, "m%05d.words" % mode)
+      opath = os.path.join(tmp, "m%05d.out" % mode)
 
       label  = "[ test.py ] [ Type %d, Bridge, Device-Type Cpu ]" % mode
       family = bridge_family(mode)
@@ -6733,20 +6730,33 @@ def run_bridge(args):
 
         continue
 
-      rc, out = run_hashcat(opts, 73000, hpath, None, attack=0,
-                            extra=["--bridge-parameter1", bridge_py, wpath])
+      rc, _ = run_hashcat(opts, 73000, hpath, None, attack=0,
+                          extra=["--bridge-parameter1", bridge_py, "--outfile", opath,
+                                 "--outfile-format", "1", wpath])
 
-      cracked = len(BRIDGE_CRACK.findall(out))
+      with open(hpath, "rb") as fh:
+        expected = sorted(fh.read().splitlines())
+
+      try:
+        with open(opath, "rb") as fh:
+          recovered = sorted(fh.read().splitlines())
+      except OSError:
+        recovered = []
+
+      # Count duplicates so an extra crack cannot hide a missing hash.
+      missing = sum((Counter(expected) - Counter(recovered)).values())
+      extra   = sum((Counter(recovered) - Counter(expected)).values())
 
       c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
-      classify(rc, cracked == n, c)
+      classify(rc, recovered == expected, c)
 
       v = verdict(c)
 
-      print("%s > %s : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped%s"
-            % (label, v, n - cracked if rc == 0 else 0, n, 0, n, 0, n, 0, n,
-               (", %d/%d errors" % (c["err"], c["cnt"])) if c.get("err") else ""))
+      detail = f", {c['err']}/{c['cnt']} errors" if c["err"] else ""
+
+      print(f"{label} > {v} : {missing if rc == 0 else 0}/{n} not found, "
+            f"{extra if rc == 0 else 0}/{n} not matched, 0/{n} timeout, 0/{n} skipped{detail}")
 
       record(v)
       note_verdict(v)
