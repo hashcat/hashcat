@@ -36,6 +36,9 @@ wordlist is enough.
 - Added mode 2300:  OpenSSL enc (AES-CBC, EVP_BytesToKey)
 - Added mode 14300: 3DES (2 key, PT = $salt, key = $pass)
 - Added mode 15800: xchain-crypto Keystore (THORChain, THORSwap)
+- Added mode 17060: GPG (AES-256 (SHA-1($pass)), Symmetric, MDC)
+- Added mode 17070: GPG (AES-256 (SHA-256($pass)), Symmetric, MDC)
+- Added mode 17080: GPG (AES-256 (SHA-512($pass)), Symmetric, MDC)
 - Added mode 17240: PKZIP (Streaming)
 - Added mode 29514: LUKS v1 SHA-1 + Blowfish
 - Added mode 29524: LUKS v1 SHA-256 + Blowfish
@@ -44,10 +47,12 @@ wordlist is enough.
 - Added mode 30800: TronLink Wallet (PBKDF2-HMAC-SHA512, AES-256-CTR)
 - Added mode 34900: Dashlane (legacy, local master password)
 - Added mode 35900: Hashids (salt search)
+- Added mode 36001: BIP39 Seed Recovery (ASCII, P2SH/P2PKH/P2WPKH)
 - Added mode 36700: Cardano Daedalus Wallet (Byron era, spending password)
 - Added mode 37200: gocryptfs
 - Added mode 37230: Copay Wallet Backup (sjcl, AES-CCM)
 - Added mode 37231: BitGo Wallet Key (sjcl, AES-CCM)
+- Added mode 37232: Block.io Wallet Key (Secret PIN)
 - Added mode 37240: MetaMask Wallet (short hash, 32 byte vault)
 - Added mode 37800: PuTTY Private Key (PPK) v2, AES-256-CBC
 - Added mode 37801: PuTTY Private Key (PPK) v3, Argon2 + AES-256-CBC
@@ -59,6 +64,7 @@ wordlist is enough.
 - Added mode 39000: Kerberos 5, etype 3, AS-REQ Pre-Auth
 - Added mode 39100: Kerberos 5, etype 1, TGS-REP
 - Added mode 38301: Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + 3DES key)
+- Added mode 38302: Apple DMG (cdsaencr v1, PBKDF2-HMAC-SHA1 + 3DES key wrap)
 - Added mode 39200: Kerberos 5, etype 1, AS-REP
 - Added mode 39300: Kerberos 5, etype 1, AS-REQ Pre-Auth
 - Added mode 39400: Kerberos 5, etype 23, AS-REQ Pre-Auth (NT)
@@ -71,6 +77,12 @@ wordlist is enough.
 - Added mode 44200: Sollet Wallet (PBKDF2-SHA256, XSalsa20)
 - Added mode 44300: Bitcoin BIP38 Private Key (no EC multiply)
 - Added mode 44400: Jenkins lookup8
+- Added mode 44500: Tezos Presale Wallet (PBKDF2-SHA512, ed25519)
+- Added mode 44800: bcrypt file encryption (.bfe)
+- Added mode 45500: Monero Wallet
+- Added mode 45600: SubWallet / polkadot-js keyring (scrypt + XSalsa20-Poly1305)
+- Added mode 45700: Jaxx Liberty Wallet (PBKDF2-SHA256 5000, AES-256-GCM)
+- Added mode 45800: Brave Wallet (PBKDF2-HMAC-SHA256, AES-256-GCM-SIV)
 
 ##
 ## New Features and Options
@@ -111,6 +123,9 @@ wordlist is enough.
   checksum joined in the last field. Previously, a salt field was required, even if empty
 - Added an optional time step field to hash-mode 18100 (TOTP) for codes that do not use RFC 6238's
   30 second step
+- Changed "--encrypt-with-pubkey" to validate the key against the maximum password length the
+  hash-mode and attack can report. With --force, smaller keys are accepted and longer passwords are
+  truncated to fit
 
 ## Candidate generation
 
@@ -151,6 +166,17 @@ wordlist is enough.
   cracked by the current queue item when the queue contains several masks or wordlists
 - Changed the Remaining and Recovered/Time status lines to appear for all lists with more than one
   hash, rather than only those with more than 1000
+- Changed the Recovered/Time status line to project how many hashes will have been recovered after
+  each of its three windows. Previously, it repeated the same average, with the per hour and per day
+  figures calculated by multiplying the per minute figure by 60 and 1440. Those averages did not
+  account for a declining recovery rate
+- Changed the Recovered/Time status line to show all three measured counts from the first update,
+  without waiting for each full measurement period to pass
+- Changed recovery history to record one entry per second rather than per cracking batch.
+  Previously, runs with many batches overwrote earlier seconds, making the hour and day counts too
+  low
+- Added a Recovered.Limit status line and the "recovered_est_hour" and "recovered_limit" JSON fields
+  to estimate how many hashes the current attack would recover if it continued running
 - Added the running time to Time.Started after a pause, and "time_running" to the JSON status
 - Changed "--status" to print the first status as soon as an attack speed is available, instead of
   waiting for the first "--status-timer" interval
@@ -164,6 +190,19 @@ wordlist is enough.
 - Added "--stdin-timeout-flush" to crack candidates already read from stdin after the specified
   number of seconds without new input, without waiting for a full batch
 - Added "--brain-server-dump-dir" to specify the directory for brain server dumps
+- Removed the "--spin-damp" option, which used the CPU for device synchronization. It had defaulted
+  to 0 since v6.0.0. Only the OpenCL code for NVIDIA GPUs still read it
+- Removed the "HASHCAT_SALT_INNER" environment variable. It selected an order that tested each
+  amplifier item against all active salts before moving to the next item. Slow hashes now use this
+  order by default
+- Changed status reporting for mask queues from "--increment" or mask files and wordlist queues in
+  "-a 7" attacks to print one final status instead of one per mask or wordlist. The
+  "--machine-readable" and "--status-json" outputs no longer report an exhausted status while work
+  remains
+- Added Queue.Keyspace and Queue.Estimated status lines to report progress and remaining time across
+  all masks in a queue, rather than only the current round. Each mask is sized using the smaller of
+  each position's charset size and the Markov threshold, so Markov tables do not need to be built
+  for the walk
 
 ## Extraction tools
 
@@ -175,10 +214,14 @@ wordlist is enough.
   password))
 - Added "tools/copay2hashcat.py" for mode 37230 (Copay Wallet Backup (sjcl, AES-CCM))
 - Added "tools/dashlane2hashcat.py" for mode 34900 (Dashlane (legacy, local master password))
+- Added "tools/dogechain2hashcat.py" to extract hash-mode 32500 lines from dogechain.info wallet
+  backups
 - Added "tools/encfs2hashcat.py" for mode 2200 (EncFS (AES))
 - Added "tools/ethereum2hashcat.py", which writes a hash line for an Ethereum keystore or a Trust
   Wallet cloud backup
 - Added "tools/gocryptfs2hashcat.py" for mode 37200 (gocryptfs)
+- Added "tools/gpg-sym2hashcat.py" to extract lines for hash-modes 17060, 17070 and 17080 from
+  messages written by "gpg --symmetric"
 - Added "tools/openssl2hashcat.py" for mode 2300 (OpenSSL enc (AES-CBC, EVP_BytesToKey))
 - Added "tools/opvault2hashcat.py", which writes a hash line for mode 8200 from a 1Password OPVault
 - Added "tools/ppk2hashcat.py" for modes 37800 and 37801 (PuTTY Private Key (PPK) v2 and v3)
@@ -244,6 +287,18 @@ Results depend on the device, runtime and workload.
 - Increased the speed of most operators in the optimized rule engine by working on whole registers
   rather than one byte at a time. On an RTX 4090, a single repeated rule showed a speedup of
   1.8-8.3x, and mixed rule files gained 1.11-4.63%. Faster character purges are used only on NVIDIA
+- Increased the speed of slow hash attacks with several salts by testing each candidate chunk
+  against every uncracked salt before building the next chunk. Cracked salts are excluded from
+  subsequent work
+- Increased the speed of slow hash attacks with several salts by running the amplifier kernel and
+  any required UTF-16 conversion once per part of a chunk instead of once per salt
+- Reduced CPU use during CUDA slow hash attacks by using the previous launch's duration as an
+  estimate for a loop launch not yet timed with the current launch shape. Previously, such a launch
+  kept a host core spinning until it ended
+- Grouped mode 11600 (7-Zip) archives with the same NumCyclesPower under one salt, so a single key
+  derivation per candidate is shared across them instead of being repeated for each archive
+- Increased the speed of the optimized kernels for hash-mode 34600 (MD6 (256)) by 2.0 to 2.6 times.
+  They now keep the MD6 state in a 128 word ring buffer instead of a 2048 word linear buffer
 
 ##
 ## Improvements
@@ -271,6 +326,10 @@ Results depend on the device, runtime and workload.
 - Masks supplied on the command line are now validated at startup, before loading hashes and
   initializing devices. Undefined custom charsets, unknown placeholders and trailing "?" characters
   were previously reported only when the first mask round began
+- Changed all attacks to test each part of a chunk against every uncracked salt before building the
+  next part, matching the order already used by slow hashes. Fast hashes, the PCFG device engine,
+  attack mode 9, benchmarks and "--speed-only" previously used a different order. Processing order
+  no longer depends on the hash-mode or options
 
 ## Plugins and libhashcat
 
@@ -285,6 +344,9 @@ Results depend on the device, runtime and workload.
 - Added the module hook "module_tune_variants()" to list kernel variants for autotune to time on
   each device, and the kernel parameter MODULE_TUNE to identify the selected variant. The plugin
   guide describes "module_tune_variants()"
+- Added the module hook "module_salt_sweep()" for kernels that test all salts in a hash list in a
+  single launch, and the SALTS_CNT kernel parameter containing the salt count. Hashcat then makes
+  one launch per chunk instead of one per salt. The plugin guide describes "module_salt_sweep()"
 - Added the module hooks "module_combined_len_max()", "module_combined_len_pw()" and
   "module_combined_len_salt()"
 - Raised the plugin interface version from 800 to 810. Plugins built for v8.0.0 need a rebuild but
@@ -300,7 +362,16 @@ Results depend on the device, runtime and workload.
   hash-mode to read a binary hash file directly while still decoding hashes supplied inline
 - Added "hashcat_session_init_folders()" to libhashcat so programs can supply shared and profile
   folders instead of having them selected based on where the program runs
+- Added OPTS_TYPE_HOOK_SALT_PER_DIGEST to retain a hook_salt slot for each digest after salt
+  grouping. Modes combining OPTS_TYPE_DEEP_COMP_KERNEL with a hook23 kernel now run the host hook
+  once per digest
 
+## Builds and packaging
+
+- Added a zip archive alongside the 7z archive in binary release packages, providing the format
+  winget uses to install portable applications
+- Removed tools/test_options.py, a development harness that tested every command line option. It was
+  announced in the 8.0.0 release notes but was never part of the test suite run by CI
 ## FPGA
 
 - Published bitstream set 8, including ZC706, YPCB and Enigma X1 designs built with LiteX and
@@ -386,6 +457,11 @@ Results depend on the device, runtime and workload.
   realms of 512 characters, leaving no room in their buffers for the terminator
 - Fixed hash-modes 18200 and 35400 failing to crack AS-REP hashes whose encrypted part contains the
   application tag 0x7a, which some KDCs send
+- Fixed hash-modes 17010 to 17040 reading one word past the end of the decrypted data buffer when
+  the encrypted data was at its maximum size of 1536 bytes. The extra word was never used, so
+  results are unchanged
+- Fixed mode 23800 reporting a false crack when an attack was stopped and the archive's CRC32 was
+  00000000
 
 ## Attack modes and rules
 
@@ -409,6 +485,22 @@ Results depend on the device, runtime and workload.
   open without input
 - Fixed "--debug-mode" writing stack memory to the debug file and crashing before the cracked hash
   reached the outfile when a hash was cracked using a rule line containing only spaces
+- Fixed PCFG attacks counting candidates skipped by "--skip" as completed work
+- Fixed PCFG attacks with "--limit" reporting Time.Estimated as 0 secs once one of several salts was
+  cracked
+- Fixed "--increment-inverse" leaking two buffers at each increment step of every mask
+- Fixed "-a 1" with "--slow-candidates" testing every word pair with its two words reversed when the
+  second wordlist was larger
+- Fixed "-a 7" with "--slow-candidates" and pure kernels crashing
+- Fixed the Guess.Base line under "--slow-candidates" showing a later wordlist instead of the one
+  being read
+- Fixed handling of the bypass key under "--slow-candidates", which could stay on the current
+  wordlist or end the attack instead of advancing to the next wordlist
+- Fixed "--limit" with piped candidates and several devices testing lines outside the requested
+  range while leaving lines inside it untested
+- Fixed slow hash attacks losing cracks or reporting incorrect passwords when paused or stopped
+- Fixed association attacks silently failing to crack hashes whose second or third loop count or
+  repeat count differed from the corresponding count in the first hash
 
 ## Autotune and tuning database
 
@@ -421,6 +513,10 @@ Results depend on the device, runtime and workload.
   matched the same hash-mode
 - Fixed -n validation using only the hash-mode's Kernel-Accel maximum, which prevented manual
   requests for launch sizes that autotune can use with a lower -T
+- Fixed autotune choosing different "-n" values for the same command depending on device
+  temperature. Accel was rounded to single waves, while the variation between cold and hot runs
+  exceeded one wave. Accel now rounds to a grid of 16 waves, increasing launch duration without
+  reducing speed
 
 ## Backends and devices
 
@@ -446,6 +542,12 @@ Results depend on the device, runtime and workload.
   still fall back to size optimization
 - Fixed the NVML driver and library mismatch error failing to report its cause or how to resolve it,
   and added the NVML error codes needed for that message
+- Fixed Metal failing to build any kernel from an installed copy of hashcat on Apple silicon, where
+  Apple's compiler reads included files only beneath the folder containing the hashcat binary.
+  Kernel headers are now inlined before the source is passed to the compiler
+- Fixed a device waiting indefinitely when its candidate producer thread could not be created
+- Fixed compute device failures leaving the attack running without testing candidates, counting
+  those candidates as completed work and reporting an abort instead of the error
 
 ## Paths, startup and interface
 
@@ -464,16 +566,40 @@ Results depend on the device, runtime and workload.
   appearing in startup, "-I" and "--machine-readable" output
 - Fixed unsafe quoting in commands printed by "--restore" for fish when an argument or the stored
   directory contained a backslash, and for PowerShell when either contained "$" or a backtick
+- Fixed benchmark mode reporting the speed of a single kernel launch, which could read up to 7.6
+  percent below the device's sustained speed depending on where the benchmark keyspace ended. The
+  reported speed is now pooled across all launches within two percent of the fastest launch
+- Fixed installed copies of hashcat on Windows storing potfiles, sessions and kernel caches beside
+  hashcat.exe, where an upgrade or uninstall could remove them. Installations under Program Files,
+  the per user Programs folder or winget's packages now use %LOCALAPPDATA%\hashcat
+- Fixed hashcat launched through a symbolic link on Windows looking for bundled files beside the
+  link rather than beside hashcat.exe. Portable installs through winget add hashcat to PATH using
+  such a link
+- Fixed a crash while parsing the command line if the option table could not be allocated. Hashcat
+  now exits with code -1 after reporting "Insufficient memory available"
+- Fixed hash files read with "--username" being mistaken for /etc/shadow when a hash contained seven
+  colons, as in "-m 28200" (Exodus Desktop Wallet). Shadow lines must now also have numeric or empty
+  ageing fields
+- Fixed the "--help" tables showing five rows with misaligned columns and two without a space before
+  a separator. All rows were reflowed to stay within 131 columns, and horizontal header rules were
+  extended to match the width of their tables
+- Fixed "hashcat_session_pause()" and "hashcat_session_resume()" overwriting a crack that occurred
+  at the same time, leaving a completed and fully cracked session reporting Running
 
 ## Outfiles and restore files
 
 - Fixed incorrect crack positions in "--outfile-format 4" and wordlist names in "--debug-mode 5"
   when the brain skipped part of the keyspace within a batch, or when a device refilled a batch from
   beyond positions already taken by another device
+- Fixed "--outfile-format 4" writing a crack position of 0 for every hash cracked by the device
+  engine of a PCFG or table feed. The position now refers to the base word's position in the
+  keyspace reported by "--keyspace"
 - Fixed failed restore file writes overwriting the previous restore file with an empty one, leaving
   the session impossible to restore. This could occur, for example, when the disk was full
 - Fixed "-O" with rules writing a wrong password to the outfile and potfile for a slow hash whose
   candidate is longer than 31 bytes, such as "-m 400" with a 32 to 39 byte password
+- Fixed combinator and hybrid attacks truncating recovered passwords to 256 bytes, producing output
+  that did not hash to the cracked digest
 
 ## Brain and build
 
