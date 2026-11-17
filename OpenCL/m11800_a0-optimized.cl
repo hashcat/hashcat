@@ -87,6 +87,55 @@ DECLSPEC void streebog_g (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, SBOG_LOC
   }
 }
 
+CONSTANT_VK u64a STREEBOG_RK[13][8] =
+{
+  { 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL, 0x74a5d4ce2efc83b3UL },
+  { 0x8fd72f640708b0d0UL, 0x0de874c7ebc3f213UL, 0xe92eef3ad202e9e0UL, 0xc1e9da0708013da7UL, 0x9727dab2f014be88UL, 0x103051a02bcd6935UL, 0x33ec7e1dbd28f736UL, 0x1ecf460cf78ad1f4UL },
+  { 0x0b2d9f89c775449dUL, 0x6b6eefc6dab7e8b0UL, 0xf1a0d31667f6ec44UL, 0x2a71132d5e108166UL, 0x0e9357c2ec87931aUL, 0xc99f5c1b4a01612dUL, 0x7e60b16e637d4ee2UL, 0xa9fcb827f9ba6d81UL },
+  { 0x231feca5ab3d285cUL, 0x70c6e1483c838c3bUL, 0x9c21c3c40ce4e2daUL, 0x2fa796bd5688e573UL, 0x04c0e3ff55809fdfUL, 0x5ff978bfb8e3cdc8UL, 0xc54a19d6a3d07033UL, 0x0fca83fdde872478UL },
+  { 0xbdf9312726339f10UL, 0x51a5ba1793bc9c56UL, 0xc4428da14f96d2d4UL, 0xec925222374eab1fUL, 0x79477893747dd92fUL, 0xc495e19a46886304UL, 0x9c23f893ba7cfa36UL, 0x0c47268881fc5febUL },
+  { 0xcf117966029b2cb3UL, 0x07179abe77088a8fUL, 0x671ef4cc2650e257UL, 0x7474b8b170dab5c6UL, 0x4224febecf35113eUL, 0x993d156c675c5537UL, 0x2dee3a5782c39b45UL, 0xe7c586f2990dd385UL },
+  { 0x8608fd95b1c1138aUL, 0x8bb0847d9e9849acUL, 0x5e76623f4f0eb0c7UL, 0x34c2bdbafc5060ceUL, 0xe9e814475907826cUL, 0x22c9ed94d6aac7c9UL, 0xe6b75e28171eb0d6UL, 0xf1329e5534e60215UL },
+  { 0x86bb4814b1c3ce52UL, 0xe8f226c9fbddd017UL, 0xceded67991cb3087UL, 0x76c33e32fdbfaca5UL, 0xdbb13be1a9f7474cUL, 0x3d0273470342c356UL, 0x8e7246c51cf07f61UL, 0xac8c125ddef8df71UL },
+  { 0x6d73e747795b8cf3UL, 0x4e4aa65ea0072050UL, 0xa14a1582cb43c2b9UL, 0x748ef2b7bb63b938UL, 0x126789534410d7d4UL, 0xd4d48ff40301d791UL, 0xc67dfbe315c41fc0UL, 0x35e7a1a1af88601cUL },
+  { 0x9bd33ea0fab34007UL, 0xf51b7cdbe3d67d25UL, 0xd3abda0ce4186e6bUL, 0x8e61ddadcbce1706UL, 0x58994565b41be6a5UL, 0x7a87abc1240cd31dUL, 0xfafe6c28487968d0UL, 0x15b368609ff9eea7UL },
+  { 0xae33263ccf115818UL, 0x93b2dbe9cadfcfc8UL, 0x0a91952bf91b0147UL, 0x458e67ca5f1ed73aUL, 0x94c2e5f288f074e3UL, 0x377895e85c69e996UL, 0xf11a4456aab37b10UL, 0x163131934816821aUL },
+  { 0xd07e4a2366bf469dUL, 0x5ef1a3d220213b6cUL, 0x3c5bb78971d8ed0fUL, 0x0de05e6b9006f2d2UL, 0xc58cfb00b8eaa1c9UL, 0xefcdb54d1f250b76UL, 0xfd135634fa527042UL, 0x4cee791290516407UL },
+  { 0xd800b9264010790fUL, 0x974c4823e2b668d7UL, 0xa605a4b385c5e361UL, 0x3f6c92da5a56d8d2UL, 0x82b9d67c12ef8277UL, 0x0ab6b4582561bf90UL, 0x46954fd98fc2cba3UL, 0x70be45cb21b6760dUL },
+};
+
+DECLSPEC void streebog_g_first (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, SBOG_LOCAL_TYPE u64 (*s_sbob_sl64)[256])
+{
+  u64x s[8];
+  u64x t[8];
+
+  for (int i = 0; i < 8; i++)
+  {
+    s[i] = m[i];
+  }
+
+  for (int r = 0; r < 12; r++)
+  {
+    for (int i = 0; i < 8; i++)
+    {
+      t[i] = s[i] ^ STREEBOG_RK[r][i];
+    }
+
+    #ifdef _unroll
+    #pragma unroll
+    #endif
+    for (int i = 0; i < 8; i++)
+    {
+      s[i] = SBOG_LPSti64;
+    }
+  }
+
+  for (int i = 0; i < 8; i++)
+  {
+    h[i] ^= s[i] ^ STREEBOG_RK[12][i] ^ m[i];
+  }
+}
+
 KERNEL_FQ KERNEL_FA void m11800_m04 (KERN_ATTR_RULES ())
 {
   /**
@@ -220,7 +269,7 @@ KERNEL_FQ KERNEL_FA void m11800_m04 (KERN_ATTR_RULES ())
     h[6] = INITVAL;
     h[7] = INITVAL;
 
-    streebog_g (h, m, s_sbob_sl64);
+    streebog_g_first (h, m, s_sbob_sl64);
 
     u64x z[8];
 
@@ -398,7 +447,7 @@ KERNEL_FQ KERNEL_FA void m11800_s04 (KERN_ATTR_RULES ())
     h[6] = INITVAL;
     h[7] = INITVAL;
 
-    streebog_g (h, m, s_sbob_sl64);
+    streebog_g_first (h, m, s_sbob_sl64);
 
     u64x z[8];
 
