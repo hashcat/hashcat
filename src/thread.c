@@ -131,6 +131,21 @@ int mycracked (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+int myerror (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  status_ctx->devices_status = STATUS_ERROR;
+
+  status_ctx->run_main_level1   = false;
+  status_ctx->run_main_level2   = false;
+  status_ctx->run_main_level3   = false;
+  status_ctx->run_thread_level1 = false;
+  status_ctx->run_thread_level2 = false;
+
+  return 0;
+}
+
 int myabort_checkpoint (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -689,6 +704,11 @@ int bypass (hashcat_ctx_t *hashcat_ctx)
 
   return 0;
 }
+
+// The caller is responsible for mux_display. check_cracked () sets STATUS_CRACKED under that lock,
+// and these two test devices_status and then store to it, so a caller holding nothing can overwrite a
+// crack that lands in between. The keypress path already holds it; hashcat_session_pause () and
+// hashcat_session_resume () take it for a library caller.
 
 int SuspendThreads (hashcat_ctx_t *hashcat_ctx)
 {
