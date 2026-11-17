@@ -5522,6 +5522,7 @@ def edge_oracle(mode, attack, optimized, association_groups=False):
       return [], 1
 
     try:
+      # Reject vectors from a different mode, attack, or kernel family.
       if (int(fields[0]) != mode or int(fields[1]) != attack or
           int(fields[2]) != (1 if optimized else 0)):
         return [], 1
