@@ -24,7 +24,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
-      'association_parameters': [{"salt_iter": 150000}],
+      'association_parameters': [{"salt_iter": (150000, 250000)}],
     },
   }
 

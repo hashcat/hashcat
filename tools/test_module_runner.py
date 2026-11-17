@@ -504,7 +504,12 @@ def edge(mod, mode, attack_type, optimized, association_groups=False):
   groups = None
 
   if association_groups and attack_type == 9:
-    groups = mod.module_test_properties()["constraints"].get("association_parameters")
+    declared = mod.module_test_properties()["constraints"].get("association_parameters")
+
+    if declared:
+      # A tuple is an inclusive range. Pick once so every vector in the group uses the same value.
+      groups = [{key: random_number(*value) if isinstance(value, tuple) else value
+                 for key, value in parameters.items()} for parameters in declared]
 
   def emit(word_len, salt_len):
     if groups is None:

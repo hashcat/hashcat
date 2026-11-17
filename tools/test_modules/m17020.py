@@ -27,7 +27,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
-      'association_parameters': [{"cipher_algo": 7, "iterations": 65536}, {"cipher_algo": 9, "iterations": 65536}],
+      'association_parameters': [{"cipher_algo": 7, "iterations": (1024, 65536)}, {"cipher_algo": 9, "iterations": (1024, 65536)}],
     },
   }
 

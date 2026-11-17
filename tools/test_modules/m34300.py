@@ -44,7 +44,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
-      'association_parameters': [{"iterations": 2, "memory_kib": 4096, "parallelism": 1}],
+      'association_parameters': [{"iterations": (1, 3), "memory_kib": 4096, "parallelism": 1}],
     },
   }
 
