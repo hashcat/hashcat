@@ -102,7 +102,7 @@ bool keyboard_layout_mapping_check (const char *value, char *err, const size_t e
     .type         = MODULE_OPTION_TYPE_STR,                                               \
     .check        = keyboard_layout_mapping_check,                                        \
     .help_type    = "File",                                                               \
-    .help         = "Keyboard layout mapping table for special hash-modes",               \
+    .help         = "Keyboard layout mapping table for special modes",                    \
     .help_example = "--keyb=tables/layouts/de.table",                                     \
   }
 
