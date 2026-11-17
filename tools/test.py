@@ -664,8 +664,7 @@ MASK_ONLY_MODES = {37000}
 MFULC_MODES = {37000}
 
 # The LUKS modes whose oracle prints the path of the hash file it extracted from a fresh container,
-# not the hash itself. whole_word_vectors leaves their -a 4 list alone (test.sh); 40023 takes its
-# hash from another field and is excluded there too.
+# not the hash itself. whole_word_vectors leaves their -a 4 list alone (test.sh).
 
 LUKS_MODES = {29511, 29512, 29513, 29514, 29521, 29522, 29523, 29524,
               29531, 29532, 29533, 29534, 29541, 29542, 29543, 29544, 34100}
@@ -1159,12 +1158,12 @@ def a4_vectors(mode, pairs, optimized):
   # least one character, so the zero length word the -a 0 vectors carry for a min-zero mode cannot be
   # written into a ruleset. Where one is present it is swapped for a spare word of length 1 and the
   # hash that goes with it. Returns the substituted pairs, or None to fall back to the -a 0 vectors,
-  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS or 40023 list, or no spare).
+  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS list, or no spare).
 
   if not pairs:
     return None
 
-  if mode in LUKS_MODES or mode == 40023:
+  if mode in LUKS_MODES:
     return None
 
   # Mode 20510 removes a six-byte prefix before feeding a candidate to the grammar.
