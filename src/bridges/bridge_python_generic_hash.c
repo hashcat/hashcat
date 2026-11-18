@@ -166,6 +166,7 @@ typedef struct
   u8    *init_buf;
   size_t init_size;
   u32    init_len;
+  bool   legacy_warning;
 
   #if !defined (_WIN)
   void (*sigpipe_saved) (int);
@@ -1239,6 +1240,20 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, void *platform_context, hc_device_
     worker_stop (worker);
 
     return false;
+  }
+
+  if (len > 0)
+  {
+    hc_thread_mutex_lock (bridge_context->spawn_mutex);
+
+    if (bridge_context->legacy_warning == false)
+    {
+      event_log_warning (hashcat_ctx, "Skipped oversized generic records. Set GENERIC_ESALT_FORMAT = 'packed' in the Python bridge plugin.");
+
+      bridge_context->legacy_warning = true;
+    }
+
+    hc_thread_mutex_unlock (bridge_context->spawn_mutex);
   }
 
   return true;

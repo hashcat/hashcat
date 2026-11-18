@@ -129,17 +129,21 @@ def extract_generic_esalts(esalts_buf: bytes) -> list:
 GENERIC_LEGACY = struct.Struct("=1024sI1024sI")
 
 
-def legacy_generic_esalts(esalts_buf: bytes) -> bytes:
+def legacy_generic_esalts(esalts_buf: bytes) -> tuple:
   # Keep copied plugins compatible with their original fixed-size unpacker.
   records = []
+  skipped = set()
 
-  for esalt in extract_generic_esalts(esalts_buf):
+  for pos, esalt in enumerate(extract_generic_esalts(esalts_buf)):
     hash_buf = esalt["hash_buf"]
     salt_buf = esalt["salt_buf"]
 
     if len(hash_buf) > 1024 or len(salt_buf) > 1024:
-      raise ValueError("this plugin uses fixed generic records limited to 1024 bytes per field")
+      skipped.add(pos)
+      records.append(GENERIC_LEGACY.pack(b"", 0, b"", 0))
+
+      continue
 
     records.append(GENERIC_LEGACY.pack(hash_buf, len(hash_buf), salt_buf, len(salt_buf)))
 
-  return b"".join(records)
+  return b"".join(records), skipped
