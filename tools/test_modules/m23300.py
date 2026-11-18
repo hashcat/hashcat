@@ -27,6 +27,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"hash_ver": 1}, {"hash_ver": 2}],
     },
   }
 
@@ -35,7 +36,7 @@ def module_generate_hash(word, salt, hash_ver=None, file_ver=None, iterations=No
   is_decrypt = data is not None
 
   if not is_decrypt:
-    kind = random_number(1, 2)
+    kind = random_number(1, 2) if hash_ver is None else int(hash_ver)
 
     if kind == 1:
       hash_ver = 1
