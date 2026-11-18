@@ -37,6 +37,51 @@ static const char *ST_HASH        = "022f7e02b3314f7d0968f73c00ba759f:67588";
 
 static const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 
+// The optimized kernels can test every salt in one launch: the precomputed md5(salt) of each salt
+// fits shared memory in windows, and a candidate then costs two message blocks per salt (the md5(salt)
+// hex and md5(pass) hex fill the first, the padding takes a second). Only worth it for the attacks
+// whose kernel files carry the sweep code.
+
+#define SWEEP_SALTS_PER_WINDOW 512
+
+static bool module_salt_sweep (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, const hc_device_param_t *device_param)
+{
+  if (hashes->salts_cnt <= 1) return false;
+
+  // only the optimized kernels carry the sweep code; without -O this mode runs the generic
+  // recipe kernels, and a pure fallback added later must not run with sweep enabled
+
+  if ((user_options->optimized_kernel == false) && (hashconfig->has_pure_kernel == true)) return false;
+
+  // the sweep kernels statically allocate the window plus the bin2asc table in local memory
+
+  if (device_param->device_local_mem_size < (SWEEP_SALTS_PER_WINDOW * 8 + 256) * sizeof (u32)) return false;
+
+  const bool sweep_attack = (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_BF);
+
+  return sweep_attack;
+}
+
+static char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  if (device_param->salt_sweep == true)
+  {
+    // 512 salts times the 8 words of precomputed md5(salt) take 16 KiB of shared memory
+
+    if (hc_asprintf (&jit_build_options, "-D MULTI_SALT_WINDOW=%u", SWEEP_SALTS_PER_WINDOW) == -1)
+    {
+      // a missing define would build a non-sweep kernel under a sweeping launch loop,
+      // so make the build fail loudly instead
+
+      hc_asprintf (&jit_build_options, "-D MULTI_SALT_WINDOW=invalid");
+    }
+  }
+
+  return jit_build_options;
+}
+
 static void md5_complete_no_limit (u32 digest[4], const u32 *plain, const u32 plain_len)
 {
   // plain = u32 tmp_md5_buf[64] so this is compatible
@@ -154,4 +199,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_recipe              = module_hash_recipe;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_salt_sweep               = module_salt_sweep;
 }
