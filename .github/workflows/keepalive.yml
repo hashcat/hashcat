@@ -3,15 +3,17 @@
 ## License.....: MIT
 ##
 
-## Keeps the Actions caches that other workflows balance their work with from
-## expiring.
+## Keeps saved test timings, test fixtures, and fuzz corpora active between runs.
 ##
 ## .github/workflows/ci_timings.json holds the per-mode test durations that
 ## ci_matrix.py uses to balance the test shards. It lives in the Actions cache
 ## and nowhere else, and a cache that goes seven days without a read is evicted.
 ## The weekly test run is also seven days apart, so the gap between two of them
 ## is the eviction window itself. Reading the cache in the middle of that gap
-## keeps the timings comfortably inside it.
+## keeps the timings comfortably inside it. The same read keeps each fuzz
+## shard's corpus active without building or running its targets.
+## LUKS fixtures can be downloaded again, but reading their caches here avoids
+## downloading them after a weekly test run is skipped.
 ##
 ## This is a workflow of its own rather than a second cron in test.yml because a
 ## run of test.yml is what the test badge in README.md reports. A cache touch
@@ -38,3 +40,45 @@ jobs:
           path: .github/workflows/ci_timings.json
           key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: ci-timings-v2-${{ runner.os }}-
+
+  test_fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep saved LUKS1 test fixtures active
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/luks_tests
+          key: luks1-tests-v2-blowfish
+
+      - name: Keep saved LUKS2 test fixtures active
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v2
+
+  fuzz_plan:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Plan corpus restores
+        id: plan
+        run: python3 .github/workflows/ci_matrix.py fuzz all >> "$GITHUB_OUTPUT"
+
+  fuzz_corpus:
+    needs: fuzz_plan
+    if: needs.fuzz_plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.fuzz_plan.outputs.matrix) }}
+    name: Keep fuzz corpus ${{ matrix.name }} active
+    steps:
+      - name: Keep saved fuzz corpus active
+        uses: actions/cache/restore@v6
+        with:
+          path: corpus
+          key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.name }}-
