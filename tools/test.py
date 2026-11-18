@@ -5313,7 +5313,9 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 14300, 22000, 22001, 31500, 31600}
 
 # 35900 reads only as many characters of the Hashids salt as its shuffles take, one fewer than the
 # alphabet holds, so the noise words that differ only past those all produce the same hashid.
-EDGE_VERIFY_OUT = {1500, 35900, 36901, 37902, 37903}
+
+# 37400 stores only one byte of the second DES block for a nine-byte password, so valid cracks can differ.
+EDGE_VERIFY_OUT = {1500, 35900, 36901, 37400, 37902, 37903}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
