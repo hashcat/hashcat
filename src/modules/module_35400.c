@@ -12,7 +12,7 @@
 #include "parser.h"
 #include "memory.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
@@ -27,7 +27,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_ST_HEX
-                                  | OPTS_TYPE_AUTODETECT_DISABLE;
+                                  | OPTS_TYPE_AUTODETECT_DISABLE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "b4b9b02e6f09a9bd760f388b67351e2b";
 static const char *ST_HASH        = "$krb5asrep$23$user@domain.com:3e156ada591263b8aab0965f5aebd837$007497cb51b6c8116d6407a782ea0e1c5402b17db7afa6b05a6d30ed164a9933c754d720e279c6c573679bd27128fe77e5fea1f72334c1193c8ff0b370fadc6368bf2d49bbfdba4c5dccab95e8c8ebfdc75f438a0797dbfb2f8a1a5f4c423f9bfc1fea483342a11bd56a216f4d5158ccc4b224b52894fadfba3957dfe4b6b8f5f9f9fe422811a314768673e0c924340b8ccb84775ce9defaa3baa0910b676ad0036d13032b0dd94e3b13903cc738a7b6d00b0b3c210d1f972a6c7cae9bd3c959acf7565be528fc179118f28c679f6deeee1456f0781eb8154e18e49cb27b64bf74cd7112a0ebae2102ac";
@@ -48,11 +49,6 @@ typedef struct krb5asrep
   u32 user[128];
   u32 realm[128];
 } krb5asrep_t;
-
-typedef struct asrep_tmp
-{
-  u32 nt[4];
-} asrep_tmp_t;
 
 static const char *SIGNATURE_KRB5ASREP = "$krb5asrep$";
 
@@ -97,13 +93,6 @@ static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u64 esalt_size = (const u64) sizeof (krb5asrep_t);
 
   return esalt_size;
-}
-
-static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 tmp_size = (const u64) sizeof (asrep_tmp_t);
-
-  return tmp_size;
 }
 
 static u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return 32; }
@@ -441,8 +430,10 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 static const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
- const char *mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxx";
- return mask;
+  // 32 characters, the 14 that vary being as many as the keyspace counter has room for
+
+  const char *mask = "?h?h?h?h?h?h?h?h?h?h?h?h?h?h0123456789abcdef01";
+  return mask;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -456,6 +447,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = module_pw_min;
-  module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
 }
