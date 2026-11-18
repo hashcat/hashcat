@@ -1,0 +1,28 @@
+name: Build PR
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'OpenCL/**.h'
+      - 'OpenCL/**.cl'
+      - 'deps/**'
+      - 'include/**.h'
+      - 'src/**.c'
+      - 'src/**.h'
+      - 'src/**.m'
+      - 'src/**.mk'
+      - 'tools/test_package.sh'
+      - '**/Makefile'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/build-pr.yml'
+      - '.github/workflows/generate_docs.sh'
+      - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
+      - '.github/workflows/hashcat-help2man.py'
+
+jobs:
+  build:
+    # Keep PR Action-cache read-only as each merge ref writes a cache copy otherwise.
+    cache-mode: read
+    uses: ./.github/workflows/build.yml

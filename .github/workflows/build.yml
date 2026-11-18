@@ -59,24 +59,7 @@ on:
       - '.github/workflows/generate_docs.sh'
       - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
       - '.github/workflows/hashcat-help2man.py'
-  pull_request:
-    branches:
-      - master
-    paths:
-      - 'OpenCL/**.h'
-      - 'OpenCL/**.cl'
-      - 'deps/**'
-      - 'include/**.h'
-      - 'src/**.c'
-      - 'src/**.h'
-      - 'src/**.m'
-      - 'src/**.mk'
-      - 'tools/test_package.sh'
-      - '**/Makefile'
-      - '.github/workflows/build.yml'
-      - '.github/workflows/generate_docs.sh'
-      - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
-      - '.github/workflows/hashcat-help2man.py'
+  workflow_call:
 
 jobs:
   build:
