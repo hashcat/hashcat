@@ -19,9 +19,6 @@ use crate::generic_hash;
 static INFO: OnceLock<&'static str> = OnceLock::new();
 
 #[unsafe(no_mangle)]
-pub static GENERIC_ESALT_PACKED: u32 = 1;
-
-#[unsafe(no_mangle)]
 pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
     assert!(buf_size > 0);
     let info = INFO.get().unwrap_or(&"");

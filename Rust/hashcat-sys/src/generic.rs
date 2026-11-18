@@ -10,6 +10,10 @@ use std::{
 
 pub use crate::bindings::{bridge_context_t, generic_io_t, generic_io_tmp_t, salt_t};
 
+#[used]
+#[unsafe(no_mangle)]
+pub static GENERIC_ESALT_PACKED: u32 = 1;
+
 /// What one bridge thread is handed for the whole run. The 2 generic bridges keep the same shape,
 /// because 1 C bridge loads either of them through 1 fixed new_context () signature.
 #[repr(C)]
