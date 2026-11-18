@@ -3,9 +3,6 @@
  * License.....: MIT
  */
 
-// the kernel body is scalar, so VECT_SIZE is left at 1 by not defining this
-//#define NEW_SIMD_CODE
-
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
@@ -16,6 +13,7 @@
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #include M2S(INCLUDE_PATH/inc_krb5_des.cl)
 #include M2S(INCLUDE_PATH/inc_krb5_encpart_des.cl)
+#include M2S(INCLUDE_PATH/inc_krb5_des_bs.cl)
 #endif
 
 typedef struct krb5asrep_3
@@ -33,190 +31,45 @@ typedef struct krb5asrep_3
 
 } krb5asrep_3_t;
 
-KERNEL_FQ KERNEL_FA void m38600_mxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_3_t))
-{
-  /**
-   * base
-   */
+#define KRB5_DES_BS_KERNEL_TM  m38600_tm
+#define KRB5_DES_BS_KERNEL_MXX m38600_mxx
+#define KRB5_DES_BS_KERNEL_SXX m38600_sxx
 
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
+// The candidate is tested on the block the ASN.1 header of the reply is in, the second one of
+// edata2, which CBC chains with the first.
 
-  /**
-   * shared
-   */
+#define KRB5_DES_BS_PREPARE                                                                                     \
+  GLOBAL_AS const krb5asrep_3_t *esalt = &((GLOBAL_AS const krb5asrep_3_t *) esalt_bufs)[DIGESTS_OFFSET_HOST];  \
+                                                                                                                \
+  GLOBAL_AS const u32 *salt_buf = esalt->kdc_salt;                                                              \
+                                                                                                                \
+  const u32 salt_len = esalt->kdc_salt_len;                                                                     \
+                                                                                                                \
+  const u32 iv0 = esalt->edata2[0];                                                                             \
+  const u32 iv1 = esalt->edata2[1];                                                                             \
+  const u32 ct0 = esalt->edata2[2];                                                                             \
+  const u32 ct1 = esalt->edata2[3];
 
-  #ifdef REAL_SHM
+#define KRB5_DES_BS_CIPHER
 
-  LOCAL_VK u32 s_SPtrans[8][64];
-  LOCAL_VK u32 s_skb[8][64];
+// A reply opens with 0x79 or 0x7a, a length on one, two or three bytes, and the 0x30 of a SEQUENCE
+// right behind it, see krb5_des_encpart_asn1 ().
 
-  for (u32 i = lid; i < 64; i += lsz)
-  {
-    s_SPtrans[0][i] = c_SPtrans[0][i];
-    s_SPtrans[1][i] = c_SPtrans[1][i];
-    s_SPtrans[2][i] = c_SPtrans[2][i];
-    s_SPtrans[3][i] = c_SPtrans[3][i];
-    s_SPtrans[4][i] = c_SPtrans[4][i];
-    s_SPtrans[5][i] = c_SPtrans[5][i];
-    s_SPtrans[6][i] = c_SPtrans[6][i];
-    s_SPtrans[7][i] = c_SPtrans[7][i];
+#define KRB5_DES_BS_HITS(B)                                                      \
+  ( (~(B)[0] & (B)[1] & (B)[2] & (B)[3] & (B)[4] & ~(B)[5] & ((B)[6] ^ (B)[7]))  \
+  & ( (~(B)[8] & KRB5_DES_BS_EQ8 (B, 2, 0x30))                                   \
+    | (KRB5_DES_BS_EQ8 (B, 1, 0x81) & KRB5_DES_BS_EQ8 (B, 3, 0x30))              \
+    | (KRB5_DES_BS_EQ8 (B, 1, 0x82) & KRB5_DES_BS_EQ8 (B, 4, 0x30))))
 
-    s_skb[0][i] = c_skb[0][i];
-    s_skb[1][i] = c_skb[1][i];
-    s_skb[2][i] = c_skb[2][i];
-    s_skb[3][i] = c_skb[3][i];
-    s_skb[4][i] = c_skb[4][i];
-    s_skb[5][i] = c_skb[5][i];
-    s_skb[6][i] = c_skb[6][i];
-    s_skb[7][i] = c_skb[7][i];
+#define KRB5_DES_BS_VERIFY                                                                                              \
+  if (krb5_des_encpart_check (key, esalt->checksum, esalt->edata2, esalt->edata2_len, true, s_SPtrans, s_skb) == true)  \
+  {                                                                                                                     \
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)                                                        \
+    {                                                                                                                   \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);  \
+    }                                                                                                                   \
   }
 
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
-  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
-
-  #endif
-
-  if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 pw[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    pw[idx] = pws[gid].i[idx];
-  }
-
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
-
-  const u32 w0l = pw[0];
-
-  /**
-   * loop
-   */
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
-  {
-    pw[0] = w0l | words_buf_r[il_pos];
-
-    u32 w[64];
-
-    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
-
-    u32 key[2];
-
-    krb5_des_string_to_key (w, pw_len + salt_len, key, s_SPtrans, s_skb);
-
-    if (krb5_des_encpart_check (key, esalt_bufs[DIGESTS_OFFSET_HOST].checksum, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, true, s_SPtrans, s_skb) == true)
-    {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
-      {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
-      }
-    }
-  }
-}
-
-KERNEL_FQ KERNEL_FA void m38600_sxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_3_t))
-{
-  /**
-   * base
-   */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_SPtrans[8][64];
-  LOCAL_VK u32 s_skb[8][64];
-
-  for (u32 i = lid; i < 64; i += lsz)
-  {
-    s_SPtrans[0][i] = c_SPtrans[0][i];
-    s_SPtrans[1][i] = c_SPtrans[1][i];
-    s_SPtrans[2][i] = c_SPtrans[2][i];
-    s_SPtrans[3][i] = c_SPtrans[3][i];
-    s_SPtrans[4][i] = c_SPtrans[4][i];
-    s_SPtrans[5][i] = c_SPtrans[5][i];
-    s_SPtrans[6][i] = c_SPtrans[6][i];
-    s_SPtrans[7][i] = c_SPtrans[7][i];
-
-    s_skb[0][i] = c_skb[0][i];
-    s_skb[1][i] = c_skb[1][i];
-    s_skb[2][i] = c_skb[2][i];
-    s_skb[3][i] = c_skb[3][i];
-    s_skb[4][i] = c_skb[4][i];
-    s_skb[5][i] = c_skb[5][i];
-    s_skb[6][i] = c_skb[6][i];
-    s_skb[7][i] = c_skb[7][i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
-  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
-
-  #endif
-
-  if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 pw[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    pw[idx] = pws[gid].i[idx];
-  }
-
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
-
-  const u32 w0l = pw[0];
-
-  /**
-   * loop
-   */
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
-  {
-    pw[0] = w0l | words_buf_r[il_pos];
-
-    u32 w[64];
-
-    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
-
-    u32 key[2];
-
-    krb5_des_string_to_key (w, pw_len + salt_len, key, s_SPtrans, s_skb);
-
-    if (krb5_des_encpart_check (key, esalt_bufs[DIGESTS_OFFSET_HOST].checksum, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, true, s_SPtrans, s_skb) == true)
-    {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
-      {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
-      }
-    }
-  }
-}
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_krb5_des_bs_kernel.cl)
+#endif
