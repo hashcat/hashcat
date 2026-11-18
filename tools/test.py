@@ -6626,7 +6626,7 @@ def bridge_family(mode):
 def bridge_vectors(mode, family, hash_path, word_path):
   # Build bridge-format vectors for a mode from its own oracle, through tools/test_bridge.py, under
   # the given family ("p" or "o"; see bridge_family). Returns the vector count, or -1 when none could
-  # be made: oracle error, or every hash too long for the bridge's 1024 byte salt.
+  # be made: oracle error, or every hash too long for the bridge's 131072 byte salt.
   cmd = [sys.executable, os.path.join(TDIR, "test_bridge.py"), "vectors", str(mode), hash_path, word_path]
 
   if family == "p":
@@ -6677,9 +6677,9 @@ def run_bridge(args):
       n = bridge_vectors(mode, family, hpath, wpath)
 
       if n <= 0:
-        print("%s > Skip : oracle produced no bridge vectors" % label)
-        record("Skip")
-        note_verdict("Skip")
+        print("%s > Error : oracle failed or produced no bridge vectors" % label)
+        record("Error")
+        note_verdict("Error")
 
         continue
 
@@ -6695,7 +6695,7 @@ def run_bridge(args):
       v = verdict(c)
 
       print("%s > %s : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped%s"
-            % (label, v, n - cracked if rc == 0 else 0, n, 0, n, 0, n, 0, n,
+            % (label, v, max(0, n - cracked), n, 0, n, 0, n, 0, n,
                (", %d/%d errors" % (c["err"], c["cnt"])) if c.get("err") else ""))
 
       record(v)

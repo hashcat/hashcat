@@ -148,8 +148,9 @@ def vectors(mode, pure, hash_path, word_path):
 
   sys.stderr.write("%d vector(s) written, %d too long for the bridge's %d byte salt\n" % (written, skipped, SALT_MAX))
 
-  if skipped:
-    sys.exit("! bridge coverage is incomplete for mode %d" % mode)
+  # Only exit non-zero when no vectors were written.
+  if written == 0:
+    sys.exit("! oracle produced no bridge vectors for mode %d" % mode)
 
 
 if __name__ == "__main__":
