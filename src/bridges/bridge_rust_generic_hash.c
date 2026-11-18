@@ -352,7 +352,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_dlsym (bridge_context->lib, "GENERIC_ESALT_PACKED") == NULL)
   {
-    event_log_error (hashcat_ctx, "%s uses the old generic record format. Rebuild the Rust plugin against the current hashcat-sys.", bridge_context->dynlib_filename);
+    event_log_error (hashcat_ctx, "Rust plugin uses the old generic record format. Rebuild it against the current hashcat-sys. Plugin: %s", bridge_context->dynlib_filename);
     hcfree (bridge_context->dynlib_filename);
     hcfree (bridge_context);
 
