@@ -130,7 +130,7 @@ fn process_batch(
 
         if pw_pos == 0 || stride != 0 {
             let esalt = ctx.get_raw_esalt(salt_id + (pw_pos * stride), is_selftest);
-            let salt = esalt;
+            let salt = esalt.salt();
 
             eval_ctx = EvalContext::new();
             eval_ctx.set_var("s", salt);

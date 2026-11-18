@@ -14,6 +14,23 @@ pub use crate::bindings::{bridge_context_t, generic_io_t, generic_io_tmp_t, salt
 #[unsafe(no_mangle)]
 pub static GENERIC_ESALT_PACKED: u32 = 1;
 
+pub struct GenericEsalt {
+    pub hash_buf: Vec<u8>,
+    pub hash_len: u32,
+    pub salt_buf: Vec<u8>,
+    pub salt_len: u32,
+}
+
+impl GenericEsalt {
+    pub fn hash(&self) -> &[u8] {
+        &self.hash_buf
+    }
+
+    pub fn salt(&self) -> &[u8] {
+        &self.salt_buf
+    }
+}
+
 /// What one bridge thread is handed for the whole run. The 2 generic bridges keep the same shape,
 /// because 1 C bridge loads either of them through 1 fixed new_context () signature.
 #[repr(C)]
@@ -21,9 +38,9 @@ pub struct ThreadContext {
     pub module_name: String,
 
     pub salts: Vec<salt_t>,
-    pub esalts: Vec<Vec<u8>>,
+    pub esalts: Vec<GenericEsalt>,
     pub st_salts: Vec<salt_t>,
-    pub st_esalts: Vec<Vec<u8>>,
+    pub st_esalts: Vec<GenericEsalt>,
 
     pub bridge_parameter1: String,
     pub bridge_parameter2: String,
@@ -36,7 +53,7 @@ pub struct ThreadContext {
 }
 
 impl ThreadContext {
-    pub fn get_raw_esalt(&self, salt_id: usize, is_selftest: bool) -> &[u8] {
+    pub fn get_raw_esalt(&self, salt_id: usize, is_selftest: bool) -> &GenericEsalt {
         // There is one esalt per hash but one salt per distinct salt, so the two only line up when
         // every salt holds one hash. A salt names the first of its hashes with digests_offset.
         let (salts, esalts) = if is_selftest {
@@ -49,7 +66,7 @@ impl ThreadContext {
     }
 }
 
-fn unpack_esalts(data: &[u8], count: usize) -> Vec<Vec<u8>> {
+fn unpack_esalts(data: &[u8], count: usize) -> Vec<GenericEsalt> {
     let mut pos = 0;
     let mut salts = Vec::with_capacity(count);
 
@@ -66,7 +83,12 @@ fn unpack_esalts(data: &[u8], count: usize) -> Vec<Vec<u8>> {
             .and_then(|n| n.checked_add(salt_len))
             .expect("generic record length overflow");
         let record = data.get(pos..end).expect("truncated generic record data");
-        salts.push(record[hash_len..].to_vec());
+        salts.push(GenericEsalt {
+            hash_buf: record[..hash_len].to_vec(),
+            hash_len: hash_len as u32,
+            salt_buf: record[hash_len..].to_vec(),
+            salt_len: salt_len as u32,
+        });
         pos = end;
     }
 
@@ -91,7 +113,11 @@ mod packed_tests {
         data.extend_from_slice(&1_u32.to_ne_bytes());
         data.push(b'z');
 
-        assert_eq!(unpack_esalts(&data, 2), vec![salt, vec![b'z']]);
+        let records = unpack_esalts(&data, 2);
+        assert_eq!(records[0].hash(), b"hash");
+        assert_eq!(records[0].salt(), salt);
+        assert_eq!(records[1].hash(), b"");
+        assert_eq!(records[1].salt(), b"z");
     }
 
     #[test]
