@@ -485,9 +485,9 @@ char **scan_directory (const char *path)
 // cache_dir. The module options are collected before the command line is parsed, and
 // folder_config_init () cannot run that early: it creates the per user folders and reads the rest of
 // the command line. So the two decisions needed then are made here the same way, without creating
-// anything. cache_path is what --cache-path names, or NULL.
+// anything. cache_path is what --cache-path names and profile_path what --profile-dir names, or NULL.
 
-int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder, const char *cache_path, char **shared_dir, char **cache_dir)
+int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder, const char *cache_path, const char *profile_path, char **shared_dir, char **cache_dir)
 {
   *shared_dir = NULL;
   *cache_dir  = NULL;
@@ -533,9 +533,12 @@ int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED cons
   hcfree (resolved_install_folder);
   hcfree (resolved_exec_path);
 
-  if (installed == true)
+  // --profile-dir gives a copy that runs from its own folder the installed layout, so its cache is
+  // where an installed hashcat keeps one, and the files it ships stay beside the executable
+
+  if ((installed == true) || (profile_path != NULL))
   {
-    *shared_dir = (shared_folder != NULL) ? hcstrdup (shared_folder) : hcstrdup (install_dir);
+    *shared_dir = ((installed == true) && (shared_folder != NULL)) ? hcstrdup (shared_folder) : hcstrdup (install_dir);
 
     // an installed hashcat caches per user, and without a home there is no cache directory
 
@@ -598,6 +601,10 @@ int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED cons
     shared_root = shared_folder;
     cache_root  = (folder_request->profile_folder != NULL) ? folder_request->profile_folder : shared_folder;
   }
+
+  // on Windows the profile folder holds the cache, and --profile-dir replaces it
+
+  if (profile_path != NULL) cache_root = profile_path;
 
   *shared_dir = hcstrdup (shared_root);
 
@@ -719,11 +726,14 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   char *shared_dir  = NULL;
 
   // A program that named its folders with hashcat_session_init_folders () gets the layout of an
-  // installed hashcat wherever it runs from, and its own profile folder if it named one.
+  // installed hashcat wherever it runs from, and its own profile folder if it named one. --profile-dir
+  // does the same for a copy that runs from its own folder, which keeps the files it ships there.
 
   const bool installed = ((folder_request->given == true) || (strcmp (install_dir, resolved_install_folder) == 0));
 
-  if (installed == true)
+  const char *profile_path = user_options->profile_dir;
+
+  if ((installed == true) || (profile_path != NULL))
   {
     struct passwd pw;
     struct passwd *pwp = NULL;
@@ -741,7 +751,11 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     cache_dir   = (char *) hcmalloc (HCBUFSIZ_TINY);
     session_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    if (folder_request->profile_folder != NULL)
+    if (profile_path != NULL)
+    {
+      snprintf (profile_dir, HCBUFSIZ_TINY, "%s", profile_path);
+    }
+    else if (folder_request->profile_folder != NULL)
     {
       snprintf (profile_dir, HCBUFSIZ_TINY, "%s", folder_request->profile_folder);
     }
@@ -758,13 +772,14 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     //
     // Nothing is copied or deleted, because guessing which of two potfiles a user wants is not a
     // decision this should make silently. Say where things are now and let them move what they want.
-    // A program with a profile folder of its own never kept anything there.
+    // A program with a profile folder of its own never kept anything there, and --profile-dir has
+    // chosen where things are.
 
     char legacy_dir[HCBUFSIZ_TINY];
 
     snprintf (legacy_dir, sizeof (legacy_dir), "%s/%s", home_dir, DOT_HASHCAT);
 
-    if ((folder_request->profile_folder == NULL) && (hc_path_is_directory (legacy_dir) == true))
+    if ((folder_request->profile_folder == NULL) && (profile_path == NULL) && (hc_path_is_directory (legacy_dir) == true))
     {
       event_log_warning (hashcat_ctx, "Found %s, which hashcat no longer uses.", legacy_dir);
       event_log_warning (hashcat_ctx, "It is left untouched. Everything hashcat keeps per user is now in");
@@ -776,7 +791,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
       event_log_warning (hashcat_ctx, NULL);
     }
 
-    shared_dir = hcstrdup (shared_folder);
+    shared_dir = (installed == true) ? hcstrdup (shared_folder) : hcstrdup (install_dir);
 
     hc_mkdir_rec (profile_dir, 0700);
     hc_mkdir_rec (cache_dir,   0700);
@@ -811,7 +826,21 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char win_profile[HCBUFSIZ_TINY];
 
-  if (folder_request->given == true)
+  if (user_options->profile_dir != NULL)
+  {
+    // --profile-dir takes the place of the per user folder of an installed copy, with the sessions
+    // and the cache below it. The files hashcat ships stay where they are.
+
+    profile_dir = hcstrdup (user_options->profile_dir);
+    cache_dir   = hcstrdup (user_options->profile_dir);
+
+    hc_asprintf (&session_dir, "%s\\%s", profile_dir, SESSIONS_FOLDER);
+
+    if (folder_request->given == true) shared_dir = hcstrdup (shared_folder);
+
+    hc_mkdir (session_dir, 0700);
+  }
+  else if (folder_request->given == true)
   {
     const char *profile_folder = (folder_request->profile_folder != NULL) ? folder_request->profile_folder : shared_folder;
 

@@ -370,6 +370,7 @@ static bool vf_session             (option_table_t *table, const option_id_t id,
 static bool vf_rule                (option_table_t *table, const option_id_t id, option_text_t *text);
 static bool vf_hash_recipe         (option_table_t *table, const option_id_t id, option_text_t *text);
 static bool vf_cache_path          (option_table_t *table, const option_id_t id, option_text_t *text);
+static bool vf_profile_dir         (option_table_t *table, const option_id_t id, option_text_t *text);
 static bool vf_vector_width        (option_table_t *table, const option_id_t id, option_text_t *text);
 static bool vf_backend_devices     (option_table_t *table, const option_id_t id, option_text_t *text);
 static bool vf_device_types        (option_table_t *table, const option_id_t id, option_text_t *text);
@@ -1067,6 +1068,13 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .actions        = ACT_CRACK | ACT_SHOW | ACT_LEFT,
     .attack_modes   = AM_ALL & ~AM (9),
     .conflict_modes = AM (9),
+  },
+  [OPT_PROFILE_DIR] =
+  {
+    .type         = OPTION_TYPE_STR,
+    .flags        = OPTION_FLAG_NONEMPTY,
+    .value_fn     = vf_profile_dir,
+    .actions      = ACT_SESSION | ACT_RESTORE | ACT_MODULE_CACHE,
   },
   [OPT_PROGRESS_ONLY] =
   {
@@ -1792,6 +1800,17 @@ static bool vf_cache_path (option_table_t *table, const option_id_t id, option_t
   return false;
 }
 
+// The same as --cache-path: a directory that is not there is a typo, and creating it would hide that.
+
+static bool vf_profile_dir (option_table_t *table, const option_id_t id, option_text_t *text)
+{
+  if (hc_path_is_directory (table->given[id].arg) == true) return true;
+
+  text_printf (text, "--profile-dir must be an existing directory.");
+
+  return false;
+}
+
 static bool vf_vector_width (option_table_t *table, const option_id_t id, option_text_t *text)
 {
   const u64 width = table->value[id];
@@ -2469,6 +2488,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_OUTFILE:                   count = (uo->outfile                   != NULL);  *arg   = uo->outfile;                               break;
     case OPT_POTFILE_DISABLE:           count = (uo->potfile                   == false);                                                     break;
     case OPT_POTFILE_PATH:              count = (uo->potfile_path              != NULL);  *arg   = uo->potfile_path;                          break;
+    case OPT_PROFILE_DIR:               count = (uo->profile_dir               != NULL);  *arg   = uo->profile_dir;                           break;
     case OPT_PROGRESS_ONLY:             count = (uo->progress_only             == true);                                                      break;
     case OPT_QUIET:                     count = (uo->quiet                     == true);                                                      break;
     case OPT_REMOVE:                    count = (uo->remove                    == true);                                                      break;

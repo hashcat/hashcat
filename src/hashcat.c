@@ -2562,7 +2562,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 // potfile and the sessions, and NULL leaves them where an installed hashcat keeps them. The cache
 // stays where an installed hashcat keeps it, and user_options->cache_path moves it as --cache-path
 // does. Windows has no per user folders, so there the profile folder holds the cache as well, and a
-// NULL profile folder means the shared one.
+// NULL profile folder means the shared one. user_options->profile_dir replaces profile_folder, as
+// --profile-dir does.
 
 int hashcat_session_init_folders (hashcat_ctx_t *hashcat_ctx, const char *shared_folder, const char *profile_folder, int argc, char **argv, const int comptime)
 {

@@ -1277,6 +1277,7 @@ typedef enum user_options_map
   IDX_OUTFILE                   = 'o',
   IDX_POTFILE_DISABLE           = 0xff36,
   IDX_POTFILE_PATH              = 0xff37,
+  IDX_PROFILE_DIR               = 0xff94,
   IDX_PROGRESS_ONLY             = 0xff38,
   IDX_QUIET                     = 0xff39,
   IDX_REMOVE                    = 0xff3a,
@@ -3212,6 +3213,7 @@ typedef struct user_options
   char       **rp_files;
   char        *rp_gen_func_sel;
   char        *cache_path;
+  char        *profile_dir;
   char        *separator;
   const char  *custom_charset_1;
   const char  *custom_charset_2;

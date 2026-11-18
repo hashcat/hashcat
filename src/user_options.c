@@ -72,6 +72,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->bitmap_max                 = BITMAP_MAX;
   user_options->bitmap_min                 = BITMAP_MIN;
   user_options->cache_path                 = NULL;
+  user_options->profile_dir                = NULL;
   #ifdef WITH_BRAIN
   user_options->brain_client               = BRAIN_CLIENT;
   user_options->brain_feed                 = false;
@@ -221,9 +222,10 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
 }
 
 // The module options are collected before the command line is parsed, because the parse needs them.
-// Two core options control how they are collected: --cache-path names where their cache file is, and
-// --module-cache-rebuild has it built again. Those two are read here first, the way getopt reads a
-// long option, an unambiguous start of its name included, and the parse reads them again later.
+// Three core options control how they are collected: --cache-path and --profile-dir decide where their
+// cache file is, and --module-cache-rebuild has it built again. Those three are read here first, the
+// way getopt reads a long option, an unambiguous start of its name included, and the parse reads them
+// again later.
 
 static const char *const PRESCAN_CORE_NAMES[] =
 {
@@ -280,7 +282,10 @@ void user_options_prescan (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       continue;
     }
 
-    if (prescan_match (arg, typed_len, "cache-path") == false) continue;
+    const bool is_cache   = prescan_match (arg, typed_len, "cache-path");
+    const bool is_profile = prescan_match (arg, typed_len, "profile-dir");
+
+    if ((is_cache == false) && (is_profile == false)) continue;
 
     char *value = NULL;
 
@@ -297,7 +302,10 @@ void user_options_prescan (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
     // an empty one is refused by the parse, and until then it names no directory
 
-    if ((value != NULL) && (value[0] != 0)) user_options->cache_path = value;
+    if ((value == NULL) || (value[0] == 0)) continue;
+
+    if (is_cache   == true) user_options->cache_path  = value;
+    if (is_profile == true) user_options->profile_dir = value;
   }
 }
 
@@ -401,6 +409,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
       case IDX_CACHE_PATH:                user_options->cache_path                = optarg;                          break;
+      case IDX_PROFILE_DIR:               user_options->profile_dir               = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
       case IDX_PIPELINE_STATS:            user_options->pipeline_stats            = true;                            break;
@@ -3446,6 +3455,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->bridge_parameter4);
   logfile_top_string (user_options->hash_recipe);
   logfile_top_string (user_options->cache_path);
+  logfile_top_string (user_options->profile_dir);
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);
   logfile_top_string (user_options->custom_charset_2);
