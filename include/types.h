@@ -634,6 +634,7 @@ typedef enum hc_dev_buf
   HC_DEV_BUF_PCFG_CELLS,
   HC_DEV_BUF_PCFG_POOL,
   HC_DEV_BUF_PCFG_WMAP,
+  HC_DEV_BUF_SWEEP_BUF,
   HC_DEV_BUF_CNT,
 
 } hc_dev_buf_t;
@@ -2214,6 +2215,16 @@ typedef struct hc_device_param
   // the kernels test every salt of the list in one launch, see module_salt_sweep ()
 
   bool    salt_sweep;
+
+  // the live salts of the current sweep launch by position, staged on the host and uploaded by
+  // salt_sweep_launch ()
+
+  u32    *sweep_buf_host;
+
+  // how many salts were live when the session began, so autotune and the self-test cleanup see the
+  // count the attack runs with
+
+  u32     sweep_live_cnt;
 
   // a launch predicted from its salt, see launch_salt_t, and the launch size the records of each kind of
   // chunk were taken at, in work items and in amplifier items per work item

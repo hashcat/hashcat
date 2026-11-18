@@ -247,6 +247,7 @@ static const cl_mem_flags opencl_mem_flags[HC_DEV_BUF_CNT] =
   [HC_DEV_BUF_PCFG_CELLS]     = CL_MEM_READ_ONLY,
   [HC_DEV_BUF_PCFG_POOL]      = CL_MEM_READ_ONLY,
   [HC_DEV_BUF_PCFG_WMAP]      = CL_MEM_READ_ONLY,
+  [HC_DEV_BUF_SWEEP_BUF]      = CL_MEM_READ_ONLY,
 };
 
 #if defined (__APPLE__)
@@ -295,6 +296,7 @@ static const metalResourceStorageMode_t metal_storage_modes[HC_DEV_BUF_CNT] =
   [HC_DEV_BUF_PCFG_CELLS]     = MTL_STORAGE_MODE_SHARED,
   [HC_DEV_BUF_PCFG_POOL]      = MTL_STORAGE_MODE_SHARED,
   [HC_DEV_BUF_PCFG_WMAP]      = MTL_STORAGE_MODE_SHARED,
+  [HC_DEV_BUF_SWEEP_BUF]      = MTL_STORAGE_MODE_SHARED,
 };
 #endif // __APPLE__
 
@@ -4196,6 +4198,11 @@ static bool salt_sweep_wanted (const hashcat_ctx_t *hashcat_ctx, const hc_device
 
   if (module_ctx->module_salt_sweep == MODULE_DEFAULT) return false;
 
+  // the list of live salts reaches the kernel through the extra0 argument, so a mode with an
+  // extra buffer of its own cannot sweep
+
+  if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT) return false;
+
   if (hashconfig->attack_exec != ATTACK_EXEC_INSIDE_KERNEL) return false;
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
@@ -6763,8 +6770,8 @@ static void speed_only_window (hc_device_param_t *device_param)
 // The sweep of a device whose kernels test every salt of the list in one launch, see
 // module_salt_sweep (). It is a single launch, and it books for each live salt what a launch of its own
 // would have booked, so the progress counters, the speed and --progress-only read as they do for a
-// sweep that launches salt by salt. The kernel walks every salt, cracked or not, and check_cracked ()
-// drops a second crack of a digest that is already cracked.
+// sweep that launches salt by salt. The kernel walks only the live salts, listed by position in the
+// sweep buffer, and check_cracked () drops a second crack of a digest that is already cracked.
 
 static int salt_sweep_launch (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u64 launch_cnt, const u64 launch_step, const u64 innerloop_left, const u64 innerloop_cnt, const double salt_share, u32 *live_salts, const u32 live_cnt)
 {
@@ -6801,9 +6808,23 @@ static int salt_sweep_launch (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   if (tested_cnt == 0) return 0;
 
-  // The kernel reads each salt from salt_bufs. The launch answers for every digest of the list, so the
-  // digest fields span all of them, and mark_hash () has room for a crack of any of them.
+  // The kernel tests the live salts, not the whole list: a salt cracked since the list was built
+  // costs nothing in this launch. The list carries the position of each live salt, and the kernel
+  // reads the salt through it, so mark_hash () still names the salt of the list.
 
+  u32 *sweep_buf_host = device_param->sweep_buf_host;
+
+  for (u32 tested_pos = 0; tested_pos < tested_cnt; tested_pos++)
+  {
+    sweep_buf_host[tested_pos] = live_salts[tested_pos];
+  }
+
+  if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, sweep_buf_host, (u64) tested_cnt * sizeof (u32)) == -1) return -1;
+
+  // The launch answers for every digest of the list, so the digest fields span all of them, and
+  // mark_hash () has room for a crack of any of them.
+
+  device_param->kernel_param.salts_cnt           = tested_cnt;
   device_param->kernel_param.salt_pos_host       = 0;
   device_param->kernel_param.digests_cnt         = hashes->digests_cnt;
   device_param->kernel_param.digests_offset_host = 0;
@@ -16530,6 +16551,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->salt_sweep = salt_sweep_wanted (hashcat_ctx, device_param);
 
+    // A device that runs the sweep gets the list of its live salts, one position per salt. With
+    // the sweep off the buffer stays a dummy.
+
+    u64 size_sweep = 4096;
+
+    if (device_param->salt_sweep == true)
+    {
+      size_sweep = MAX (size_sweep, (u64) hashes->salts_cnt * sizeof (u32));
+
+      device_param->sweep_buf_host = (u32 *) hcmalloc (size_sweep);
+    }
+
     /**
      * main kernel
      */
@@ -16921,6 +16954,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       + size_digests
       + size_shown
       + size_salts
+      + size_sweep
       + size_results
       + size_extra_buffer1
       + size_extra_buffer2
@@ -16958,6 +16992,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     size_hashlist_max = MAX (size_hashlist_max, size_esalts);
     size_hashlist_max = MAX (size_hashlist_max, size_shown);
     size_hashlist_max = MAX (size_hashlist_max, size_salts);
+    size_hashlist_max = MAX (size_hashlist_max, size_sweep);
 
     const bool maxmem_alloc_halved = ((device_param->is_opencl == true) || (device_param->is_metal == true)) && (device_param->device_host_unified_memory == 1);
 
@@ -16991,6 +17026,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_DIGESTS_BUF],    HC_DEV_BUF_DIGESTS_BUF,    size_digests,            NULL) == -1) return -1;
     if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_DIGESTS_SHOWN],  HC_DEV_BUF_DIGESTS_SHOWN,  size_shown,              NULL) == -1) return -1;
     if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_SALT_BUFS],      HC_DEV_BUF_SALT_BUFS,      size_salts,              NULL) == -1) return -1;
+    if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_SWEEP_BUF],      HC_DEV_BUF_SWEEP_BUF,      size_sweep,              NULL) == -1) return -1;
     if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_RESULT],         HC_DEV_BUF_RESULT,         size_results,            NULL) == -1) return -1;
     if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_EXTRA0_BUF],     HC_DEV_BUF_EXTRA0_BUF,     size_extra_buffer1,      NULL) == -1) return -1;
     if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_EXTRA1_BUF],     HC_DEV_BUF_EXTRA1_BUF,     size_extra_buffer2,      NULL) == -1) return -1;
@@ -17010,6 +17046,29 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_BITMAP_S2_D], 0, bitmap_ctx->bitmap_s2_d, bitmap_ctx->bitmap_size) == -1) return -1;
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_DIGESTS_BUF], 0, hashes->digests_buf,     size_digests) == -1) return -1;
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SALT_BUFS],   0, hashes->salts_buf,       size_salts) == -1) return -1;
+
+    // autotune launches the sweep kernels before the first sweep launch, so it has to time the
+    // launch the attack runs: the live salts only, packed exactly as salt_sweep_launch () packs them
+
+    device_param->sweep_live_cnt = hashes->salts_cnt;
+
+    if (device_param->salt_sweep == true)
+    {
+      u32 live_cnt = 0;
+
+      for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+      {
+        if (hashes->salts_shown[salt_pos] == 1) continue;
+
+        device_param->sweep_buf_host[live_cnt] = salt_pos;
+
+        live_cnt++;
+      }
+
+      device_param->sweep_live_cnt = live_cnt;
+
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, device_param->sweep_buf_host, (u64) live_cnt * sizeof (u32)) == -1) return -1;
+    }
 
     /**
      * special buffers
@@ -17131,7 +17190,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
     device_param->kernel_param.module_tune         = 0;
-    device_param->kernel_param.salts_cnt           = hashes->salts_cnt;
+    device_param->kernel_param.salts_cnt           = device_param->sweep_live_cnt;
 
     device_param->kernel_loop_phases = 0;
     device_param->kernel_loop_lanes  = 0;
@@ -17176,7 +17235,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params[17] = hc_dev_kern_arg (device_param, HC_DEV_BUF_SALT_BUFS);
     device_param->kernel_params[18] = hc_dev_kern_arg (device_param, HC_DEV_BUF_ESALT_BUFS);
     device_param->kernel_params[19] = hc_dev_kern_arg (device_param, HC_DEV_BUF_RESULT);
-    device_param->kernel_params[20] = hc_dev_kern_arg (device_param, HC_DEV_BUF_EXTRA0_BUF);
+    // a device running the sweep reads the packed live salts through the extra0 slot; the sweep
+    // modes so far have no extra buffer of their own
+
+    if (device_param->salt_sweep == true)
+    {
+      device_param->kernel_params[20] = hc_dev_kern_arg (device_param, HC_DEV_BUF_SWEEP_BUF);
+    }
+    else
+    {
+      device_param->kernel_params[20] = hc_dev_kern_arg (device_param, HC_DEV_BUF_EXTRA0_BUF);
+    }
     device_param->kernel_params[21] = hc_dev_kern_arg (device_param, HC_DEV_BUF_EXTRA1_BUF);
     device_param->kernel_params[22] = hc_dev_kern_arg (device_param, HC_DEV_BUF_EXTRA2_BUF);
     device_param->kernel_params[23] = hc_dev_kern_arg (device_param, HC_DEV_BUF_EXTRA3_BUF);
@@ -18108,6 +18177,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (size_extra_buffer3 > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_extra_buffer3 exceeds maxmem_alloc"; }
         if (size_extra_buffer4 > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_extra_buffer4 exceeds maxmem_alloc"; }
         if (size_shown > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_shown exceeds maxmem_alloc"; }
+        if (size_sweep > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_sweep exceeds maxmem_alloc"; }
         if (size_tm > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_tm exceeds maxmem_alloc"; }
         if (size_tmps > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_tmps exceeds maxmem_alloc"; }
         if (size_st_digests > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_st_digests exceeds maxmem_alloc"; }
@@ -18147,6 +18217,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_salts
         + size_device_extra
         + size_shown
+        + size_sweep
         + size_tm
         + size_tmps
         + size_st_digests
@@ -18840,6 +18911,10 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->hooks_buf);
     hcfree (device_param->scratch_buf);
     hcfree (device_param->launch_salt);
+
+    hcfree (device_param->sweep_buf_host);
+
+    device_param->sweep_buf_host = NULL;
     #ifdef WITH_BRAIN
     hcfree (device_param->brain_link_in_buf);
     hcfree (device_param->brain_link_out_buf);

@@ -271,7 +271,7 @@ DECLSPEC void m02810_sweep_md5 (LOCAL_AS const u32 *pc, PRIVATE_AS const u32x *p
 // Shared sweep body of the m04/m08/m16 kernels: they differ only in how many words of the
 // candidate block they load from pws, everything from the bfs merge on is identical.
 
-DECLSPEC void m02810m_sweep (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_BASIC (), LOCAL_AS u32 *s_pc, LOCAL_AS u32 *l_bin2asc)
+DECLSPEC void m02810m_sweep (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_BASIC (), LOCAL_AS u32 *s_pc, LOCAL_AS u32 *s_idx, LOCAL_AS u32 *l_bin2asc)
 {
   (void) pw_len; // the candidate block arrives pre-padded from the host
 
@@ -285,9 +285,19 @@ DECLSPEC void m02810m_sweep (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS 
   {
     const u32 sweep_len = ((SALTS_CNT - w_pos) < (u32) MULTI_SALT_WINDOW) ? (SALTS_CNT - w_pos) : (u32) MULTI_SALT_WINDOW;
 
+    // the launch lists the live salts by position, see salt_sweep_launch (); the precomputed
+    // md5 (salt) words come from salt_bufs through the list
+
+    GLOBAL_AS const u32 *sweep_buf = (GLOBAL_AS const u32 *) d_extra0_buf;
+
+    for (u32 i = lid; i < sweep_len; i += lsz)
+    {
+      s_idx[i] = sweep_buf[w_pos + i];
+    }
+
     for (u32 i = lid; i < sweep_len * 8; i += lsz)
     {
-      s_pc[i] = salt_bufs[w_pos + (i >> 3)].salt_buf_pc[i & 7];
+      s_pc[i] = salt_bufs[sweep_buf[w_pos + (i >> 3)]].salt_buf_pc[i & 7];
     }
 
     SYNC_THREADS ();
@@ -434,7 +444,7 @@ DECLSPEC void m02810m_sweep (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS 
 
       for (u32 s = 0; s < sweep_len; s++)
       {
-        const u32 sweep_gs = w_pos + s;
+        const u32 sweep_gs = s_idx[s];
 
         u32x dg[4];
 
@@ -1239,6 +1249,7 @@ KERNEL_FQ KERNEL_FA void m02810_m04 (KERN_ATTR_BASIC ())
 #ifdef MULTI_SALT_WINDOW
 
   LOCAL_VK u32 s_pc[MULTI_SALT_WINDOW * 8];
+  LOCAL_VK u32 s_idx[MULTI_SALT_WINDOW];
 
 #endif
 
@@ -1254,7 +1265,7 @@ KERNEL_FQ KERNEL_FA void m02810_m04 (KERN_ATTR_BASIC ())
 
 #ifdef MULTI_SALT_WINDOW
 
-  m02810m_sweep (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_pc, l_bin2asc);
+  m02810m_sweep (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_pc, s_idx, l_bin2asc);
 #else
   m02810m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, l_bin2asc);
 #endif
@@ -1334,6 +1345,7 @@ KERNEL_FQ KERNEL_FA void m02810_m08 (KERN_ATTR_BASIC ())
 #ifdef MULTI_SALT_WINDOW
 
   LOCAL_VK u32 s_pc[MULTI_SALT_WINDOW * 8];
+  LOCAL_VK u32 s_idx[MULTI_SALT_WINDOW];
 
 #endif
 
@@ -1348,7 +1360,7 @@ KERNEL_FQ KERNEL_FA void m02810_m08 (KERN_ATTR_BASIC ())
    */
 
 #ifdef MULTI_SALT_WINDOW
-  m02810m_sweep (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_pc, l_bin2asc);
+  m02810m_sweep (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_pc, s_idx, l_bin2asc);
 #else
   m02810m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, l_bin2asc);
 #endif
@@ -1428,6 +1440,7 @@ KERNEL_FQ KERNEL_FA void m02810_m16 (KERN_ATTR_BASIC ())
 #ifdef MULTI_SALT_WINDOW
 
   LOCAL_VK u32 s_pc[MULTI_SALT_WINDOW * 8];
+  LOCAL_VK u32 s_idx[MULTI_SALT_WINDOW];
 
 #endif
 
@@ -1442,7 +1455,7 @@ KERNEL_FQ KERNEL_FA void m02810_m16 (KERN_ATTR_BASIC ())
    */
 
 #ifdef MULTI_SALT_WINDOW
-  m02810m_sweep (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_pc, l_bin2asc);
+  m02810m_sweep (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_pc, s_idx, l_bin2asc);
 #else
   m02810m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, l_bin2asc);
 #endif

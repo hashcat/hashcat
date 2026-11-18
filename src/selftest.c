@@ -47,6 +47,16 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
   device_param->kernel_param.salts_cnt = 1;
 
+  // and such a kernel reads the salts through the list of live salts, so stage the one entry of it
+  // from a local, leaving the session's own list untouched
+
+  if (device_param->salt_sweep == true)
+  {
+    const u32 st_salt_pos = 0;
+
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, &st_salt_pos, sizeof (u32)) == -1) return -1;
+  }
+
   // password : move the known password into a fake buffer
 
   const u32 module_opts_type = module_ctx->module_opts_type (hashconfig, user_options, user_options_extra);
@@ -810,7 +820,16 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   device_param->kernel_param.digests_offset_host  = 0;
   device_param->kernel_param.combs_mode           = 0;
   device_param->kernel_param.salt_repeat          = 0;
-  device_param->kernel_param.salts_cnt            = hashcat_ctx->hashes->salts_cnt;
+  // the count the attack runs with: the live salts when this device sweeps, the whole list otherwise
+
+  device_param->kernel_param.salts_cnt            = device_param->sweep_live_cnt;
+
+  // the self-test overwrote the head of the sweep list with its one entry, so put the live list back
+
+  if (device_param->salt_sweep == true)
+  {
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, device_param->sweep_buf_host, (u64) device_param->sweep_live_cnt * sizeof (u32)) == -1) return -1;
+  }
 
   device_param->kernel_params[15] = hc_dev_kern_arg (device_param, HC_DEV_BUF_DIGESTS_BUF);
   device_param->kernel_params[17] = hc_dev_kern_arg (device_param, HC_DEV_BUF_SALT_BUFS);
