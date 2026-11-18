@@ -123,6 +123,10 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
+  // The packer reads the original line as a C string, so reject embedded NUL bytes here.
+  if (memchr (token.buf[0], 0, token.len[0]) != NULL) return (PARSER_HASH_VALUE);
+  if (memchr (token.buf[1], 0, token.len[1]) != NULL) return (PARSER_SALT_VALUE);
+
   // To keep this as generic as possible,
   // we make a hash of the input data so it fits into digest[]
   // and the same for the salt
