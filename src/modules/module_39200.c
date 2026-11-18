@@ -26,6 +26,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COMBI_PURE_SWAP;
+static const u64   KERN_BITS      = KERN_BIT_TM;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5asrep$1$user$realm$a8bece37ee9e682bd37952f99c5df055$5a9bac2e1d9f689f507266ca6b4ef13ee73c7129ed9437634938a2acc624d50ae038ccb4d0903601e792279f14e019175a51e6c3c17dce7ed213111d85fb82df9e299f72d1cd06d4b5cf9bd0cf7f1f92b8477f0da117f12de55d530a4a1eab3e8b9b4fcef3aafeb56fbf6916d8cce0f44a20e3b9458fb14fbfbb472fb947f86128970423d27d7149a937ed72e0984eaef795543dd198b39a7f871128daf111a47c4f4be353197842e9e1d956acc7dabf40dc1816b738d49a74ce452850e3c6018a9a31232926ac153b670a0107c6d25e52f7666e21d044cf8f3aafcf97811053";
@@ -64,6 +65,11 @@ static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u64 esalt_size = (const u64) sizeof (krb5asrep_1_t);
 
   return esalt_size;
+}
+
+static u64 module_kern_bits (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return KERN_BITS;
 }
 
 static u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -314,5 +320,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_pw_max                   = module_pw_max;
 }
