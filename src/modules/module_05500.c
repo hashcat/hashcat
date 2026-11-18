@@ -69,6 +69,39 @@ static void transform_netntlmv1_key (const u8 *nthash, u8 *key)
   key[7] |= 0x01;
 }
 
+// Build before any decoder runs. Parser threads only read this module-owned table.
+
+static u32 nn_tail_sched[0x10000][32];
+
+static void __attribute__ ((constructor)) nn_tail_sched_init (void)
+{
+  for (u32 i = 0; i < 0x10000; i++)
+  {
+    const u32 key_md4[2] = { i, 0 };
+    u32 key_des[2] = { 0 };
+
+    transform_netntlmv1_key ((const u8 *) key_md4, (u8 *) key_des);
+
+    _des_crypt_keysetup (key_des[0], key_des[1], &nn_tail_sched[i][0], &nn_tail_sched[i][16], (u32 (*)[64]) c_skb);
+  }
+}
+
+static bool module_salt_sweep (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) return false;
+
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) return false;
+
+  if (hashes->salts_cnt <= 1) return false;
+
+  const bool fuse_attack = (user_options_extra->attack_kern == ATTACK_KERN_BF) || (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT);
+  const bool fuse_device = ((device_param->is_cuda == true) && (device_param->sm_major >= 5)) || (device_param->is_opencl == true) || (device_param->is_hip == true);
+  const bool fuse_vector = (device_param->vector_width == 1) || (((device_param->is_opencl == true) || (device_param->is_hip == true)) && ((device_param->vector_width == 2) || (device_param->vector_width == 4) || (device_param->vector_width == 8) || (device_param->vector_width == 16)));
+  const bool fuse_salts = (fuse_attack == true) && (fuse_device == true) && (fuse_vector == true);
+
+  return fuse_salts;
+}
+
 static char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
@@ -79,10 +112,34 @@ static char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
     return jit_build_options;
   }
 
+  char fuse_str[64] = "";
+
+  if (device_param->salt_sweep == true)
+  {
+    const u32 cuda_max = (device_param->sm_major >= 8) ? 4096 : 512;
+    const u32 window_max = (device_param->is_cuda == true) ? cuda_max : 1536;
+
+    u32 window = 2;
+
+    while ((window < hashes->salts_cnt) && (window < window_max)) window *= 2;
+
+    if (window > window_max) window = window_max;
+
+    // Capacity buckets reuse kernels across files with different counts.
+    // OpenCL/HIP use at most 28 KiB without the CUDA survivor queue.
+    // TODO: Autotune larger windows from runtime local-memory capacity.
+
+    snprintf (fuse_str, sizeof (fuse_str), " -D MULTI_SALT_WINDOW=%u", window);
+  }
+
   // Intel CPU
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
   {
-    hc_asprintf (&jit_build_options, "-D _unroll");
+    hc_asprintf (&jit_build_options, "-D _unroll%s", fuse_str);
+  }
+  else if (fuse_str[0] != 0)
+  {
+    hc_asprintf (&jit_build_options, "%s", fuse_str + 1);
   }
 
   return jit_build_options;
@@ -277,17 +334,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   for (u32 i = 0; i < 0x10000; i++)
   {
-    u32 key_md4[2] = { 0 };
-    u32 key_des[2] = { 0 };
-
-    key_md4[0] = i;
-
-    transform_netntlmv1_key ((const u8 *) key_md4, (u8 *) key_des);
-
-    u32 Kc[16] = { 0 };
-    u32 Kd[16] = { 0 };
-
-    _des_crypt_keysetup (key_des[0], key_des[1], Kc, Kd, (u32 (*)[64]) c_skb);
+    const u32 *Kc = &nn_tail_sched[i][0];
+    const u32 *Kd = &nn_tail_sched[i][16];
 
     u32 data3[2] = { salt->salt_buf[0], salt->salt_buf[1] };
 
@@ -406,6 +454,19 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   return out_len;
 }
 
+static int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
+{
+  // Synthetic self-test and benchmark salts bypass the hash sorter. The
+  // fused verifier needs the same one-digest range that the sorter supplies.
+
+  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
+
+  hash->salt->digests_cnt    = 1;
+  hash->salt->digests_offset = 0;
+
+  return parser_status;
+}
+
 void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
@@ -413,5 +474,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_salt_sweep               = module_salt_sweep;
 }
