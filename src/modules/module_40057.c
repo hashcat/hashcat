@@ -26,7 +26,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS14;
+                                  | OPTS_TYPE_PT_ADDBITS14
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_VIRTUAL;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$sspr$0$100000$NONE$2c8586ef492e3c3dd3795395507dc14f";

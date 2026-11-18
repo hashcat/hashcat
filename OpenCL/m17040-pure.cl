@@ -124,8 +124,10 @@ DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data
   CAST_KEY ck;
   Cast5SetKey(&ck, 16, key8, s_S);
 
-  // Decrypt an CAST5 encrypted block
-  for (u32 i = 0; i < (data_len + 3) ; i += 8)
+  // CAST5 has an 8 byte block, so i steps whole blocks and the bound is data_len. The old bound
+  // (data_len + 3), taken from the word count above, admitted one block past the data whenever
+  // data_len mod 8 was 0, 6 or 7, which at 1534 to 1536 bytes runs 8 bytes past both buffers.
+  for (u32 i = 0; i < data_len; i += 8)
   {
     Cast5Encrypt(essiv, &decrypted_data8[i], &ck, s_S);
 
@@ -220,36 +222,8 @@ KERNEL_FQ KERNEL_FA void m17040_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   tmps[gid].salted_pw_block_len = salted_pw_block_len;
 
-  // init sha1 scratch
-  tmps[gid].h[0] = SHA1M_A;
-  tmps[gid].h[1] = SHA1M_B;
-  tmps[gid].h[2] = SHA1M_C;
-  tmps[gid].h[3] = SHA1M_D;
-  tmps[gid].h[4] = SHA1M_E;
-  tmps[gid].h[5] = SHA1M_A;
-  tmps[gid].h[6] = SHA1M_B;
-  tmps[gid].h[7] = SHA1M_C;
-  tmps[gid].h[8] = SHA1M_D;
-  tmps[gid].h[9] = SHA1M_E;
-
-  tmps[gid].w0[0] = 0;
-  tmps[gid].w0[1] = 0;
-  tmps[gid].w0[2] = 0;
-  tmps[gid].w0[3] = 0;
-  tmps[gid].w1[0] = 0;
-  tmps[gid].w1[1] = 0;
-  tmps[gid].w1[2] = 0;
-  tmps[gid].w1[3] = 0;
-  tmps[gid].w2[0] = 0;
-  tmps[gid].w2[1] = 0;
-  tmps[gid].w2[2] = 0;
-  tmps[gid].w2[3] = 0;
-  tmps[gid].w3[0] = 0;
-  tmps[gid].w3[1] = 0;
-  tmps[gid].w3[2] = 0;
-  tmps[gid].w3[3] = 0;
-
-  tmps[gid].len = 0;
+  // the SHA-1 scratch is not set here, because loop_prepare () runs after this kernel and before
+  // the loop kernels, and writes all of it
 }
 
 KERNEL_FQ KERNEL_FA void m17040_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
@@ -295,14 +269,14 @@ KERNEL_FQ KERNEL_FA void m17040_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
+
+  // zero only if salt_len + pw_len exceeds the buffer, which pw_max keeps out of reach
+  if (salted_pw_block_len == 0) return;
+
   // get the prepared buffer from the gpg_tmp_t struct into a local buffer
   u32 salted_pw_block[80];
   for (int i = 0; i < 80; i++) salted_pw_block[i] = tmps[gid].salted_pw_block[i];
-
-  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
-
-  // do we really need this, since the salt is always length 8?
-  if (salted_pw_block_len == 0) return;
 
   /**
    * context load
@@ -391,6 +365,11 @@ KERNEL_FQ KERNEL_FA void m17040_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
 KERNEL_FQ KERNEL_FA void m17040_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
+  // not in use, the mode decides a candidate in its deep comp kernel
+}
+
+KERNEL_FQ KERNEL_FA void m17040_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+{
   /**
    * modifier
    */
@@ -456,9 +435,13 @@ KERNEL_FQ KERNEL_FA void m17040_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   //   printf("\n");
   // }
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
   /* IV as provided by esalt (first 8 bytes used by CFB) */
   u32 iv[4] = { 0 };
-  for (int i = 0; i < 4; i++) iv[i] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[i];
+  for (int i = 0; i < 4; i++) iv[i] = esalt_bufs[digest_cur].iv[i];
 
   // if ((gid == 0) && (lid == 0))
   // {
@@ -470,9 +453,10 @@ KERNEL_FQ KERNEL_FA void m17040_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   // One word more than the data fills, because check_decoded_data () reads the word after the
   // checksum's last one, which at the maximum of 1536 bytes is word 384.
   u32 decoded_data[385];
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
 
-  cast128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data,
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
+
+  cast128_decrypt_cfb (esalt_bufs[digest_cur].encrypted_data,
                        enc_data_size,
                        iv,
                        cast_key,
@@ -481,10 +465,10 @@ KERNEL_FQ KERNEL_FA void m17040_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT,
-                 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+                 digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

@@ -220,8 +220,6 @@ KERNEL_FQ KERNEL_FA void m17070_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].h[5] = SHA256M_F;
   tmps[gid].h[6] = SHA256M_G;
   tmps[gid].h[7] = SHA256M_H;
-
-  tmps[gid].len = 0;
 }
 
 KERNEL_FQ KERNEL_FA void m17070_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
@@ -258,13 +256,14 @@ KERNEL_FQ KERNEL_FA void m17070_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
+
+  // zero only if salt_len + pw_len exceeds the buffer, which pw_max keeps out of reach
+  if (salted_pw_block_len == 0) return;
+
   u32 salted_pw_block[80];
 
   for (int i = 0; i < 80; i++) salted_pw_block[i] = tmps[gid].salted_pw_block[i];
-
-  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
-
-  if (salted_pw_block_len == 0) return;
 
   sha256_ctx_t ctx;
 

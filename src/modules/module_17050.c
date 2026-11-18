@@ -23,8 +23,10 @@ static const u64   KERN_TYPE      = 17050;
 static const bool  LENGTH_SORT    = true;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
-static const u64   KERN_BITS      = KERN_BIT_LOOP_PREPARE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
+static const u64   KERN_BITS      = KERN_BIT_LOOP_PREPARE
+                                  | KERN_BIT_AUX1;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$gpg$*1*60*4096*71cdae39dd004b5fd4571575c683a33ecb0d2ea4495655b2544a63397b4f92e1b7d2c5243143398f9d44aba1e7b97c88b7030080b97c811d757264be*1*254*2*7*12*07f4ca8d366ae2e0ab55da75*329368576*199d8afecccd9dd6";
@@ -101,6 +103,15 @@ static u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig,
   const u32 kernel_loops_max = 65536;
 
   return kernel_loops_max;
+}
+
+// One cipher, so the kernel never varies. The mode still goes through the deep comp kernel,
+// because that is what walks the digests of one salt. Without it src/hashes.c refuses a file
+// holding two keys that share an S2K salt and count outright, rather than cracking both.
+
+static u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_AUX1;
 }
 
 static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -314,6 +325,7 @@ void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
 
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;

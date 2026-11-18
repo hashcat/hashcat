@@ -350,8 +350,6 @@ KERNEL_FQ KERNEL_FA void m17050_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].h[7] = SHA1M_C;
   tmps[gid].h[8] = SHA1M_D;
   tmps[gid].h[9] = SHA1M_E;
-
-  tmps[gid].len = 0;
 }
 
 KERNEL_FQ KERNEL_FA void m17050_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
@@ -386,15 +384,15 @@ KERNEL_FQ KERNEL_FA void m17050_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
+
+  // zero only if salt_len + pw_len exceeds the buffer, which pw_max keeps out of reach
+  if (salted_pw_block_len == 0) return;
+
   // get the prepared buffer from the gpg_tmp_t struct into a local buffer
   u32 salted_pw_block[80];
 
   for (int i = 0; i < 80; i++) salted_pw_block[i] = tmps[gid].salted_pw_block[i];
-
-  const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
-
-  // do we really need this, since the salt is always length 8?
-  if (salted_pw_block_len == 0) return;
 
   /**
    * context load
@@ -454,6 +452,11 @@ KERNEL_FQ KERNEL_FA void m17050_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
 KERNEL_FQ KERNEL_FA void m17050_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
+  // not in use, the mode decides a candidate in its deep comp kernel
+}
+
+KERNEL_FQ KERNEL_FA void m17050_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+{
   /**
    * modifier
    */
@@ -497,9 +500,13 @@ KERNEL_FQ KERNEL_FA void m17050_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   // }
   // if ((gid == 0) && (lid == 0)) printf ("\n");
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = (esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx]); //  hc_swap32_S ??!! should this be swap?
+  for (int idx = 0; idx < 4; idx++) iv[idx] = (esalt_bufs[digest_cur].iv[idx]);
 
   // if ((gid == 0) && (lid == 0)) printf("iv= ");
   // for(int i=0;i<4;i++) {
@@ -509,7 +516,7 @@ KERNEL_FQ KERNEL_FA void m17050_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   u32 decoded_data[384] = {0};
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 
   PRIVATE_AS u32 ks_enc[44];
   aes128_set_encrypt_key (ks_enc, aes_key, s_te0, s_te1, s_te2, s_te3);
@@ -588,7 +595,7 @@ KERNEL_FQ KERNEL_FA void m17050_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   // #endif
 
   aes128_decrypt_ocb (ks_enc, ks_dec, offset,
-    esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data,
+    esalt_bufs[digest_cur].encrypted_data,
     decoded_data,
     s_te0, s_te1, s_te2, s_te3, s_te4,
     s_td0, s_td1, s_td2, s_td3, s_td4);
@@ -602,9 +609,9 @@ KERNEL_FQ KERNEL_FA void m17050_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

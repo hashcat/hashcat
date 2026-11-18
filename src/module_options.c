@@ -571,7 +571,7 @@ int module_options_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder,
   char *shared_dir = NULL;
   char *cache_dir  = NULL;
 
-  if (folder_early_dirs (&hashcat_ctx->folder_config->request, install_folder, shared_folder, user_options->cache_path, &shared_dir, &cache_dir) == -1) return 0;
+  if (folder_early_dirs (&hashcat_ctx->folder_config->request, install_folder, shared_folder, user_options->cache_path, user_options->profile_dir, &shared_dir, &cache_dir) == -1) return 0;
 
   folder_config_t folder_config;
 
@@ -671,8 +671,13 @@ int module_options_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder,
 
     // A module that could not be loaded leaves no file, so the next start tries every module again
     // rather than trust a list that was incomplete.
+    //
+    // A --profile-dir that is not there gets the run refused, and on Windows the cache is below it, so
+    // making the cache directory then would turn the typo into a directory.
 
-    if (writer != NULL) module_options->cache_written = module_cache_write_end (writer, cache_dir, (user_options->cache_path == NULL), (module_options->broken_cnt == 0));
+    const bool make_dir = (user_options->cache_path == NULL) && ((user_options->profile_dir == NULL) || (hc_path_is_directory (user_options->profile_dir) == true));
+
+    if (writer != NULL) module_options->cache_written = module_cache_write_end (writer, cache_dir, make_dir, (module_options->broken_cnt == 0));
   }
 
   module_options->cache_read = replayed;

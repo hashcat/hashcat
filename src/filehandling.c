@@ -562,6 +562,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   int fmode = S_IRUSR|S_IWUSR;
 
+  bool is_read = false;
+
   if (strncmp (mode, "a", 1) == 0)
   {
     oflag = O_WRONLY | O_CREAT | O_APPEND | HC_O_NOINHERIT;
@@ -574,6 +576,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   {
     oflag = O_RDONLY | HC_O_NOINHERIT;
     fmode = -1;
+
+    is_read = true;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
     if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
@@ -615,8 +619,10 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
         if (zstd_magic (check) == true)                              is_zstd = true;
 
         // compressed files with BOM will be undetected!
+        //
+        // Only a read skips the BOM. A stream opened to append or write cannot read it back.
 
-        if (is_gzip == false && is_xz == false && is_zstd == false)
+        if ((is_read == true) && (is_gzip == false) && (is_xz == false) && (is_zstd == false))
         {
           fp->bom_size = hc_string_bom_size (check);
         }
@@ -831,7 +837,12 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
       const size_t nread = fread (check, sizeof (char), bom_size, fp->pfp);
 
-      if (nread != bom_size) return false;
+      if (nread != bom_size)
+      {
+        hc_fclose (fp);
+
+        return false;
+      }
     }
   }
 

@@ -114,6 +114,7 @@ OPTION (OPT_OUTFILE_JSON,              "outfile-json",              0,   IDX_OUT
 OPTION (OPT_OUTFILE,                   "outfile",                   'o', IDX_OUTFILE,                   required_argument)
 OPTION (OPT_POTFILE_DISABLE,           "potfile-disable",           0,   IDX_POTFILE_DISABLE,           no_argument)
 OPTION (OPT_POTFILE_PATH,              "potfile-path",              0,   IDX_POTFILE_PATH,              required_argument)
+OPTION (OPT_PROFILE_DIR,               "profile-dir",               0,   IDX_PROFILE_DIR,               required_argument)
 OPTION (OPT_PROGRESS_ONLY,             "progress-only",             0,   IDX_PROGRESS_ONLY,             no_argument)
 OPTION (OPT_QUIET,                     "quiet",                     0,   IDX_QUIET,                     no_argument)
 OPTION (OPT_REMOVE,                    "remove",                    0,   IDX_REMOVE,                    no_argument)
