@@ -331,6 +331,32 @@ static void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
+
+// A user id with no entry in the user database, as under "docker run -u" with an id the image does
+// not know, has no pw_dir. HOME is asked then, which is also what the XDG directories are defined
+// against. The answer is a copy for the caller to free, or NULL when neither names a directory.
+
+static char *get_home_dir (void)
+{
+  struct passwd pw;
+  struct passwd *pwp = NULL;
+
+  char buf[HCBUFSIZ_TINY];
+
+  memset (buf, 0, sizeof (buf));
+  memset (&pw, 0, sizeof (pw));
+
+  getpwuid_r (getuid (), &pw, buf, HCBUFSIZ_TINY, &pwp);
+
+  const char *dir = (pwp != NULL) ? pwp->pw_dir : getenv ("HOME");
+
+  if (dir == NULL) return NULL;
+  if (dir[0] == 0) return NULL;
+
+  char *home_dir = hcstrdup (dir);
+
+  return home_dir;
+}
 #endif // _POSIX
 
 int count_dictionaries (char **dictionary_files)
@@ -548,23 +574,17 @@ int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED cons
     }
     else
     {
-      struct passwd pw;
-      struct passwd *pwp = NULL;
+      char *home_dir = get_home_dir ();
 
-      char buf[HCBUFSIZ_TINY];
-
-      memset (buf, 0, sizeof (buf));
-      memset (&pw, 0, sizeof (pw));
-
-      getpwuid_r (getuid (), &pw, buf, HCBUFSIZ_TINY, &pwp);
-
-      if (pwp != NULL)
+      if (home_dir != NULL)
       {
         char user_cache_dir[HCBUFSIZ_TINY];
 
-        get_cache_dir (user_cache_dir, pwp->pw_dir);
+        get_cache_dir (user_cache_dir, home_dir);
 
         hc_asprintf (cache_dir, "%s/%s", user_cache_dir, CACHE_FOLDER);
+
+        hcfree (home_dir);
       }
     }
 
@@ -735,17 +755,23 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if ((installed == true) || (profile_path != NULL))
   {
-    struct passwd pw;
-    struct passwd *pwp = NULL;
+    char *home_dir = get_home_dir ();
 
-    char buf[HCBUFSIZ_TINY];
+    if (home_dir == NULL)
+    {
+      event_log_error (hashcat_ctx, "User id %u has no home directory: no entry in the user database, and HOME is not set.", (u32) getuid ());
 
-    memset (buf, 0, sizeof (buf));
-    memset (&pw, 0, sizeof (pw));
+      hcfree (cwd);
 
-    getpwuid_r (getuid (), &pw, buf, HCBUFSIZ_TINY, &pwp);
+      hcfree (exec_path);
 
-    const char *home_dir = pwp->pw_dir;
+      hcfree (resolved_install_folder);
+      hcfree (resolved_exec_path);
+
+      hcfree (install_dir);
+
+      return -1;
+    }
 
     profile_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
     cache_dir   = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -790,6 +816,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
       event_log_warning (hashcat_ctx, "Move what you still want across, then delete the old directory.");
       event_log_warning (hashcat_ctx, NULL);
     }
+
+    hcfree (home_dir);
 
     shared_dir = (installed == true) ? hcstrdup (shared_folder) : hcstrdup (install_dir);
 
