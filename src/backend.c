@@ -5946,18 +5946,12 @@ static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, co
 {
   if (rejects == 0) return;
 
-  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  // An association attack took a branch of its own here, booking its rejects against the first
+  // pws_cnt salts of the list rather than its own. It could not run: rejects only becomes non-zero
+  // in amp_prepare ()'s ATTACK_KERN_COMBI arm, and ATTACK_MODE_ASSOCIATION takes
+  // ATTACK_KERN_STRAIGHT, so the count is always 0 here and the return above fires first.
 
-  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-  {
-    for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
-    {
-      status_ctx->words_progress_rejected[association_salt_pos] += rejects;
-    }
-
-    return;
-  }
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   status_ctx->words_progress_rejected[salt_pos] += pws_cnt * rejects;
 }

@@ -2052,6 +2052,17 @@ static char* reverseMask (const char *mask, const char *prepend)
     tmp_buf[i++] = ',';
   }
 
+  // The reversal below starts j at maskLength - 1, which an empty mask underflows to 0xffffffff.
+  // The loop condition underflows with it, so every pass writes far outside the buffer. No caller
+  // passes an empty mask today and this no longer depends on that.
+
+  if (maskLength == 0)
+  {
+    tmp_buf[i] = 0;
+
+    return tmp_buf;
+  }
+
   for (u32 j = maskLength - 1; i <= maskLength - 1 ; i++)
   {
     if (mask[i] == '?' && mask[i + 1] != '\0')
@@ -2065,6 +2076,11 @@ static char* reverseMask (const char *mask, const char *prepend)
         tmp_buf[j--] = mask[i];
     }
   }
+
+  // The string ended only because hcmalloc () hands back a zeroed buffer. Terminating it here says
+  // so rather than relying on it.
+
+  tmp_buf[maskLength] = 0;
 
   return tmp_buf;
 }

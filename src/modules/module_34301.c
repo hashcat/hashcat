@@ -33,7 +33,7 @@ static const char *ST_HASH        = "$keepass$*4*600000*c9d9f39a*0*0*0*824e99f94
 
 static const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "A database protected with a Windows user account carries that key as *2*128* and the 128 hex characters of the 64 bytes DPAPI returns for %APPDATA%\\KeePass\\ProtectedUserKey.bin";
+  return "You can use https://github.com/openwall/john/blob/bleeding-jumbo/src/keepass2john.c to extract the hashes. A database protected with a Windows user account carries that key as *2*128* and the 128 hex characters of the 64 bytes DPAPI returns for %APPDATA%\\KeePass\\ProtectedUserKey.bin";
 }
 
 typedef struct keepass4_tmp
