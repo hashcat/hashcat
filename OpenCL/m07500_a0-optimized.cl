@@ -16,7 +16,11 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_USE_BITWISE_ADDRESSING
+#define RC4_INIT_128_PREFETCH
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_INIT_128_PREFETCH
+#undef RC4_USE_BITWISE_ADDRESSING
 #endif
 
 typedef struct krb5pa
@@ -35,15 +39,67 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, PRIVATE_A
 {
   rc4_init_128 (S, data, lid);
 
+  // The plaintext opens with an eight byte confounder and a six byte ASN.1 header, and the first
+  // bytes tested are the two that start the year. The fourteen keystream bytes ahead of them are
+  // never looked at, so those steps only move the S box, and the two after them each get a chance
+  // to reject before the next is made.
+
+  u8 a = 0;
+  u8 b = 0;
+
+  #define RC4_STEP_DISCARD()             \
+  {                                      \
+    a += 1;                              \
+    const u8 Sa = GET_KEY8 (S, a, lid);  \
+    b += Sa;                             \
+    const u8 Sb = GET_KEY8 (S, b, lid);  \
+    SET_KEY8 (S, a, Sb, lid);            \
+    SET_KEY8 (S, b, Sa, lid);            \
+  }
+
+  #define RC4_STEP_BYTE(out)             \
+  {                                      \
+    a += 1;                              \
+    const u8 Sa = GET_KEY8 (S, a, lid);  \
+    b += Sa;                             \
+    const u8 Sb = GET_KEY8 (S, b, lid);  \
+    SET_KEY8 (S, a, Sb, lid);            \
+    SET_KEY8 (S, b, Sa, lid);            \
+    const u8 idx = Sa + Sb;              \
+    out = GET_KEY8 (S, idx, lid);        \
+  }
+
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+  RC4_STEP_DISCARD ();
+
+  u8 tmp;
+
+  RC4_STEP_BYTE (tmp);
+
+  if ((((u32) tmp ^ (timestamp_ct[3] >> 16)) & 0xff) != 0x32) return 0;
+
+  RC4_STEP_BYTE (tmp);
+
+  if ((((u32) tmp ^ (timestamp_ct[3] >> 24)) & 0xff) != 0x30) return 0;
+
+  #undef RC4_STEP_BYTE
+  #undef RC4_STEP_DISCARD
+
   u32 out[4];
 
-  u8 j = 0;
-
-  j = rc4_next_16 (S,  0, j, timestamp_ct + 0, out, lid);
-
-  if ((out[3] & 0xffff0000) != 0x30320000) return 0;
-
-  j = rc4_next_16 (S, 16, j, timestamp_ct + 4, out, lid);
+  rc4_next_16 (S, 16, b, timestamp_ct + 4, out, lid);
 
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
