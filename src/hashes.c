@@ -3961,6 +3961,23 @@ static int hashes_override_iterations (hashcat_ctx_t *hashcat_ctx, hash_t *hashe
   return 0;
 }
 
+// The copy of a hash that OPTS_TYPE_HASH_COPY and --hash-copy keep for the potfile and the outfile.
+// hlfmt_hash () hands back a pointer into the line and a length, and in a passwd, shadow or pwdump
+// line the line goes on after the hash, so the copy is bounded by that length.
+
+static char *hash_copy_orig (const char *hash_buf, const int hash_len)
+{
+  char *orig = (char *) hcmalloc ((size_t) hash_len + 1);
+
+  if (orig == NULL) return NULL;
+
+  memcpy (orig, hash_buf, (size_t) hash_len);
+
+  orig[hash_len] = 0;
+
+  return orig;
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -4336,7 +4353,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           hcfree (hash_info_tmp->orighash);
 
-          hash_info_tmp->orighash = hcstrdup (hash_buf);
+          hash_info_tmp->orighash = hash_copy_orig (hash_buf, hash_len);
         }
 
         if (hashconfig->is_salted == true)
@@ -4775,7 +4792,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           hcfree (hash_info_tmp->orighash);
 
-          hash_info_tmp->orighash = hcstrdup (hash_buf);
+          hash_info_tmp->orighash = hash_copy_orig (hash_buf, hash_len);
         }
 
         if (hashconfig->is_salted == true)
