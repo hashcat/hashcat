@@ -53,6 +53,8 @@ This document explains how to build and use the hashcat Rust plugin on Linux, Wi
 
    You can also add unit tests before building. Run them with `cargo test`.
 
+   Plugins built against the current `hashcat-sys` export `GENERIC_ESALT_PACKED` and receive hash and salt bytes in length-prefixed records. Rebuild older plugins against the current `hashcat-sys` before loading them.
+
 5. **Build the customized plugin**
 
    ```
