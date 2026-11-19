@@ -312,6 +312,7 @@ KERNEL_FQ KERNEL_FA void m02810_m04 (KERN_ATTR_RULES ())
 #ifdef MULTI_SALT_WINDOW
 
   LOCAL_VK u32 s_pc[MULTI_SALT_WINDOW * 8];
+  LOCAL_VK u32 s_idx[MULTI_SALT_WINDOW];
 
 #endif
 
@@ -379,9 +380,19 @@ KERNEL_FQ KERNEL_FA void m02810_m04 (KERN_ATTR_RULES ())
   {
     const u32 sweep_len = ((SALTS_CNT - w_pos) < (u32) MULTI_SALT_WINDOW) ? (SALTS_CNT - w_pos) : (u32) MULTI_SALT_WINDOW;
 
+    // the launch lists the live salts by position, see salt_sweep_launch (); the precomputed
+    // md5 (salt) words come from salt_bufs through the list
+
+    GLOBAL_AS const u32 *sweep_buf = (GLOBAL_AS const u32 *) d_extra0_buf;
+
+    for (u32 i = lid; i < sweep_len; i += lsz)
+    {
+      s_idx[i] = sweep_buf[w_pos + i];
+    }
+
     for (u32 i = lid; i < sweep_len * 8; i += lsz)
     {
-      s_pc[i] = salt_bufs[w_pos + (i >> 3)].salt_buf_pc[i & 7];
+      s_pc[i] = salt_bufs[sweep_buf[w_pos + (i >> 3)]].salt_buf_pc[i & 7];
     }
 
     SYNC_THREADS ();
@@ -510,7 +521,7 @@ KERNEL_FQ KERNEL_FA void m02810_m04 (KERN_ATTR_RULES ())
 
       for (u32 s = 0; s < sweep_len; s++)
       {
-        const u32 sweep_gs = w_pos + s;
+        const u32 sweep_gs = s_idx[s];
 
         u32x dg[4];
 

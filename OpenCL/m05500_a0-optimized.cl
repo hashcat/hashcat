@@ -72,8 +72,10 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, PRIVATE_AS 
 // Stage at most MULTI_SALT_WINDOW sessions per window. Recompute each candidate's
 // MD4 once per window, then test it against the sessions in that window.
 
-#define NN_FUSE_GS(n)   ((n) + nn_base)
-#define NN_FUSE_LS(n)   ((n) - nn_base)
+// The launch lists the live salts by position, see salt_sweep_launch (): window indices walk the
+// list, and salt_bufs is read through it.
+
+#define NN_FUSE_GS(n)   (nn_list[(n) + nn_base])
 #define NN_FUSE_WINS    ((kernel_param->salts_cnt / MULTI_SALT_WINDOW) + ((kernel_param->salts_cnt % MULTI_SALT_WINDOW) != 0))
 
 #if defined(MULTI_SALT_WINDOW) && defined(IS_CUDA)
@@ -164,9 +166,9 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, PRIVATE_AS 
 
 #endif
 
-DECLSPEC void nn_fuse_stage (SHM_TYPE u32 *s_nn_filt, SHM_TYPE u32 *s_nn_bits, GLOBAL_AS const salt_t *salt_bufs, const u32 nn_base, const u32 nn_len, const u64 lid, const u64 lsz)
+DECLSPEC void nn_fuse_stage (SHM_TYPE u32 *s_nn_filt, SHM_TYPE u32 *s_nn_bits, GLOBAL_AS const salt_t *salt_bufs, GLOBAL_AS const u32 *nn_list, const u32 nn_base, const u32 nn_len, const u64 lid, const u64 lsz)
 {
-  for (u32 i = lid; i < nn_len; i += lsz) s_nn_filt[i] = salt_bufs[nn_base + i].salt_buf[2];
+  for (u32 i = lid; i < nn_len; i += lsz) s_nn_filt[i] = salt_bufs[nn_list[nn_base + i]].salt_buf[2];
 
   for (u32 i = lid; i < NN_FUSE_BITS_W; i += lsz) s_nn_bits[i] = 0;
 
@@ -187,11 +189,13 @@ DECLSPEC void nn_fuse_stage (SHM_TYPE u32 *s_nn_filt, SHM_TYPE u32 *s_nn_bits, G
 
 // Staged filters use window-local indices. Salt buffers use global indices.
 
-#define NN_FUSE_WALK_ONE(nn_s)                                                          \
+#define NN_FUSE_WALK_ONE(nn_sl)                                                         \
 {                                                                                       \
-  if (MATCHES_NONE_VS (nn_dd, NN_FUSE_FILT (NN_FUSE_LS (nn_s)))) continue;              \
+  if (MATCHES_NONE_VS (nn_dd, NN_FUSE_FILT (nn_sl))) continue;                          \
                                                                                         \
-  NN_FUSE_WALK_BODY (nn_s)                                                              \
+  const u32 nn_gs = NN_FUSE_GS (nn_sl);                                                 \
+                                                                                        \
+  NN_FUSE_WALK_BODY (nn_gs)                                                             \
 }
 
 #define NN_FUSE_WALK_ONE_NF(nn_s)                                                       \
@@ -487,6 +491,9 @@ KERNEL_FQ KERNEL_FA
    */
 
 #if defined(MULTI_SALT_WINDOW)
+
+  GLOBAL_AS const u32 *nn_list = (GLOBAL_AS const u32 *) d_extra0_buf;
+
   for (u32 nn_w = 0; nn_w < NN_FUSE_WINS; nn_w++)
   {
     const u32 nn_base = nn_w * MULTI_SALT_WINDOW;
@@ -505,7 +512,7 @@ KERNEL_FQ KERNEL_FA
     }
 #endif
 
-    nn_fuse_stage (s_nn_filt, s_nn_bits, salt_bufs, nn_base, nn_len, lid, lsz);
+    nn_fuse_stage (s_nn_filt, s_nn_bits, salt_bufs, nn_list, nn_base, nn_len, lid, lsz);
 
     nn_fuse_ti_stage (s_nn_filt, s_ti_head, s_ti_next, nn_len, lid, lsz);
 #endif
@@ -678,7 +685,7 @@ KERNEL_FQ KERNEL_FA
 
     for (u32 nn_sl = s_ti_head[nn_ti_b]; nn_sl != NN_FUSE_TI_NIL; nn_sl = NN_FUSE_TI_NEXT (nn_sl))
     {
-      NN_FUSE_WALK_ONE (NN_FUSE_GS (nn_sl))
+      NN_FUSE_WALK_ONE (nn_sl)
     }
 
 #endif

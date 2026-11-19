@@ -53,9 +53,10 @@ static bool module_salt_sweep (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if ((user_options->optimized_kernel == false) && (hashconfig->has_pure_kernel == true)) return false;
 
-  // the sweep kernels statically allocate the window plus the bin2asc table in local memory
+  // the sweep kernels statically allocate the window, the packed salt index and the bin2asc table
+  // in local memory
 
-  if (device_param->device_local_mem_size < (SWEEP_SALTS_PER_WINDOW * 8 + 256) * sizeof (u32)) return false;
+  if (device_param->device_local_mem_size < (SWEEP_SALTS_PER_WINDOW * 9 + 256) * sizeof (u32)) return false;
 
   const bool sweep_attack = (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_BF);
 
