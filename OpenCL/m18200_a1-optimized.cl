@@ -114,35 +114,260 @@ DECLSPEC void hmac_md5_run (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)
+#define M18200_RC4_KSA_PREFETCH_STEP(d)       \
+{                                             \
+  const u8 s_next = GET_KEY8 (S, idx + 1, lid); \
+  j += s_i + (d);                             \
+  const u8 s_j = GET_KEY8 (S, j, lid);        \
+  SET_KEY8 (S, idx, s_j, lid);                \
+  SET_KEY8 (S, j, s_i, lid);                  \
+  idx++;                                      \
+  s_i = (j == idx) ? s_i : s_next;            \
+}
+
+DECLSPEC void rc4_init_128_virtual4 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u64 lid)
 {
-  rc4_init_128 (S, data, lid);
+  u32 v = 0x07060504;
+  u32 a = 0x04040404;
 
-  u32 out0[4];
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (u8 i = 1; i < 64; i++)
+  {
+    SET_KEY32 (S, i, v, lid); v += a;
+  }
 
-  /*
-    8 first bytes are nonce, then ASN1 structs (DER encoding: TLV)
+  v = key[0];
 
-    The first byte is always 0x79 (01 1 11001, where 01 = "class=APPLICATION", 1 = "form=constructed", 11001 is application type 25)
-    The next byte is the length:
+  const u8 d0 = v8a_from_v32_S (v);
+  const u8 d1 = v8b_from_v32_S (v);
+  const u8 d2 = v8c_from_v32_S (v);
+  const u8 d3 = v8d_from_v32_S (v);
 
-    if length < 128 bytes:
-        length is on 1 byte, and the next byte is 0x30 (class=SEQUENCE)
-    else if length <= 256:
-        length is on 2 bytes, the first byte is 0x81, and the third byte is 0x30 (class=SEQUENCE)
-    else if length > 256:
-        length is on 3 bytes, the first byte is 0x82, and the fourth byte is 0x30 (class=SEQUENCE)
-  */
+  // The first four swaps start from the identity permutation. Track their
+  // sparse updates in registers, then commit them in program order.
 
-  rc4_next_16_global (S, 0, 0, edata2 + 0, out0, lid);
+  const u8 j0 = d0;
 
-  if (((out0[2] & 0x00ff80ff) != 0x00300079) &&
-      ((out0[2] & 0x00ff80ff) != 0x0030007a) &&
-      ((out0[2] & 0xFF00FFFF) != 0x30008179) &&
-      ((out0[2] & 0xFF00FFFF) != 0x3000817a) &&
-      (((out0[2] & 0x0000FFFF) != 0x00008279 && (out0[2] & 0x0000FFFF) != 0x0000827a) || (out0[3] & 0x000000FF) != 0x00000030))
-      return 0;
+  const u8 s1  = (j0 == 1) ? 0 : 1;
+  const u8 j1  = j0 + s1 + d1;
+  const u8 sj1 = (j1 == j0) ? 0 : ((j1 == 0) ? j0 : j1);
 
+  const u8 s2  = (j1 == 2) ? s1 : ((j0 == 2) ? 0 : 2);
+  const u8 j2  = j1 + s2 + d2;
+  const u8 sj2 = (j2 == j1) ? s1
+               : (j2 == 1)  ? sj1
+               : (j2 == j0) ? 0
+               : (j2 == 0)  ? j0
+               : j2;
+
+  const u8 s3  = (j2 == 3) ? s2
+               : (j1 == 3) ? s1
+               : (j0 == 3) ? 0
+               : 3;
+  const u8 j3  = j2 + s3 + d3;
+  const u8 sj3 = (j3 == j2) ? s2
+               : (j3 == 2)  ? sj2
+               : (j3 == j1) ? s1
+               : (j3 == 1)  ? sj1
+               : (j3 == j0) ? 0
+               : (j3 == 0)  ? j0
+               : j3;
+
+  SET_KEY8 (S, j0,   0, lid);
+  SET_KEY8 (S, j1,  s1, lid);
+  SET_KEY8 (S, j2,  s2, lid);
+  SET_KEY8 (S, j3,  s3, lid);
+
+  // The ordered j writes above establish every update outside positions 0..3.
+  // Commit the final low positions together, replacing four byte stores and
+  // making their identity initialization unnecessary.
+
+  const u8 s0 = (j3 == 0) ? s3
+              : (j2 == 0) ? s2
+              : (j1 == 0) ? s1
+              : (j0 == 0) ? 0
+              : j0;
+  const u8 s1_final = (j3 == 1) ? s3
+                    : (j2 == 1) ? s2
+                    : sj1;
+  const u8 s2_final = (j3 == 2) ? s3 : sj2;
+
+  const u32 sbox03 = ((u32) s0       <<  0)
+                   | ((u32) s1_final <<  8)
+                   | ((u32) s2_final << 16)
+                   | ((u32) sj3      << 24);
+
+  SET_KEY32 (S, 0, sbox03, lid);
+
+  u8 j = j3;
+
+  u8 idx = 4;
+  u8 s_i = GET_KEY8 (S, idx, lid);
+
+  v = key[1];
+
+  M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+
+  v = key[2];
+
+  M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+
+  v = key[3];
+
+  M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+  M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+
+  for (u32 i = 1; i < 16; i++)
+  {
+    idx = i * 16;
+
+    v = key[0];
+
+    M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+
+    v = key[1];
+
+    M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+
+    v = key[2];
+
+    M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+
+    v = key[3];
+
+    M18200_RC4_KSA_PREFETCH_STEP (v8a_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8b_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
+    M18200_RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
+  }
+}
+
+#undef M18200_RC4_KSA_PREFETCH_STEP
+
+DECLSPEC int asrep_early_check (LOCAL_AS u32 *S, const u32 edata2_2, const u32 edata2_3, const u64 lid)
+{
+  u8 a = 0;
+  u8 b = 0;
+  u8 tmp;
+  u8 s_prefetch = GET_KEY8 (S, 1, lid);
+
+  #define RC4_STEP_DISCARD_PREFETCH()             \
+  {                                                \
+    a += 1;                                        \
+    const u8 next = a + 1;                        \
+    const u8 Snext = GET_KEY8 (S, next, lid);     \
+    const u8 Sa = s_prefetch;                     \
+    b += Sa;                                       \
+    const u8 Sb = GET_KEY8 (S, b, lid);           \
+    SET_KEY8 (S, a, Sb, lid);                      \
+    SET_KEY8 (S, b, Sa, lid);                      \
+    s_prefetch = (b == next) ? Sa : Snext;        \
+  }
+
+  #define RC4_STEP_BYTE_CARRIED(out)              \
+  {                                                \
+    a += 1;                                        \
+    const u8 Sa = s_prefetch;                     \
+    b += Sa;                                       \
+    const u8 Sb = GET_KEY8 (S, b, lid);           \
+    SET_KEY8 (S, a, Sb, lid);                      \
+    SET_KEY8 (S, b, Sa, lid);                      \
+    const u8 idx = Sa + Sb;                        \
+    out = GET_KEY8 (S, idx, lid);                  \
+  }
+
+  #define RC4_STEP_DISCARD()             \
+  {                                      \
+    a += 1;                              \
+    const u8 Sa = GET_KEY8 (S, a, lid);  \
+    b += Sa;                             \
+    const u8 Sb = GET_KEY8 (S, b, lid);  \
+    SET_KEY8 (S, a, Sb, lid);            \
+    SET_KEY8 (S, b, Sa, lid);            \
+  }
+
+  #define RC4_STEP_BYTE(out)             \
+  {                                      \
+    a += 1;                              \
+    const u8 Sa = GET_KEY8 (S, a, lid);  \
+    b += Sa;                             \
+    const u8 Sb = GET_KEY8 (S, b, lid);  \
+    SET_KEY8 (S, a, Sb, lid);            \
+    SET_KEY8 (S, b, Sa, lid);            \
+    const u8 idx = Sa + Sb;              \
+    out = GET_KEY8 (S, idx, lid);        \
+  }
+
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+  RC4_STEP_DISCARD_PREFETCH ();
+
+  RC4_STEP_BYTE_CARRIED (tmp);
+
+  if (((((u32) tmp ^ edata2_2) & 0xff) != 0x79) && ((((u32) tmp ^ edata2_2) & 0xff) != 0x7a)) return 0;
+
+  RC4_STEP_BYTE (tmp);
+
+  const u32 len_tag = ((u32) tmp ^ (edata2_2 >> 8)) & 0xff;
+
+  if ((len_tag & 0x80) == 0)
+  {
+    RC4_STEP_BYTE (tmp);
+
+    return ((((u32) tmp ^ (edata2_2 >> 16)) & 0xff) == 0x30);
+  }
+
+  if (len_tag == 0x81)
+  {
+    RC4_STEP_DISCARD ();
+    RC4_STEP_BYTE (tmp);
+
+    return ((((u32) tmp ^ (edata2_2 >> 24)) & 0xff) == 0x30);
+  }
+
+  if (len_tag == 0x82)
+  {
+    RC4_STEP_DISCARD ();
+    RC4_STEP_DISCARD ();
+    RC4_STEP_BYTE (tmp);
+
+    return ((((u32) tmp ^ edata2_3) & 0xff) == 0x30);
+  }
+
+  #undef RC4_STEP_BYTE
+  #undef RC4_STEP_BYTE_CARRIED
+  #undef RC4_STEP_DISCARD
+  #undef RC4_STEP_DISCARD_PREFETCH
+
+  return 0;
+}
+
+DECLSPEC int decrypt_and_check_full (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)
+{
   rc4_init_128 (S, data, lid);
 
   u8 i = 0;
@@ -316,6 +541,21 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS
   if (checksum[3] != opad[3]) return 0;
 
   return 1;
+}
+
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)
+{
+  // the prefetching key schedule costs an AMD GPU, see inc_cipher_rc4.cl
+
+  #if defined IS_AMD_USE_HIP || defined IS_AMD_GPU
+  rc4_init_128 (S, data, lid);
+  #else
+  rc4_init_128_virtual4 (S, data, lid);
+  #endif
+
+  if (asrep_early_check (S, edata2[2], edata2[3], lid) == 0) return 0;
+
+  return decrypt_and_check_full (S, data, edata2, edata2_len, K2, checksum, lid);
 }
 
 DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, const u32 pw_len, PRIVATE_AS const u32 *checksum, PRIVATE_AS u32 *digest, PRIVATE_AS u32 *K2)
