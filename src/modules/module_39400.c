@@ -11,7 +11,7 @@
 #include "shared.h"
 #include "parser.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
@@ -26,7 +26,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_ST_HEX
-                                  | OPTS_TYPE_AUTODETECT_DISABLE;
+                                  | OPTS_TYPE_AUTODETECT_DISABLE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "b4b9b02e6f09a9bd760f388b67351e2b";
 static const char *ST_HASH        = "$krb5pa$23$user$realm$b3515d146dc326af0fd885c8079207ba$36a581548d55c65278ca30d2189c106176015a8e2c04145a6d91b736a387a9f5f8a245d3";
@@ -51,17 +52,7 @@ typedef struct krb5pa
 
 } krb5pa_t;
 
-typedef struct pa_tmp
-{
-  u32 nt[4];
-} pa_tmp_t;
-
 static const char *SIGNATURE_KRB5PA = "$krb5pa$23$";
-
-static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return (u64) sizeof (pa_tmp_t);
-}
 
 static u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return 32; }
 static u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return 32; }
@@ -300,7 +291,9 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 static const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxx";
+  // 32 characters, the 14 that vary being as many as the keyspace counter has room for
+
+  const char *mask = "?h?h?h?h?h?h?h?h?h?h?h?h?h?h0123456789abcdef01";
   return mask;
 }
 
@@ -315,6 +308,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = module_pw_min;
-  module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
 }
