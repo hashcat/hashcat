@@ -828,7 +828,10 @@ bool brain_recv (int sockfd, void *buf, size_t len, int flags, hc_device_param_t
 
 bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
 {
-  link_speed_t *link_speed = &device_param->brain_link_send_speed;
+  // A caller that wants no accounting passes no device, and every use below is already guarded on it.
+  // Reaching through the null pointer for the address alone was still undefined.
+
+  link_speed_t *link_speed = (device_param) ? &device_param->brain_link_send_speed : NULL;
 
   if (device_param)
   {
@@ -889,7 +892,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
 bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
 {
-  link_speed_t *link_speed = &device_param->brain_link_recv_speed;
+  link_speed_t *link_speed = (device_param) ? &device_param->brain_link_recv_speed : NULL;
 
   if (device_param)
   {
@@ -1002,16 +1005,21 @@ static void brain_client_report (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   event_log_error (hashcat_ctx, "%s", buf);
 }
 
-bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
+bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, brain_link_t *link, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
 {
-  device_param->brain_link_client_fd   = 0;
-  device_param->brain_link_recv_bytes  = 0;
-  device_param->brain_link_send_bytes  = 0;
+  // The link holds no descriptor until the handshake is through, and every failure below closes the
+  // socket and leaves it that way. So a caller that carries on after a refusal cannot send over a
+  // closed descriptor, and one that disconnects does not close it a second time.
+
+  link->client_fd = -1;
+
+  // Cleared because a transfer that fails leaves its flag set, and the status screen would go on
+  // reporting a device as sending to a brain it has lost. The byte totals and the speed rings are
+  // not: a device holds one link per pipeline slot, the second opens once a batch needs it, and
+  // clearing there would throw away what the run had already transferred over the first.
+
   device_param->brain_link_recv_active = false;
   device_param->brain_link_send_active = false;
-
-  memset (&device_param->brain_link_recv_speed, 0, sizeof (link_speed_t));
-  memset (&device_param->brain_link_send_speed, 0, sizeof (link_speed_t));
 
   const int brain_link_client_fd = socket (AF_INET, SOCK_STREAM, 0);
 
@@ -1100,8 +1108,6 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     return false;
   }
-
-  device_param->brain_link_client_fd = brain_link_client_fd;
 
   u32 brain_link_version = BRAIN_LINK_VERSION_CUR;
 
@@ -1212,6 +1218,8 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     return false;
   }
 
+  link->client_fd = brain_link_client_fd;
+
   // the link is up, so a later outage is a new one and deserves its own message
 
   device_param->brain_link_reported = false;
@@ -1219,24 +1227,24 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return true;
 }
 
-void brain_client_disconnect (hc_device_param_t *device_param)
+void brain_client_disconnect (brain_link_t *link)
 {
-  if (device_param->brain_link_client_fd > 2)
+  if (link->client_fd > 2)
   {
-    close (device_param->brain_link_client_fd);
+    close (link->client_fd);
   }
 
-  device_param->brain_link_client_fd = -1;
+  link->client_fd = -1;
 }
 
-bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap)
+bool brain_client_reserve (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap)
 {
   // Nothing is reserved until the reply has been read and checked, so a caller that carries on after
   // a failure skips nothing. A partial read would otherwise leave whatever arrived in there.
 
   *overlap = 0;
 
-  const int brain_link_client_fd = device_param->brain_link_client_fd;
+  const int brain_link_client_fd = link->client_fd;
 
   if (brain_link_client_fd == -1) return false;
 
@@ -1263,26 +1271,30 @@ bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *
   return true;
 }
 
-bool brain_client_commit (hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+bool brain_client_commit (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx)
 {
   if (device_param->pws_cnt == 0) return true;
 
-  const int brain_link_client_fd = device_param->brain_link_client_fd;
+  const int brain_link_client_fd = link->client_fd;
 
   if (brain_link_client_fd == -1) return false;
 
   u8 operation = BRAIN_OPERATION_COMMIT;
 
-  if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, device_param, status_ctx) == false) return false;
+  // No device, so the one byte below is not counted and the link accounting is left to the thread
+  // that does the rest of the talking. This is the only client call the launch thread makes, and
+  // everything else on this link goes over it from the producer thread, see brain_link_t.
+
+  if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, NULL, status_ctx) == false) return false;
 
   return true;
 }
 
-bool brain_client_lookup (hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+bool brain_client_lookup (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx)
 {
   if (device_param->pws_pre_cnt == 0) return true;
 
-  const int brain_link_client_fd = device_param->brain_link_client_fd;
+  const int brain_link_client_fd = link->client_fd;
 
   if (brain_link_client_fd == -1) return false;
 
@@ -3524,7 +3536,11 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
 
   memset (&device_param, 0, sizeof (device_param));
 
-  device_param.brain_link_client_fd = -1;
+  // The feed is not a pipeline, so it holds the one link it needs on its own stack.
+
+  brain_link_t link;
+
+  link.client_fd = -1;
 
   device_param.size_brain_link_in  = BRAIN_FEED_CHUNK * sizeof (u8);
   device_param.size_brain_link_out = BRAIN_FEED_CHUNK * BRAIN_HASH_SIZE;
@@ -3539,9 +3555,9 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
   // passwords_max is what the server checks a lookup against, and it counts what has accumulated
   // since the last commit. A whole chunk is committed at a time, so one chunk is the true maximum.
 
-  if (brain_client_connect (hashcat_ctx, &device_param, NULL, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, 0, BRAIN_FEED_CHUNK, &highest) == false)
+  if (brain_client_connect (hashcat_ctx, &device_param, &link, NULL, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, 0, BRAIN_FEED_CHUNK, &highest) == false)
   {
-    brain_client_disconnect (&device_param);
+    brain_client_disconnect (&link);
 
     hcfree (device_param.brain_link_in_buf);
     hcfree (device_param.brain_link_out_buf);
@@ -3619,7 +3635,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
 
       device_param.pws_cnt = cnt;
 
-      if (brain_client_lookup (&device_param, NULL) == false)
+      if (brain_client_lookup (&device_param, &link, NULL) == false)
       {
         event_log_error (hashcat_ctx, "Brain server stopped answering after %" PRIu64 " candidates. Nothing since the last commit was stored.", fed_cnt);
 
@@ -3636,7 +3652,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
         if (device_param.brain_link_in_buf[i] == 1) known_cnt++;
       }
 
-      if (brain_client_commit (&device_param, NULL) == false)
+      if (brain_client_commit (&device_param, &link, NULL) == false)
       {
         event_log_error (hashcat_ctx, "Brain server refused the commit after %" PRIu64 " candidates.", fed_cnt);
 
@@ -3653,7 +3669,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
     if (eof == true) break;
   }
 
-  brain_client_disconnect (&device_param);
+  brain_client_disconnect (&link);
 
   hcfree (line_buf);
   hcfree (device_param.brain_link_in_buf);

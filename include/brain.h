@@ -315,11 +315,11 @@ bool  brain_send                        (int sockfd, void *buf, size_t len, int 
 bool  brain_recv_all                    (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx);
 bool  brain_send_all                    (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx);
 
-bool  brain_client_reserve              (hc_device_param_t *device_param, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap);
-bool  brain_client_commit               (hc_device_param_t *device_param, const status_ctx_t *status_ctx);
-bool  brain_client_lookup               (hc_device_param_t *device_param, const status_ctx_t *status_ctx);
-bool  brain_client_connect              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest);
-void  brain_client_disconnect           (hc_device_param_t *device_param);
+bool  brain_client_reserve              (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap);
+bool  brain_client_commit               (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx);
+bool  brain_client_lookup               (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx);
+bool  brain_client_connect              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, brain_link_t *link, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest);
+void  brain_client_disconnect           (brain_link_t *link);
 void  brain_client_generate_hash        (u64 *hash, const char *line_buf, const size_t line_len);
 
 HC_API int   brain_feed                        (hashcat_ctx_t *hashcat_ctx);

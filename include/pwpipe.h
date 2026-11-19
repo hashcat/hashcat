@@ -54,7 +54,7 @@ typedef struct pw_pipe
 
 } pw_pipe_t;
 
-void        pw_pipe_start   (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state, const bool serial);
+void        pw_pipe_start   (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state);
 pw_batch_t *pw_pipe_take    (pw_pipe_t *pipe);
 void        pw_pipe_release (pw_pipe_t *pipe, pw_batch_t *batch);
 void        pw_pipe_stop    (pw_pipe_t *pipe);
