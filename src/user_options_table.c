@@ -1220,7 +1220,7 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   [OPT_SLOW_CANDIDATES] =
   {
     .type           = OPTION_TYPE_FLAG,
-    .actions        = ACT_CRACK | ACT_KEYSPACE | ACT_SPEED_ONLY,
+    .actions        = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE | ACT_SPEED_ONLY,
     .attack_modes   = AM_ALL & ~AM (9),
     .conflict_modes = AM (9),
     .late           = LATE_INPUT_NOT_STDIN,

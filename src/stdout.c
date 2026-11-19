@@ -261,7 +261,24 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   int rc = 0;
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  // The host built every candidate already, whatever the attack mode, so there is no rule or mask
+  // left to apply.
+
+  if (user_options->slow_candidates == true)
+  {
+    const pw_idx_t *pws_idx  = device_param->pws_idx;
+    const u32      *pws_comp = device_param->pws_comp;
+
+    for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
+    {
+      const pw_idx_t *pw_idx = &pws_idx[gidvid];
+
+      const u8 *pw = (const u8 *) &pws_comp[pw_idx->off];
+
+      out_push (&out, pw, (int) pw_idx->len);
+    }
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {

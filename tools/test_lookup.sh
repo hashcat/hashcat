@@ -27,13 +27,11 @@
 # mode. The window before it is replayed too and must NOT hold the candidate, which is what makes the
 # reported offset the first the run reaches rather than merely one that works.
 #
-# Two things --stdout cannot mirror, both handled where they come up:
+# One thing --stdout cannot mirror, handled where it comes up:
 #
 #   - it forces -m 2000, and the hash mode feeds pw_max and the uppercase, UTF-16 and appended-salt
 #     options, which feed the -a 3 base word split and so the size of a cell. Every replayed check
 #     passes -m 2000 to --lookup as well, so both sides size the cell the same way.
-#   - it refuses -S, so the one branch of the -a 3 report that counts -s in candidates cannot be
-#     replayed. Its wording is checked instead.
 #
 # --crack adds the end to end check the oracle cannot make: that the offset --lookup reports is one a
 # real attack cracks the hash at, and that the offset before it is not. It needs a working backend,
@@ -56,7 +54,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -c|--crack) CRACK=1 ;;
     -h|--help)
-      sed -n '8,42p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '8,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -324,8 +322,8 @@ check_has "masks outside the length are counted out" "mask(s) were passed over f
 
 note "-a 3, -S counts -s in candidates"
 
-# --stdout refuses -S ("Slow candidates (-S) is not allowed in stdout mode"), so this is the one
-# offset in the suite that cannot be replayed. The wording is what is checked.
+replay merche -a 3 '?l?l?l?l?l?l' -S
+
 lookup merche -m 2000 -a 3 '?l?l?l?l?l?l' -S
 check_has "-S is answered in candidates"        "because -S counts -s in candidates"
 check_has "-S runs one candidate per offset"    "-l 1 runs the one candidate"

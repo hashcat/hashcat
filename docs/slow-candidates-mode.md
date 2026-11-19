@@ -1,6 +1,8 @@
 ## Generic password candidate interface, aka "slow candidates" mode ##
 
-Option `-S`/`--slow-candidates` makes hashcat generate complete password candidates on the host before sending them to a compute device. It is available with attack modes 0, 1, 3, 4, 5, 6, 7, 8 and 12, and it forces the backend vector width to 1. It cannot be combined with `--stdout`, benchmark mode, or candidates read from stdin.
+Option `-S`/`--slow-candidates` makes hashcat generate complete password candidates on the host before sending them to a compute device. It is available with attack modes 0, 1, 3, 4, 5, 6, 7, 8 and 12, and it forces the backend vector width to 1. It cannot be combined with benchmark mode or candidates read from stdin.
+
+With `--stdout`, the option changes what `--skip` and `--limit` count. Without it they count base words, as `--keyspace` does, so one word and a ruleset of 3234 rules have a keyspace of 1. With it they count candidates, as `--keyspace -S` does, and `-s 1` starts at the second candidate. The candidates are the same either way, but `-a 3` and `-a 7` print them in a different order.
 
 For the PCFG attack (`-a 4`), the option also selects the host generator instead of the feed's device-side generator. See `hashcat-pcfg.md`. A brain client accepts the same attack modes: 0, 1, 3, 4, 5, 6, 7, 8 and 12. It enables slow-candidates mode automatically when its candidate feature is on, which is the default; `--brain-client-features=2` asks for keyspace coordination alone, needs no candidate on the host, and therefore leaves candidate generation on the device. See `hashcat-brain.md`.
 

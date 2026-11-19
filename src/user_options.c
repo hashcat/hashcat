@@ -1271,15 +1271,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->status_timer        = 0;
     user_options->bitmap_min          = 1;
     user_options->bitmap_max          = 1;
-
-    // the slow candidate path prints nothing usable for a mask here, and --stdout ignores -S
-
-    user_options->slow_candidates     = false;
   }
 
-  // After --stdout has dropped -S and before the actions below turn the client off: --keyspace and
-  // --speed-only measure the path the candidate feature puts a cracking run on, so they keep that
-  // path, while -b drops it again.
+  // Before the actions below turn the client off: --keyspace and --speed-only measure the path the
+  // candidate feature puts a cracking run on, so they keep that path, while -b drops it again.
 
   #ifdef WITH_BRAIN
   if (user_options->brain_client == true)

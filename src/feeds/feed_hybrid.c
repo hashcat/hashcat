@@ -83,6 +83,13 @@ typedef struct hybrid_thread
   u64  mask_pos;
   u64  word_idx;
 
+  // What a position divides by in this round and where the round ends. Both saturate, see
+  // hybrid_mul (). They are worked out once when the thread is placed, and every round begins with a
+  // placement.
+
+  u64  combs;
+  u64  pos_end;
+
   // The base word this block of candidates shares, already through -j. It is fetched once per block
   // rather than once per candidate, which is the whole reason a base word is worth being a base word.
 
@@ -96,6 +103,22 @@ typedef struct hybrid_thread
   u32  word_len;
 
 } hybrid_thread_t;
+
+// A position is a u64, and so is every count the feed keeps. Two long wordlists, a ?q wordlist under
+// a long mask, or a few words under a long mask hold more candidates than a u64 can number. A plain
+// product would wrap modulo 2^64 to a smaller count. That ends a round early, splits a position past
+// the wrapped divisor into the wrong base word, and divides by zero where the divisor wraps to 0. So
+// every product here saturates instead. A position below the saturated value divides exactly as it
+// would by the true count, because the true count is larger than any such position.
+
+static u64 hybrid_mul (const u64 a, const u64 b)
+{
+  if (overflow_check_u64_mul (a, b) == true) return UINT64_MAX;
+
+  const u64 r = a * b;
+
+  return r;
+}
 
 // One rule over one word, which is what pw_transform_apply () does for the producers inside the
 // core. Spelled out here because a plugin cannot reach that one, and kept to the same two calls so
@@ -160,7 +183,7 @@ static bool hybrid_place (hybrid_global_t *hybrid_global, generic_thread_ctx_t *
 
   if (mask_cnt == 0) return false;
 
-  const u64 combs = mask_cnt * hybrid_global->amp_cnt;
+  const u64 combs = hybrid_mul (mask_cnt, hybrid_global->amp_cnt);
 
   const u64 base_idx = pos / combs;
   const u64 comb_idx = pos % combs;
@@ -174,6 +197,9 @@ static bool hybrid_place (hybrid_global_t *hybrid_global, generic_thread_ctx_t *
   {
     if (wordlist_seek (&hybrid_global->amp, thread_ctx, hybrid_thread->amp, hybrid_thread->word_idx) == false) return false;
   }
+
+  hybrid_thread->combs   = combs;
+  hybrid_thread->pos_end = hybrid_mul (hybrid_global->base_cnt, combs);
 
   hybrid_thread->pos    = pos;
   hybrid_thread->placed = true;
@@ -212,7 +238,7 @@ static bool hybrid_advance (hybrid_global_t *hybrid_global, generic_thread_ctx_t
   // forward from where the last one left off rather than seeked to, which is what makes a base word
   // cheap.
 
-  const u64 base_idx = hybrid_thread->pos / (mask_feed_keyspace (&hybrid_global->mask) * hybrid_global->amp_cnt);
+  const u64 base_idx = hybrid_thread->pos / hybrid_thread->combs;
 
   if (hybrid_base_fetch (hybrid_global, thread_ctx, hybrid_thread, base_idx) == false) return false;
 
@@ -326,7 +352,13 @@ u64 global_keyspace (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **th
     }
   }
 
-  const u64 keyspace = hybrid_global->base_cnt * hybrid_global->amp_cnt;
+  // A keyspace too large to number stops at the cap feed_pcfg.c uses for the same case. That keeps it
+  // clear of GENERIC_KEYSPACE_UNKNOWN and GENERIC_KEYSPACE_ERROR, which a product can otherwise land
+  // on exactly.
+
+  const u64 words = hybrid_mul (hybrid_global->base_cnt, hybrid_global->amp_cnt);
+
+  const u64 keyspace = MIN (words, UINT64_MAX - 2);
 
   return keyspace;
 }
@@ -416,7 +448,7 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
     return GENERIC_RC_ERROR;
   }
 
-  if (hybrid_thread->pos >= (hybrid_global->base_cnt * mask_cnt * hybrid_global->amp_cnt)) return GENERIC_RC_EOF;
+  if (hybrid_thread->pos >= hybrid_thread->pos_end) return GENERIC_RC_EOF;
 
   bool usable = hybrid_thread->base_usable;
 
