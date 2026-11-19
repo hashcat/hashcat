@@ -22,7 +22,7 @@ import struct
 import sys
 import traceback
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 
 # Anything the interpreter itself printed to its standard output before this script ran, a .pth file in
 # site-packages or a sitecustomize.py that prints, would otherwise be read as the first frame. hashcat
@@ -173,6 +173,11 @@ def parse_init(payload: bytes, plugin, hcshared) -> dict:
 
   pos += 4
 
+  # A nonzero flag marks the new length-prefixed format, converted later for old plugins.
+  packed_generic = U32.unpack_from(payload, pos)[0]
+
+  pos += 4
+
   if salt_t_size != hcshared.SALT_T.size:
     raise ValueError("hashcat's salt_t is %d bytes and hcshared.SALT_T is %d. The Python folder does not belong to this build." % (salt_t_size, hcshared.SALT_T.size))
 
@@ -192,6 +197,19 @@ def parse_init(payload: bytes, plugin, hcshared) -> dict:
 
   salts_buf, esalts_buf, st_salts_buf, st_esalts_buf = blobs
 
+  skipped = set()
+  st_skipped = set()
+
+  if packed_generic:
+    layout = getattr(plugin, "GENERIC_ESALT_FORMAT", "fixed")
+
+    if layout == "fixed":
+      esalts_buf, skipped = hcshared.legacy_generic_esalts(esalts_buf)
+      st_esalts_buf, st_skipped = hcshared.legacy_generic_esalts(st_esalts_buf)
+      esalt_size = hcshared.GENERIC_LEGACY.size
+    elif layout != "packed":
+      raise ValueError("GENERIC_ESALT_FORMAT must be fixed or packed")
+
   extract_esalts = getattr(plugin, "extract_esalts", no_esalts)
 
   salts    = hcshared.extract_salts(salts_buf)
@@ -205,6 +223,9 @@ def parse_init(payload: bytes, plugin, hcshared) -> dict:
     "st_salts":          st_salts,
     "salt_per_pw":       salt_per_pw != 0,
     "esalt_size":        esalt_size,
+    "legacy_skipped":    bool(skipped or st_skipped),
+    "skipped":           skipped,
+    "st_skipped":        st_skipped,
     "bridge_parameter1": params[0],
     "bridge_parameter2": params[1],
     "bridge_parameter3": params[2],
@@ -264,6 +285,7 @@ def run_batch(payload: bytes, ctx: dict, calc_hash) -> bytes:
   pos = 12
 
   table  = ctx["st_salts"] if is_selftest != 0 else ctx["salts"]
+  skipped = ctx["st_skipped"] if is_selftest != 0 else ctx["skipped"]
   stride = 1 if (ctx["salt_per_pw"] and is_selftest == 0) else 0
 
   view = memoryview(payload)
@@ -282,7 +304,12 @@ def run_batch(payload: bytes, ctx: dict, calc_hash) -> bytes:
 
     pos += size
 
-    parts.append(encode_result(calc_hash(pw, table[salt_pos + (i * stride)]), pw))
+    salt = table[salt_pos + (i * stride)]
+
+    if salt["digests_offset"] in skipped:
+      parts.append(U32.pack(0))
+    else:
+      parts.append(encode_result(calc_hash(pw, salt), pw))
 
   return b"".join(parts)
 
@@ -382,7 +409,7 @@ def main() -> None:
       if ftype == FRAME_INIT:
         ctx = parse_init(payload, plugin, hcshared)
 
-        write_frame(out, FRAME_READY, b"")
+        write_frame(out, FRAME_READY, b"\x01" if ctx["legacy_skipped"] else b"")
       elif ftype == FRAME_BATCH:
         if ctx is None:
           fail(out, "BATCH received before INIT")
