@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include "types.h"
 #include "user_options.h"
@@ -438,10 +439,14 @@ static void main_clear_event_line (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   event_log_info_nn (hashcat_ctx, NULL);
 }
 
+static volatile sig_atomic_t sigterm_received = 0;
+
 static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (sigterm_received == 1) hashcat_session_quit (hashcat_ctx);
 
   if (user_options->quiet == true) return;
 
@@ -2202,6 +2207,15 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
   }
 }
 
+static hashcat_ctx_t *volatile sigterm_hashcat_ctx = NULL;
+
+static void sigterm_abort (MAYBE_UNUSED const int sig)
+{
+  sigterm_received = 1;
+
+  if (sigterm_hashcat_ctx != NULL) hashcat_session_quit (sigterm_hashcat_ctx);
+}
+
 int main (int argc, char **argv)
 {
   // before any library is loaded, and on Windows only, so that a library found by name cannot come
@@ -2406,7 +2420,15 @@ int main (int argc, char **argv)
 
       user_options_info (hashcat_ctx);
 
+      sigterm_hashcat_ctx = hashcat_ctx;
+
+      signal (SIGTERM, sigterm_abort);
+
       rc_final = hashcat_session_execute (hashcat_ctx);
+
+      signal (SIGTERM, SIG_IGN);
+
+      sigterm_hashcat_ctx = NULL;
     }
   }
 
@@ -2416,6 +2438,8 @@ int main (int argc, char **argv)
   // while status_ctx is still valid.
 
   const rc_final_t rc_error = status_get_rc_error (hashcat_ctx);
+
+  if ((sigterm_received == 1) && ((rc_final == RC_FINAL_OK) || (rc_final == RC_FINAL_EXHAUSTED)) && (hashcat_ctx->status_ctx->devices_status != STATUS_CRACKED)) rc_final = RC_FINAL_ABORT;
 
   // A bridge failure that did not end the run, such as one only autotune saw, does not turn a later
   // quit into an error.
