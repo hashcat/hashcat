@@ -34,8 +34,8 @@
 ##   same prefix,
 ##
 ##   an entry is evicted after seven days without a read, one day longer than
-##   a weekly run needs, and gone after a week with no commits, so a second
-##   schedule reads every shard's corpus on Thursday and does nothing else,
+##   a weekly run needs, and gone after a week with no commits, so keepalive.yml
+##   reads every shard's corpus on Thursday and does nothing else,
 ##
 ##   and the repository holds 10 GB of cache in total and evicts the least
 ##   recently used entry when it is full, which is why every run merges the
@@ -52,14 +52,11 @@ run-name: >-
       && format('fuzz: {0} ({1}s)', inputs.modes, inputs.seconds)
       || github.event_name != 'schedule'
       && format('fuzz ({0})', github.event_name)
-      || github.event.schedule == '0 3 * * 4'
-      && 'fuzz (corpus keepalive)'
       || 'fuzz (weekly, all modes)' }}
 
 on:
   schedule:
     - cron: '0 3 * * 6'
-    - cron: '0 3 * * 4'
   workflow_dispatch:
     inputs:
       modes:
@@ -80,9 +77,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  KEEPALIVE: ${{ github.event.schedule == '0 3 * * 4' }}
 
 jobs:
   plan:
@@ -108,7 +102,7 @@ jobs:
             python3 .github/workflows/ci_matrix.py fuzz pr "$BASE" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
             python3 .github/workflows/ci_matrix.py fuzz list "$MODES" | tee -a "$GITHUB_OUTPUT"
-          elif [ "$EVENT" = "schedule" ] && [ "$KEEPALIVE" != "true" ] &&
+          elif [ "$EVENT" = "schedule" ] &&
                [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
             echo "no commit on master in the last seven days, nothing new to fuzz"
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -130,10 +124,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        if: env.KEEPALIVE != 'true'
 
       - name: Build the fuzz targets
-        if: env.KEEPALIVE != 'true'
         env:
           FUZZ_MODES: ${{ matrix.modes }}
           FUZZ_KEEP_GOING: 1
@@ -149,7 +141,6 @@ jobs:
           restore-keys: fuzz-corpus-${{ matrix.name }}-
 
       - name: Fuzz
-        if: env.KEEPALIVE != 'true'
         # A step that runs out of time fails where a job that does is cancelled, and only the
         # first still lets the corpus be saved. The fuzzing below is sized to end well before this.
         timeout-minutes: 270
@@ -321,7 +312,7 @@ jobs:
 
       - name: Save the corpus
         if: >-
-          !cancelled() && env.KEEPALIVE != 'true' && github.event_name != 'pull_request' &&
+          !cancelled() && github.event_name != 'pull_request' &&
           github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: actions/cache/save@v6
         with:
