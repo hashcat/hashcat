@@ -492,6 +492,57 @@ static HC_API_CALL void *stdin_reader (void *p)
   #endif
 }
 
+// A condition variable whose timed waits survive a system clock step, for the deadline under
+// --stdin-timeout-flush. It lives here rather than beside the other thread helpers because a feed
+// is its own shared object and links against libhashcat's exported symbols only, so a helper in
+// src/thread.c is not reachable from one. Returns 0, or the errno-style code the platform gave.
+
+static int stdin_cond_init_monotonic (hc_thread_cond_t *cond)
+{
+  #if defined (_WIN)
+
+  // A Windows condition variable carries no clock. Its waits take a relative timeout, which
+  // stdin_wait_until () measures on GetTickCount64 ().
+
+  InitializeConditionVariable (cond);
+
+  return 0;
+
+  #elif defined (__APPLE__)
+
+  // Darwin has no pthread_condattr_setclock, so stdin_wait_until () waits for what is left of the
+  // deadline with pthread_cond_timedwait_relative_np () instead.
+
+  const int rc = pthread_cond_init (cond, NULL);
+
+  return rc;
+
+  #else
+
+  pthread_condattr_t attr;
+
+  const int rc_attr = pthread_condattr_init (&attr);
+
+  if (rc_attr != 0) return rc_attr;
+
+  const int rc_clock = pthread_condattr_setclock (&attr, CLOCK_MONOTONIC);
+
+  if (rc_clock != 0)
+  {
+    pthread_condattr_destroy (&attr);
+
+    return rc_clock;
+  }
+
+  const int rc = pthread_cond_init (cond, &attr);
+
+  pthread_condattr_destroy (&attr);
+
+  return rc;
+
+  #endif
+}
+
 bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
 {
   stdin_global_t *stdin_global = hcmalloc (sizeof (stdin_global_t));
@@ -530,8 +581,18 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   }
 
   hc_thread_mutex_init (stdin_global->mux);
-  hc_thread_cond_init  (stdin_global->cond_filled);
-  hc_thread_cond_init  (stdin_global->cond_free);
+
+  // cond_filled is the one a timed wait uses, under --stdin-timeout-flush, so its deadline has to
+  // survive a system clock step. cond_free is only ever waited on without one.
+
+  if (stdin_cond_init_monotonic (&stdin_global->cond_filled) != 0)
+  {
+    global_ctx->gbldata = stdin_global;
+
+    return false;
+  }
+
+  hc_thread_cond_init (stdin_global->cond_free);
 
   stdin_global->sync_live = true;
 
@@ -702,7 +763,7 @@ static void stdin_deadline_set (stdin_deadline_t *deadline, const u32 sec)
   #if defined (_WIN)
   deadline[0] = GetTickCount64 () + ((ULONGLONG) sec * 1000);
   #else
-  clock_gettime (CLOCK_REALTIME, deadline);
+  clock_gettime (CLOCK_MONOTONIC, deadline);
 
   deadline->tv_sec += sec;
   #endif
@@ -724,6 +785,31 @@ static bool stdin_wait_until (stdin_global_t *stdin_global, const stdin_deadline
   const DWORD msec = (left >= INFINITE) ? (INFINITE - 1) : (DWORD) left;
 
   SleepConditionVariableCS (&stdin_global->cond_filled, &stdin_global->mux, msec);
+  #elif defined (__APPLE__)
+
+  // Darwin cannot carry the monotonic clock on the condition variable, so the wait is given what is
+  // left of the deadline rather than the deadline itself, measured on the same clock that set it.
+
+  struct timespec now;
+
+  clock_gettime (CLOCK_MONOTONIC, &now);
+
+  struct timespec left;
+
+  left.tv_sec  = deadline->tv_sec  - now.tv_sec;
+  left.tv_nsec = deadline->tv_nsec - now.tv_nsec;
+
+  if (left.tv_nsec < 0)
+  {
+    left.tv_sec  -= 1;
+    left.tv_nsec += 1000000000;
+  }
+
+  if (left.tv_sec < 0) return false;
+
+  const int rc = pthread_cond_timedwait_relative_np (&stdin_global->cond_filled, &stdin_global->mux, &left);
+
+  if (rc == ETIMEDOUT) return false;
   #else
   const int rc = pthread_cond_timedwait (&stdin_global->cond_filled, &stdin_global->mux, deadline);
 
