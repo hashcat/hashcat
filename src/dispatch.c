@@ -621,11 +621,13 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 // later word onto the previous hash, and there is nothing to put in its place. The run stops instead
 // and says which word it was.
 
-static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos, const u32 rect)
+static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u128 word_pos, const u32 rect)
 {
   if (reject_fatal == true)
   {
-    event_log_error (hashcat_ctx, "Word %" PRIu64 " of the wordlist cannot be used as a candidate", word_pos + 1);
+    char word_buf[U128_DEC_SIZE];
+
+    event_log_error (hashcat_ctx, "Word %s of the wordlist cannot be used as a candidate", u128_to_dec (word_buf, word_pos + 1));
     event_log_error (hashcat_ctx, "Attack mode 9 pairs word N with salt N, so it has nothing to put in its place");
 
     return -1;
@@ -786,14 +788,14 @@ typedef struct generic_fill_state
   // linear attack into a quadratic one.
 
   bool seek_known;
-  u64  seek_pos;
+  u128 seek_pos;
 
   // What a flush left unread of the range get_work () gave this device. The next batch carries on in
   // it rather than taking a new range, because get_work () cannot hand the rest out again, and the
   // positions skipped over would count as words read for --limit and for the restore point.
 
-  u64 flush_off;
-  u64 flush_cnt;
+  u128 flush_off;
+  u64  flush_cnt;
 
 } generic_fill_state_t;
 
@@ -848,16 +850,16 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     words_extra = 0;
 
-    // inner2_loop () holds every feed base to u64 positions, so the position fits.
-
-    u64 words_off = u128_lo (device_param->words_off);
+    u128 words_off = device_param->words_off;
 
     #ifdef WITH_BRAIN
     if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
     {
       u64 overlap = 0;
 
-      if (brain_client_reserve (device_param, status_ctx, words_off, work_cnt, &overlap) == false)
+      // The brain reserves u64 positions, and inner2_brain_check () stops a run that passes them.
+
+      if (brain_client_reserve (device_param, status_ctx, u128_lo (words_off), work_cnt, &overlap) == false)
       {
         brain_client_disconnect (device_param);
       }

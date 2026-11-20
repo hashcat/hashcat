@@ -3752,7 +3752,8 @@ typedef struct generic_global_ctx
   // by whatever the mean lost to rounding, and the total a run is measured against is short with it.
   // A feed that already knows the exact number says it here and the multiplication is not used.
   //
-  // Zero means the feed did not say, and the mean stands.
+  // Zero means the feed did not say, and the mean stands. A total that can pass 2^64 goes in
+  // dev_total_u128 at the end of this struct instead.
 
   u64 dev_total;
 
@@ -3828,13 +3829,19 @@ typedef struct generic_global_ctx
 
   void  *gbldata; // super generic
 
+  // dev_total at full width. Zero means the feed did not say, and where a feed sets both, this one is
+  // read. It comes after every field a feed was built against before it existed, so their offsets
+  // stay where those feeds expect them.
+
+  u128 dev_total_u128;
+
 } generic_global_ctx_t;
 
 typedef struct generic_thread_ctx
 {
-  // A failure inside thread_init (), thread_term (), thread_next () or thread_seek () is reported
-  // here and not in the global context, because those four run on one device thread each and a
-  // shared flag would let one device's failure speak for all of them.
+  // A failure inside thread_init (), thread_term (), thread_next () or the seek, thread_seek () or
+  // thread_seek_u128 (), is reported here and not in the global context, because those four run on
+  // one device thread each and a shared flag would let one device's failure speak for all of them.
 
   bool   error;
   char   error_msg[256];
@@ -3862,6 +3869,10 @@ typedef int  (*GENERIC_THREAD_NEXT_DEV) (generic_global_ctx_t *, generic_thread_
 typedef int  (*GENERIC_GLOBAL_EXPLAIN)  (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, const u64, char *, const int);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
 typedef bool (*GENERIC_GLOBAL_DEV_INIT) (generic_global_ctx_t *, const u32 **, u64 *, u32 *, u32 *, u32 *, u32 *, u32 *, u32 *, pcfg_cell_t *);
+
+typedef u128 (*GENERIC_GLOBAL_KEYSPACE_U128) (generic_global_ctx_t *, generic_thread_ctx_t **, void *);
+typedef bool (*GENERIC_THREAD_SEEK_U128)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u128);
+typedef int  (*GENERIC_GLOBAL_EXPLAIN_U128)  (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, const u128, char *, const int);
 
 // What a live feed instance is for. A run can hold one of each, and that is what lets -a 1 be
 // expressed without a second reader: its amplifier is a wordlist too, so the number of amplifier
@@ -3934,6 +3945,15 @@ typedef struct generic_ctx
   GENERIC_THREAD_NEXT_DEV  thread_next_dev;
   GENERIC_GLOBAL_EXPLAIN   global_explain;
 
+  // The 128-bit forms of global_keyspace (), thread_seek () and global_explain (). A feed that exports
+  // the first two has u128_enable set, is driven through these instead, and has no u64 forms loaded.
+
+  GENERIC_GLOBAL_KEYSPACE_U128 global_keyspace_u128;
+  GENERIC_THREAD_SEEK_U128     thread_seek_u128;
+  GENERIC_GLOBAL_EXPLAIN_U128  global_explain_u128;
+
+  bool u128_enable;
+
   bool autohex_enable;
   bool iconv_enable;
   bool rules_enable;
@@ -3982,8 +4002,10 @@ typedef struct generic_ctx
   // What the feed said its keyspace is, in base words, before any amplifier is applied. It cannot be
   // finished here: -a 6 and -a 7 amplify with the mask, and the mask is only sized once per round, in
   // mask_ctx_update_loop. So the number is kept and straight_ctx_update_loop finishes it.
+  //
+  // It is held at full width whichever form the feed counted in, see generic_global_keyspace ().
 
-  u64 keyspace;
+  u128 keyspace;
 
 } generic_ctx_t;
 
@@ -4199,8 +4221,8 @@ typedef struct hashcat_status
 // reach this value is checked. One that overflows is set to KEYSPACE_UNSIZED rather than wrapped. A
 // count that lands on exactly this value reads as unsized, which needs a contrived queue of masks.
 //
-// A feed reports the same state as GENERIC_KEYSPACE_UNKNOWN in its own u64. The core turns one into
-// the other where it reads the feed.
+// A feed reports the same state as GENERIC_KEYSPACE_UNKNOWN, or as GENERIC_KEYSPACE_UNKNOWN_U128 when it
+// counts in 128 bits. The core turns either into this one where it reads the feed.
 
 #define KEYSPACE_UNSIZED ((u128) ~((u128) 0))
 

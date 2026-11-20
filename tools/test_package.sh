@@ -286,6 +286,62 @@ check_exports ()
 # thread_next_dev (), and one that can say how it made a candidate exports global_explain (). Listing
 # the optional names rather than every combination of them keeps the next one from doubling the list,
 # and a feed that exports a name from neither list is still caught.
+#
+# A feed counts and seeks either in a u64 or in 128 bits, so its keyspace and seek are a pair it
+# exports in one width or the other, and the 128-bit one explains through global_explain_u128 ().
+# Both pairs are optional names to check_exports. check_feed_pairs holds each feed to what the loader
+# takes: the whole 128-bit pair, or none of it and the whole u64 pair.
+
+check_feed_pairs ()
+{
+  SEEN=0
+  WRONG=0
+
+  for PLUGIN in feeds/*."$PLUGIN_SUFFIX"; do
+    [ -f "$PLUGIN" ] || continue
+
+    SEEN=$((SEEN + 1))
+
+    NAMES=" $(plugin_exports "$PLUGIN" | sort | tr '\n' ' ') "
+
+    WIDE=0
+
+    case "$NAMES" in
+      *" global_keyspace_u128 "*) WIDE=$((WIDE + 1)) ;;
+    esac
+
+    case "$NAMES" in
+      *" thread_seek_u128 "*) WIDE=$((WIDE + 1)) ;;
+    esac
+
+    NARROW=0
+
+    case "$NAMES" in
+      *" global_keyspace "*" thread_seek "*) NARROW=1 ;;
+    esac
+
+    [ "$WIDE" -eq 2 ] && continue
+    [ "$WIDE" -eq 0 ] && [ "$NARROW" -eq 1 ] && continue
+
+    WRONG=$((WRONG + 1))
+
+    if [ "$WRONG" -le 3 ]; then
+      if [ "$WIDE" -eq 1 ]; then
+        printf '      %s exports half of global_keyspace_u128 and thread_seek_u128\n' "$PLUGIN"
+      else
+        printf '      %s exports neither global_keyspace and thread_seek nor their 128-bit pair\n' "$PLUGIN"
+      fi
+    fi
+  done
+
+  if [ "$SEEN" -eq 0 ]; then
+    fail "nothing in feeds/ to check"
+  elif [ "$WRONG" -eq 0 ]; then
+    pass "all $SEEN plugins in feeds/ export a keyspace and seek pair the loader takes"
+  else
+    fail "$WRONG of $SEEN plugins in feeds/ export no keyspace and seek pair the loader takes"
+  fi
+}
 
 MISSING_TOOL="$(inspect_missing)"
 
@@ -296,8 +352,9 @@ fi
 if [ -n "$LIBRARY" ] && [ -z "$MISSING_TOOL" ]; then
   check_exports modules module_ "module_init"
   check_exports bridges bridge_ "bridge_init"
-  check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term" \
-                                 "global_dev_init thread_next_dev global_explain"
+  check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_term thread_init thread_next thread_term" \
+                                 "global_keyspace thread_seek global_keyspace_u128 thread_seek_u128 global_dev_init thread_next_dev global_explain global_explain_u128"
+  check_feed_pairs
 fi
 
 # and the other direction. Where there is a core library, a plugin calls the core through it and

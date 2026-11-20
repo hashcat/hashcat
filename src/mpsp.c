@@ -1943,7 +1943,7 @@ u32 hybrid_amp_mask (hashcat_ctx_t *hashcat_ctx, const u64 off, char *mask_buf)
 
   if (mask_ctx->has_q == true)
   {
-    const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+    const u64 words_cnt = generic_ctx_keyspace_u64 (hashcat_ctx, GENERIC_ROLE_AMP);
 
     mask_pos = off / words_cnt;
   }
@@ -2696,7 +2696,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (mask_ctx->has_q == true)
       {
-        const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+        const u64 words_cnt = generic_ctx_keyspace_u64 (hashcat_ctx, GENERIC_ROLE_AMP);
 
         if (words_cnt == GENERIC_KEYSPACE_UNKNOWN)
         {

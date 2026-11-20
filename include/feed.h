@@ -6,6 +6,8 @@
 #ifndef HC_FEED_H
 #define HC_FEED_H
 
+#include "u128.h"
+
 // What a feed is, from the feed's side. This header is the whole of the contract and a feed
 // includes nothing else of the subsystem.
 //
@@ -65,6 +67,16 @@
 #define GENERIC_KEYSPACE_UNKNOWN ((u64) -1)
 #define GENERIC_KEYSPACE_ERROR   ((u64) -2)
 
+// The same two for global_keyspace_u128 (), the two largest values of a u128. On a 32-bit host a u128
+// is a u64, and there these are the two above.
+//
+// A count too large for a u128 is one the feed cannot state, so it answers
+// GENERIC_KEYSPACE_UNKNOWN_U128 for it, which is also the value a product saturated at U128_MAX
+// lands on. hashcat then runs the feed without a total. No run reaches 2^128 positions.
+
+#define GENERIC_KEYSPACE_UNKNOWN_U128 U128_MAX
+#define GENERIC_KEYSPACE_ERROR_U128   (U128_MAX - 1)
+
 typedef enum generic_plugin_options
 {
   GENERIC_PLUGIN_OPTIONS_AUTOHEX   = 1 << 0,
@@ -100,9 +112,10 @@ typedef enum generic_plugin_options
 } generic_plugin_options_t;
 
 // What a feed hands the core. A feed is the one plugin the core still resolves by name rather than
-// through a context it was given, so this is the list, and it is nine names instead of one. They are
-// declared here so that a feed and the loader read the same shapes out of one file, and so that a
-// built feed exports these and nothing else.
+// through a context it was given, so this is the list, and it is nine names instead of one. Two of
+// them have a 128-bit form further down that a feed can export instead. They are declared here so
+// that a feed and the loader read the same shapes out of one file, and so that a built feed exports
+// these and nothing else.
 //
 // generic_global_ctx_t and generic_thread_ctx_t are in types.h rather than here, because
 // generic_ctx_t holds both of them and sits inside hashcat_ctx_t. A feed includes types.h anyway.
@@ -162,13 +175,47 @@ HC_PLUGIN_ENTRY int  thread_next_dev (generic_global_ctx_t *global_ctx, generic_
 
 HC_PLUGIN_ENTRY int  global_explain (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u64 pos, char *out_buf, const int out_size);
 
+// The 128-bit forms of the three entry points that say or take a position, for a feed whose keyspace
+// can pass 2^64. They are looked up by name and are otherwise the same calls.
+//
+// A feed that exports global_keyspace_u128 () and thread_seek_u128 () is counted and seeked through
+// them at full width, and global_keyspace () and thread_seek () are not looked up. If it explains
+// itself it exports global_explain_u128 () instead of global_explain (). A feed that exports none of
+// them is held to u64 positions, as every feed was before these existed.
+//
+// The two go together. A feed that counts in 128 bits and seeks in 64 would be handed positions it
+// cannot take, so the loader refuses one that exports only one of them.
+
+HC_PLUGIN_ENTRY u128 global_keyspace_u128 (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
+HC_PLUGIN_ENTRY bool thread_seek_u128     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u128 offset);
+HC_PLUGIN_ENTRY int  global_explain_u128  (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u128 pos, char *out_buf, const int out_size);
+
+// ---------------------------------------------------------------------------------------------
+// counting past 2^64
+// ---------------------------------------------------------------------------------------------
+
+// On a 64-bit host a u128 is the compiler's unsigned __int128, which adds, multiplies, divides and
+// compares like any other integer. What the language leaves out is in u128.h, included above, and a
+// feed counts with the same helpers the core does:
+//
+//   overflow_check_u128_add () and overflow_check_u128_mul () are true when the sum or the product
+//   would not fit, as overflow_check_u64_mul () is for a u64
+//
+//   u128_fits_u64 () says whether a value fits a u64, and u128_lo () is its low half
+//
+//   u128_to_dec () writes a value in decimal into a buffer of U128_DEC_SIZE bytes, because printf has
+//   no conversion for it
+//
+// On a 32-bit host a u128 is a u64. A feed builds and runs there unchanged, and a count past 2^64 is
+// one that does not fit.
+
 // ---------------------------------------------------------------------------------------------
 // what the device is doing while a feed runs
 // ---------------------------------------------------------------------------------------------
 
 // The device a feed's thread belongs to is current inside thread_init (), thread_term (),
-// thread_next () and thread_seek (), whichever of the four core threads made the call. A feed that
-// wants to talk to that device may simply do so.
+// thread_next () and thread_seek () or thread_seek_u128 (), whichever of the four core threads made
+// the call. A feed that wants to talk to that device may simply do so.
 //
 // This is a promise the core makes rather than a rule a feed follows, because the ways to get it
 // wrong are not diagnosable by whoever gets it wrong. Popping a CUDA context into

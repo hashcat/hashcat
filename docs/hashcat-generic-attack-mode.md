@@ -97,7 +97,7 @@ The stdin and wordlist feeds enable these transformations. Another feed can decl
 
 A generator feeding candidates through STDIN may or may not support session restore.
 
-Attack mode 8 gives every feed a `thread_seek()` entry point, but direct random access is not guaranteed. A wordlist can seek through its index, a deterministic generator may replay from its seed, and a stream reaches an offset only by receiving and discarding the same earlier candidates again. Restore is reliable only when the feed can reproduce the same candidate ordering.
+Attack mode 8 gives every feed a seek entry point, `thread_seek()` or its 128-bit form `thread_seek_u128()`, but direct random access is not guaranteed. A wordlist can seek through its index, a deterministic generator may replay from its seed, and a stream reaches an offset only by receiving and discarding the same earlier candidates again. Restore is reliable only when the feed can reproduce the same candidate ordering.
 
 ## 4. Interface Design
 

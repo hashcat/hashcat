@@ -131,10 +131,8 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
 
     const u64 combs_cnt = combinator_ctx->combs_cnt;
 
-    // inner2_loop () holds every feed base to u64 positions, so the quotient fits.
-
-    const u64 base_idx = u128_lo (end / combs_cnt);
-    const u64 comb_idx = u128_lo (end % combs_cnt);
+    const u128 base_idx = end / combs_cnt;
+    const u64  comb_idx = u128_lo (end % combs_cnt);
 
     // Landing past the end of the feed means there is nothing here to generate. Saying so with the
     // reject flag stops the caller counting a candidate that does not exist.
@@ -154,7 +152,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
 
       if (mask_ctx->has_q == true)
       {
-        const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+        const u64 words_cnt = generic_ctx_keyspace_u64 (hashcat_ctx, GENERIC_ROLE_AMP);
 
         if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, comb_idx % words_cnt) != 0)
         {
@@ -173,8 +171,8 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
 
     const u64 rules_cnt = straight_ctx->kernel_rules_cnt;
 
-    const u64 base_idx = u128_lo (end / rules_cnt);
-    const u64 rule_idx = u128_lo (end % rules_cnt);
+    const u128 base_idx = end / rules_cnt;
+    const u64  rule_idx = u128_lo (end % rules_cnt);
 
     if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, extra_info_generic->device_id, base_idx) != 0)
     {
@@ -252,7 +250,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       // the word index wraps back to the start of the second wordlist as the mask value steps on
 
-      const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+      const u64 words_cnt = generic_ctx_keyspace_u64 (hashcat_ctx, GENERIC_ROLE_AMP);
 
       if (((extra_info_combi->comb_pos + 1) % words_cnt) == 0)
       {

@@ -118,15 +118,33 @@ static void generic_global_term (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
   generic_global_error (hashcat_ctx, &generic_ctx->global_ctx);
 }
 
-// Returns the keyspace, GENERIC_KEYSPACE_UNKNOWN for a feed that cannot count itself, or
-// GENERIC_KEYSPACE_ERROR when the plugin failed. The last two are different values, so a plugin that
-// could not open its input is an error rather than an endless feed.
+// Returns the keyspace, GENERIC_KEYSPACE_UNKNOWN_U128 for a feed that cannot count itself, or
+// GENERIC_KEYSPACE_ERROR_U128 when the plugin failed. The last two are different values, so a plugin
+// that could not open its input is an error rather than an endless feed.
+//
+// A feed that counts in a u64 says the same two things with GENERIC_KEYSPACE_UNKNOWN and
+// GENERIC_KEYSPACE_ERROR, and they are widened to these. Every other count it reports is exactly
+// what it was.
 
-static u64 generic_global_keyspace (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *generic_ctx)
+static u128 generic_global_keyspace (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *generic_ctx)
 {
-  const u64 keyspace = generic_ctx->global_keyspace (&generic_ctx->global_ctx, &generic_ctx->thread_ctx, hashcat_ctx);
+  u128 keyspace = 0;
 
-  if (generic_global_error (hashcat_ctx, &generic_ctx->global_ctx) == true) return GENERIC_KEYSPACE_ERROR;
+  if (generic_ctx->u128_enable == true)
+  {
+    keyspace = generic_ctx->global_keyspace_u128 (&generic_ctx->global_ctx, &generic_ctx->thread_ctx, hashcat_ctx);
+  }
+  else
+  {
+    const u64 keyspace64 = generic_ctx->global_keyspace (&generic_ctx->global_ctx, &generic_ctx->thread_ctx, hashcat_ctx);
+
+    keyspace = keyspace64;
+
+    if (keyspace64 == GENERIC_KEYSPACE_UNKNOWN) keyspace = GENERIC_KEYSPACE_UNKNOWN_U128;
+    if (keyspace64 == GENERIC_KEYSPACE_ERROR)   keyspace = GENERIC_KEYSPACE_ERROR_U128;
+  }
+
+  if (generic_global_error (hashcat_ctx, &generic_ctx->global_ctx) == true) return GENERIC_KEYSPACE_ERROR_U128;
 
   return keyspace;
 }
@@ -231,22 +249,59 @@ int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, 
   return out_len;
 }
 
-int generic_thread_seek (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int device_id, const u64 offset)
+int generic_thread_seek (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int device_id, const u128 offset)
 {
   generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
 
-  const bool rc = generic_ctx->thread_seek (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], offset);
+  bool rc = false;
+
+  if (generic_ctx->u128_enable == true)
+  {
+    rc = generic_ctx->thread_seek_u128 (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], offset);
+  }
+  else
+  {
+    // inner2_loop () holds a feed that seeks in a u64 to u64 positions. One past that is a failed seek
+    // here rather than a seek to its low half.
+
+    if (u128_fits_u64 (offset) == true) rc = generic_ctx->thread_seek (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], u128_lo (offset));
+  }
 
   if (generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]) == true) return GENERIC_RC_ERROR;
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s: seek to %" PRIu64 " failed", generic_ctx->dynlib_filename, offset);
+    char offset_buf[U128_DEC_SIZE];
+
+    event_log_error (hashcat_ctx, "%s: seek to %s failed", generic_ctx->dynlib_filename, u128_to_dec (offset_buf, offset));
 
     return GENERIC_RC_ERROR;
   }
 
   return 0;
+}
+
+// What the feed says about how it made a candidate, for --debug-mode, or -1 when it has nothing to
+// say. See global_explain () in feed.h.
+
+int generic_global_explain (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u128 pos, char *out_buf, const int out_size)
+{
+  generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  int len = -1;
+
+  if (generic_ctx->u128_enable == true)
+  {
+    if (generic_ctx->global_explain_u128 != NULL) len = generic_ctx->global_explain_u128 (&generic_ctx->global_ctx, cell, pool, base, base_len, il_pos, pos, out_buf, out_size);
+  }
+  else
+  {
+    // A feed that explains in a u64 is held to u64 positions, as in generic_thread_seek ().
+
+    if ((generic_ctx->global_explain != NULL) && (u128_fits_u64 (pos) == true)) len = generic_ctx->global_explain (&generic_ctx->global_ctx, cell, pool, base, base_len, il_pos, u128_lo (pos), out_buf, out_size);
+  }
+
+  return len;
 }
 
 // Bring one instance up: resolve the plugin, load its symbols, let it initialise itself and ask it how
@@ -341,14 +396,47 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   const bool dev_offered = generic_ctx->dev_enable;
 
+  // A feed counts and seeks either in a u64 or in 128 bits, see global_keyspace_u128 () in feed.h. The
+  // 128-bit pair is looked for first, and a feed that exports it is driven through it alone. One that
+  // exports neither is held to u64 positions, as every feed was before the pair existed. Half of the
+  // pair would leave the core with positions the feed cannot take, so it is refused.
+
+  generic_ctx->global_keyspace_u128 = (GENERIC_GLOBAL_KEYSPACE_U128) hc_dlsym (generic_ctx->lib, "global_keyspace_u128");
+  generic_ctx->thread_seek_u128     = (GENERIC_THREAD_SEEK_U128)     hc_dlsym (generic_ctx->lib, "thread_seek_u128");
+
+  const bool has_keyspace_u128 = (generic_ctx->global_keyspace_u128 != NULL);
+  const bool has_seek_u128     = (generic_ctx->thread_seek_u128     != NULL);
+
+  if (has_keyspace_u128 != has_seek_u128)
+  {
+    const char *found   = (has_keyspace_u128 == true) ? "global_keyspace_u128" : "thread_seek_u128";
+    const char *missing = (has_keyspace_u128 == true) ? "thread_seek_u128"     : "global_keyspace_u128";
+
+    event_log_error (hashcat_ctx, "%s exports %s but not %s. A feed counts and seeks in the same width.", generic_ctx->dynlib_filename, found, missing);
+
+    return -1;
+  }
+
+  generic_ctx->u128_enable = has_keyspace_u128;
+
+  // In the order they were always loaded, so a broken u64 feed is still told the same missing name.
+
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_init,     GENERIC_GLOBAL_INIT);
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_term,     GENERIC_GLOBAL_TERM);
-  HC_LOAD_FUNC_GENERIC (generic_ctx, global_keyspace, GENERIC_GLOBAL_KEYSPACE);
+
+  if (generic_ctx->u128_enable == false)
+  {
+    HC_LOAD_FUNC_GENERIC (generic_ctx, global_keyspace, GENERIC_GLOBAL_KEYSPACE);
+  }
 
   HC_LOAD_FUNC_GENERIC (generic_ctx, thread_init,     GENERIC_THREAD_INIT);
   HC_LOAD_FUNC_GENERIC (generic_ctx, thread_term,     GENERIC_THREAD_TERM);
   HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next,     GENERIC_THREAD_NEXT);
-  HC_LOAD_FUNC_GENERIC (generic_ctx, thread_seek,     GENERIC_THREAD_SEEK);
+
+  if (generic_ctx->u128_enable == false)
+  {
+    HC_LOAD_FUNC_GENERIC (generic_ctx, thread_seek,     GENERIC_THREAD_SEEK);
+  }
 
   // Only a feed that said it runs on the device has to have these, and one that said so and does not is a
   // broken feed rather than a feed without an device engine.
@@ -383,9 +471,18 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
     return -1;
   }
 
+  // A feed that counts in 128 bits is asked about positions past 2^64, so it explains in 128 bits too.
+
   if (generic_ctx->explain_enable == true)
   {
-    HC_LOAD_FUNC_GENERIC (generic_ctx, global_explain, GENERIC_GLOBAL_EXPLAIN);
+    if (generic_ctx->u128_enable == true)
+    {
+      HC_LOAD_FUNC_GENERIC (generic_ctx, global_explain_u128, GENERIC_GLOBAL_EXPLAIN_U128);
+    }
+    else
+    {
+      HC_LOAD_FUNC_GENERIC (generic_ctx, global_explain, GENERIC_GLOBAL_EXPLAIN);
+    }
   }
 
   // Whether the device engine is going to be used, settled here and nowhere else.
@@ -693,7 +790,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->keyspace = generic_global_keyspace (hashcat_ctx, generic_ctx);
 
-  if (generic_ctx->keyspace == GENERIC_KEYSPACE_ERROR) return -1;
+  if (generic_ctx->keyspace == GENERIC_KEYSPACE_ERROR_U128) return -1;
 
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -1179,7 +1276,9 @@ int generic_association_in_sync (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t
     event_log_error (hashcat_ctx, "Number of words in wordlist '%s' is not in sync with number of unique salts", generic_ctx->workv[1]);
   }
 
-  event_log_error (hashcat_ctx, "Words: %" PRIu64 ", salts: %d", generic_ctx->keyspace, hashes->salts_cnt);
+  char words_buf[U128_DEC_SIZE];
+
+  event_log_error (hashcat_ctx, "Words: %s, salts: %d", u128_to_dec (words_buf, generic_ctx->keyspace), hashes->salts_cnt);
 
   return -1;
 }
@@ -1436,7 +1535,7 @@ int generic_ctx_word_index (hashcat_ctx_t *hashcat_ctx, const generic_role_t rol
 
     lookup_say_t say;
 
-    lookup_say_init (&say, generic_ctx->keyspace);
+    lookup_say_init (&say, generic_ctx_keyspace_u64 (hashcat_ctx, role));
 
     rc = 0;
 
@@ -1562,7 +1661,7 @@ int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
 
     lookup_say_t say;
 
-    lookup_say_init (&say, generic_ctx->keyspace);
+    lookup_say_init (&say, generic_ctx_keyspace_u64 (hashcat_ctx, role));
 
     rc = 0;
 

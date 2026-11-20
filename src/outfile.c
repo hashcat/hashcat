@@ -21,6 +21,7 @@
 #include "thread.h"
 #include "outfile.h"
 #include "json.h"
+#include "feed_ctx.h"
 
 #include <stdarg.h>
 
@@ -535,7 +536,6 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (generic_ctx->explain_enable == false) return 0;
-  if (generic_ctx->global_explain == NULL) return 0;
 
   const bool amp = (user_options_extra->attack_kern == ATTACK_KERN_PCFG);
 
@@ -549,11 +549,11 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   // Where this candidate's base word sat in the feed's own keyspace, which is the same position
   // build_crackpos () starts from before it multiplies by whatever amplifies. Only a feed reaches
-  // here, and inner2_loop () holds a feed's positions to u64.
+  // here.
 
-  const u64 pos = u128_lo (gidvid_to_word_pos (device_param, gidvid));
+  const u128 pos = gidvid_to_word_pos (device_param, gidvid);
 
-  const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, cell, pool, base, base_len, (amp == true) ? il_pos : 0, pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
+  const int len = generic_global_explain (hashcat_ctx, GENERIC_ROLE_BASE, cell, pool, base, base_len, (amp == true) ? il_pos : 0, pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
 
   if (len <= 0) return 0;
 

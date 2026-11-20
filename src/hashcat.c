@@ -267,7 +267,18 @@ static int inner2_brain_check (hashcat_ctx_t *hashcat_ctx, const rc_final_t roun
 
   if (u128_fits_u64 (status_ctx->words_base) == true) return 0;
 
-  event_log_error (hashcat_ctx, "The keyspace passes 2^64 positions, which a brain cannot reserve. Use --brain-client-features 1.");
+  // A u128 feed that cannot count itself is not capped at 2^64 the way a u64 feed is, so its
+  // positions can pass what the brain reserves without any keyspace saying so. inner2_loop () caps
+  // its base, so it is told apart by its count, which stays unsized.
+
+  if (status_ctx->words_cnt == KEYSPACE_UNSIZED)
+  {
+    event_log_error (hashcat_ctx, "The keyspace is unknown and can pass 2^64 positions, which a brain cannot reserve. Use --brain-client-features 1.");
+  }
+  else
+  {
+    event_log_error (hashcat_ctx, "The keyspace passes 2^64 positions, which a brain cannot reserve. Use --brain-client-features 1.");
+  }
 
   status_set_rc_error (hashcat_ctx, round_error);
 
@@ -408,8 +419,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
   }
 
-  // The feed check below caps an unknown base at 2^64-1 for the run. The queue sum reads this flag
-  // instead, so --keyspace refuses an unknown count on every host.
+  // The feed check below caps an unknown base for the run, at 2^64-1 for a u64 feed. The queue sum
+  // reads this flag instead, so --keyspace refuses an unknown count on every host.
 
   const bool base_unsized = (status_ctx->words_base == KEYSPACE_UNSIZED);
 
@@ -419,19 +430,44 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const rc_final_t round_error = (mask_ctx->mask_from_file == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND;
 
-  // A feed addresses its base words with u64 positions, see thread_seek () in feed.h. Every place that
-  // hands a position to a feed narrows it on the strength of this block. A feed whose count is unknown
-  // reaches as far as those positions go, so a --skip or a restore point past that is refused below as
-  // past the keyspace. A base the feed stated past 2^64, which only the hybrid feed can reach, skips
-  // the round.
+  // A feed addresses its base words with u64 positions, or with u128 ones when it exports
+  // thread_seek_u128 (), see feed.h. A u64 feed whose count is unknown reaches as far as its positions
+  // go, so a --skip or a restore point past that is refused below as past the keyspace, and a base it
+  // states past 2^64 skips the round.
+  //
+  // A u128 feed is held to what the run can number instead. A crack position and the restored progress
+  // are a base word times what amplifies it, so a round whose stated base gives more candidates than a
+  // u128 holds is skipped, as a mask past 2^128 is. An unknown count reaches only as far as those
+  // products fit. On a 32-bit host a u128 is a u64 and the limit is 2^64.
 
   if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
-    if (status_ctx->words_cnt == KEYSPACE_UNSIZED) status_ctx->words_base = MIN (status_ctx->words_base, (u128) UINT64_MAX);
+    const bool feed_u128 = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].u128_enable;
 
-    if (u128_fits_u64 (status_ctx->words_base_given) == false)
+    bool reachable = true;
+
+    if (feed_u128 == true)
     {
-      event_log_error (hashcat_ctx, "The keyspace passes 2^64 base words, which this attack cannot address. Split the wordlist or the mask.");
+      if (status_ctx->words_cnt == KEYSPACE_UNSIZED) status_ctx->words_base = MIN (status_ctx->words_base, KEYSPACE_UNSIZED / amplifier_cnt);
+
+      if ((status_ctx->words_base_given > 0) && (status_ctx->words_cnt == KEYSPACE_UNSIZED)) reachable = false;
+    }
+    else
+    {
+      if (status_ctx->words_cnt == KEYSPACE_UNSIZED) status_ctx->words_base = MIN (status_ctx->words_base, (u128) UINT64_MAX);
+
+      if (u128_fits_u64 (status_ctx->words_base_given) == false) reachable = false;
+    }
+
+    if (reachable == false)
+    {
+      #ifdef U128_WIDE
+      const char *limit = (feed_u128 == true) ? "2^128 candidates" : "2^64 base words";
+      #else
+      const char *limit = (feed_u128 == true) ? "2^64 candidates" : "2^64 base words";
+      #endif
+
+      event_log_error (hashcat_ctx, "The keyspace passes %s, which this attack cannot address. Split the wordlist or the mask.", limit);
 
       status_set_rc_error (hashcat_ctx, round_error);
 

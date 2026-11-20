@@ -57,7 +57,8 @@ char *generic_resolve        (const folder_config_t *folder_config, const char *
 
 int  generic_thread_next     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, u8 *out_buf, const int out_size);
 int  generic_thread_next_dev (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, u8 *out_buf, const int out_size, pcfg_cell_t *cell);
-int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, const u64 offset);
+int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, const u128 offset);
+int  generic_global_explain  (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u128 pos, char *out_buf, const int out_size);
 
 int  generic_association_in_sync   (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx);
 
@@ -68,6 +69,23 @@ int  generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, 
 int  generic_ctx_word_index  (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *cand, const u32 cand_len, u64 *out_index, u64 *out_more, u64 *out_words);
 int  generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *anchor, const u32 min_len, const u32 max_len, const bool backward, u64 *out_index, u64 *out_words);
 const char *generic_ctx_segment_of (const hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u64 index);
+
+// An instance's keyspace for a caller that keeps it in a u64: the dictionaries of -a 1 without rules,
+// and the ?q wordlist of the hybrids. Those instances are always the wordlist feed, whose count is a
+// number of lines. GENERIC_KEYSPACE_UNKNOWN stands for a count that is unknown or does not fit.
+//
+// Inline, because --slow-candidates reads it once per candidate.
+
+static inline u64 generic_ctx_keyspace_u64 (const hashcat_ctx_t *hashcat_ctx, const generic_role_t role)
+{
+  const u128 keyspace = hashcat_ctx->generic_ctx[role].keyspace;
+
+  if (u128_fits_u64 (keyspace) == false) return GENERIC_KEYSPACE_UNKNOWN;
+
+  const u64 words = u128_lo (keyspace);
+
+  return words;
+}
 
 int  generic_ctx_init        (hashcat_ctx_t *hashcat_ctx);
 bool generic_ctx_described   (const hashcat_ctx_t *hashcat_ctx);

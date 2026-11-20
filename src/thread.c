@@ -672,9 +672,8 @@ static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
   // The segment table counts lines, and under --slow-candidates a run position counts candidates.
-  // The lines are a feed's, whose positions inner2_loop () holds to u64.
 
-  const u64 words_off = u128_lo (status_get_base_word (hashcat_ctx, run_off));
+  const u128 words_off = status_get_base_word (hashcat_ctx, run_off);
 
   u64 next_first = 0;
 

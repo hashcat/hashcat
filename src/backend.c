@@ -6207,7 +6207,7 @@ static int hybrid_combs_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   if (mask_ctx->has_q == true)
   {
-    words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+    words_cnt = generic_ctx_keyspace_u64 (hashcat_ctx, GENERIC_ROLE_AMP);
 
     if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, innerloop_pos % words_cnt) != 0) return -1;
   }

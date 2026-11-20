@@ -1215,6 +1215,8 @@ The C source of a plugin written for hashcat 8.0.0 needs no change. Its `module_
 
 Five hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above, `module_tune_variants`, see `module_tune_variants()` above, and `module_salt_sweep`, see `module_salt_sweep()` above. Leaving them unassigned preserves the previous behavior. The kernel parameters gained `salts_cnt`, which only the kernels of a mode with `module_salt_sweep` read.
 
+A feed written for 8.0.0 needs no change either. Three feed entry points were added for a keyspace that can pass 2^64: `global_keyspace_u128()`, `thread_seek_u128()` and `global_explain_u128()`. Header `feed.h` now includes `u128.h`, the u128 helpers the core counts with, and `overflow_check_u128_add()` and `overflow_check_u128_mul()` are exported to plugins. `generic_global_ctx_t` gained `dev_total_u128` at its end. A feed that exports none of the three is driven exactly as before. The section on keyspaces past 2^64 in `docs/hashcat-generic-attack-mode-development-guide.md` describes them.
+
 A module now only has to assign the callbacks it implements, see `module_init()` above, so a hook added in a later version appears only in the modules that use it. The following command removes the `MODULE_DEFAULT` assignments from a module, which is how the in-tree modules look now:
 
 ```

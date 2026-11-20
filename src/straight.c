@@ -308,7 +308,7 @@ static int straight_ctx_add_workv (hashcat_ctx_t *hashcat_ctx, const int from, c
 // whole attack and wrong when it is one file of a directory, so the empty case is answered before the
 // feed is asked.
 
-static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dict)
+static u128 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -324,7 +324,7 @@ static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dic
     {
       event_log_error (hashcat_ctx, "%s: %s", dict, hc_fopen_strerror ());
 
-      return GENERIC_KEYSPACE_ERROR;
+      return GENERIC_KEYSPACE_ERROR_U128;
     }
 
     struct stat st;
@@ -339,15 +339,15 @@ static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dic
     }
   }
 
-  if (generic_ctx_base_round (hashcat_ctx, dict) == -1) return GENERIC_KEYSPACE_ERROR;
+  if (generic_ctx_base_round (hashcat_ctx, dict) == -1) return GENERIC_KEYSPACE_ERROR_U128;
 
   const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
 
-  if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN)
+  if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN_U128)
   {
     event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dict);
 
-    return GENERIC_KEYSPACE_ERROR;
+    return GENERIC_KEYSPACE_ERROR_U128;
   }
 
   return generic_ctx->keyspace;
@@ -423,9 +423,9 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
       }
 
-      const u64 round_words = straight_ctx_round_words (hashcat_ctx, straight_ctx->dict);
+      const u128 round_words = straight_ctx_round_words (hashcat_ctx, straight_ctx->dict);
 
-      if (round_words == GENERIC_KEYSPACE_ERROR) return -1;
+      if (round_words == GENERIC_KEYSPACE_ERROR_U128) return -1;
 
       if (round_words == 0)
       {
@@ -439,10 +439,10 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
 
-    // A feed reports an unknown count as GENERIC_KEYSPACE_UNKNOWN in its u64, and the core stores it as
-    // KEYSPACE_UNSIZED.
+    // A feed's unknown count arrives as GENERIC_KEYSPACE_UNKNOWN_U128, whichever width the feed counted
+    // in, and the core stores it as KEYSPACE_UNSIZED.
 
-    if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN)
+    if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN_U128)
     {
       status_ctx->words_cnt = KEYSPACE_UNSIZED;
 
@@ -495,33 +495,33 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (mask_feed == MASK_FEED_MASK) base_cnt = mask_ctx->feed_keyspace;
 
-    // The hybrid base is stated exactly, because inner2_loop () refuses a feed base past 2^64 and has
-    // to see one to refuse it. With a ?q the feed counts the two wordlists itself in its u64, and a
-    // count past 2^64 wraps there before it gets here. On a 32-bit host the product overflows to
-    // KEYSPACE_UNSIZED, and the run addresses at most 2^64-1 base words.
+    // The hybrid feed counts its words in 128 bits, both wordlists where the mask has a ?q, so the
+    // product is exact while it fits a u128. One that does not fit is KEYSPACE_UNSIZED, and
+    // inner2_loop () skips the round for it.
 
     if (mask_feed == MASK_FEED_HYBRID)
     {
-      base_cnt = (overflow_check_u128_mul (generic_ctx->keyspace, mask_ctx->feed_keyspace) == true) ? KEYSPACE_UNSIZED : (((u128) generic_ctx->keyspace) * mask_ctx->feed_keyspace);
+      base_cnt = (overflow_check_u128_mul (generic_ctx->keyspace, mask_ctx->feed_keyspace) == true) ? KEYSPACE_UNSIZED : (generic_ctx->keyspace * mask_ctx->feed_keyspace);
     }
 
     status_ctx->words_base_given = base_cnt;
 
     // Where the feed knows exactly how many candidates it produces, that is the total. The amplifier
     // it would otherwise be multiplied by is a mean rounded down to an integer, so the product is
-    // always a little short and the run never quite reaches the total it is measured against.
+    // always a little short and the run never quite reaches the total it is measured against. A total
+    // that can pass 2^64 is stated in dev_total_u128, which is read first.
 
-    if (generic_ctx->global_ctx.dev_total > 0)
+    const u128 dev_total = (generic_ctx->global_ctx.dev_total_u128 > 0) ? generic_ctx->global_ctx.dev_total_u128 : generic_ctx->global_ctx.dev_total;
+
+    if (dev_total > 0)
     {
       // The rules are the one amplifier this exact count does not already hold: every candidate the
       // engine makes is tried once per rule. The mean cell is not involved, which is why this
       // multiplies by the ruleset alone rather than by the amplifier above.
 
-      const u64 dev_total = generic_ctx->global_ctx.dev_total;
-
       if (generic_ctx->global_ctx.dev_rules == true)
       {
-        status_ctx->words_cnt = (overflow_check_u128_mul (dev_total, straight_ctx->kernel_rules_cnt) == true) ? KEYSPACE_UNSIZED : (((u128) dev_total) * straight_ctx->kernel_rules_cnt);
+        status_ctx->words_cnt = (overflow_check_u128_mul (dev_total, straight_ctx->kernel_rules_cnt) == true) ? KEYSPACE_UNSIZED : (dev_total * straight_ctx->kernel_rules_cnt);
       }
       else
       {
@@ -567,7 +567,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // The second is the one that matters. A run that quietly covers half its own keyspace reports
     // Exhausted having never guessed the password, and nothing in the status screen says so.
 
-    const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+    const u64 words_cnt = generic_ctx_keyspace_u64 (hashcat_ctx, GENERIC_ROLE_AMP);
 
     if (straight_ctx_words_apply (hashcat_ctx, mask_ctx->bfs_cnt, words_cnt, straight_ctx->dict) == -1) return -1;
 

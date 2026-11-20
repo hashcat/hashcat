@@ -674,9 +674,7 @@ static char *status_get_guess_feed (const hashcat_ctx_t *hashcat_ctx)
 
   if (global_ctx->segments_cnt > 1)
   {
-    // The segments are a feed's dictionaries, whose positions inner2_loop () holds to u64.
-
-    const u64 words_cur = u128_lo (status_get_base_word (hashcat_ctx, status_get_words_cur_furthest (hashcat_ctx)));
+    const u128 words_cur = status_get_base_word (hashcat_ctx, status_get_words_cur_furthest (hashcat_ctx));
 
     u64 segment_idx = 0;
 

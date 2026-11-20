@@ -84,7 +84,7 @@ Feeds can also restore or replace legacy attack modes. Early implementations rep
 
 ## Required functions
 
-Every feed must export the seven functions below. The loader refuses a feed if any one is missing. Callback `thread_next()` is the hot path that produces candidates. The other functions define its lifetime, keyspace and positioning.
+A feed exports the seven functions below, and the loader refuses a feed if one is missing. The one exception is a feed whose keyspace can pass 2^64. It exports the 128-bit forms of `global_keyspace()` and `thread_seek()` in place of those two, see the section on keyspaces past 2^64 below. Callback `thread_next()` is the hot path that produces candidates. The other functions define its lifetime, keyspace and positioning.
 
 ### Main function
 
@@ -143,6 +143,8 @@ typedef struct generic_global_ctx
 
   void  *gbldata; // super generic
 
+  u128 dev_total_u128;
+
 } generic_global_ctx_t;
 ```
 
@@ -161,7 +163,7 @@ Notes:
 - Field `source_ident` identifies the data read by the feed without exposing its format. Set it during `global_init()` or `global_keyspace()` when possible. The brain includes this value in the attack identity, preventing changed input at the same path from being mistaken for completed work.
 
   A path alone is insufficient because its contents can change. The wordlist feed combines fingerprints derived from each file's size, beginning and end, reusing the data that names its seek database. Leave the field at zero when the source cannot be identified, as the stdin feed does.
-- `dev_total` can provide the exact candidate total for a device-amplifying feed when an integer average would lose information.
+- `dev_total` can provide the exact candidate total for a device-amplifying feed when an integer average would lose information. Field `dev_total_u128` is the same total at full width, for a total that can pass 2^64. hashcat reads it first, and it sits at the end of the structure so that the fields above keep their offsets.
 - `dev_enable` indicates before `global_init()` whether the feed's device engine will be used.
 - `described` lets a feed report that it answered a descriptive query and no candidate loop should start.
 - The global error field belongs only to the three global functions. Per-device functions report failures through their thread context. Set the field only for an actual error, not for end of input, and place an explanatory message in `error_msg`.
@@ -258,6 +260,34 @@ Callback `thread_next()` is mandatory and follows these rules:
 
   This return code supports generators that know the number of positions before resolving the candidate at each one. Stable positions are required by `--skip`, `--limit` and restore. A generator that produces a candidate at every position does not need it. Attack mode 9 rejects this result because candidate N must pair with salt N and an empty position has no valid substitute.
 * Set the error flag when generation fails. hashcat then ends the session with an error status. Returning `GENERIC_RC_EOF` would incorrectly report a truncated run as cleanly exhausted.
+
+## Keyspaces past 2^64
+
+The functions above count and seek in a `u64`, so a feed that exports only those is held to 2^64 positions. A feed whose keyspace can pass that, such as one that chains several words from a wordlist into one candidate, exports the 128-bit forms instead:
+
+```
+u128 global_keyspace_u128 (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
+bool thread_seek_u128     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u128 offset);
+int  global_explain_u128  (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u128 pos, char *out_buf, const int out_size);
+```
+
+hashcat looks them up by name. A feed that exports `global_keyspace_u128()` and `thread_seek_u128()` is counted and seeked through them, and `global_keyspace()` and `thread_seek()` are not looked up, so the feed does not need them. The two go together, and a feed that exports only one of them is refused. A feed that also declares `GENERIC_PLUGIN_OPTIONS_EXPLAIN` exports `global_explain_u128()` in place of `global_explain()`, because the position it is asked about can be past 2^64. A feed that exports none of the three runs exactly as before.
+
+Each one follows the rules of the function it replaces. An unknown keyspace is `GENERIC_KEYSPACE_UNKNOWN_U128`, and a failure sets the error flag. A count too large for a `u128` is one the feed cannot state, so it answers unknown for it as well, which is also the value a product saturated at `U128_MAX` lands on. hashcat then runs the feed without a total.
+
+On a 64-bit host `u128` is the compiler's `unsigned __int128`, which adds, multiplies, divides and compares like any other integer. Header `feed.h` includes `u128.h`, which has what the language leaves out. They are the helpers the core counts with itself:
+
+* `overflow_check_u128_add()` and `overflow_check_u128_mul()` return true when the sum or the product would not fit, the way `overflow_check_u64_mul()` does for a `u64`.
+* `u128_fits_u64()` says whether a value fits a `u64`, and `u128_lo()` is its low half.
+* `u128_to_dec()` writes a value in decimal into a buffer of `U128_DEC_SIZE` bytes, because printf has no conversion for it.
+
+On a 32-bit host `u128` is a `u64`. The same feed builds and runs there, and its counts stop at 2^64, so a product of two `u64` counts is checked with `overflow_check_u128_mul()` rather than assumed to fit.
+
+A device-amplifying feed whose total can pass 2^64 states it in `dev_total_u128` rather than in `dev_total`.
+
+The brain reserves `u64` positions. A run whose `--brain-client-features` include attack reservations stops at a round whose keyspace passes 2^64, whichever form the feed exports.
+
+The hybrid feed, `src/feeds/feed_hybrid.c`, is the shipped example. It counts two wordlists, multiplies them in 128 bits, and splits a 128-bit position back into a word, a mask value and a second word.
 
 ## Global and thread contexts
 
