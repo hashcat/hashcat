@@ -128,15 +128,16 @@ def _aes_cfb(key, iv):
   return AES.new(key, AES.MODE_CFB, iv=iv, segment_size=128)
 
 
-def aes_cfb_generate(word, hashname, hash_id):
+def aes_cfb_generate(word, hashname, hash_id, iterations=None, cipher_algo=None):
   # The IV comes from the salt and the password, not from the generator. module_17010.c takes the IV
   # as the digest, and a SHARED_SALT pair, drawn from one generator state, would otherwise carry one
   # IV and reach hashcat as a single hash.
 
   salt        = random_bytes(8)
   iv          = hashlib.sha256(salt + word).digest()[:AES_IV_LEN]
-  count       = random_number(1024, 65536)
-  cipher_algo = 7 if random_number(0, 1) else 9
+  count       = random_number(1024, 65536) if iterations is None else int(iterations)
+  if cipher_algo is None:
+    cipher_algo = 7 if random_number(0, 1) else 9
 
   key  = s2k_iterated(word, salt, count, AES_KEY_LEN[cipher_algo], hashname)
   body = random_bytes(BODY_LEN)
@@ -265,12 +266,12 @@ def sym_mdc_plaintext(payload):
   return body + hashlib.sha1(body).digest()
 
 
-def sym_mdc_generate(word, hashname, hash_id):
+def sym_mdc_generate(word, hashname, hash_id, iterations=None):
   # The prefix is drawn per hash, so two messages built from one generator state differ in their
   # ciphertext and reach hashcat as two hashes rather than one.
 
   salt  = random_bytes(8)
-  count = random_number(1024, 65536)
+  count = random_number(1024, 65536) if iterations is None else int(iterations)
 
   key   = s2k_iterated(word, salt, count, SYM_KEY_LEN, hashname)
   plain = sym_mdc_plaintext(random_bytes(sym_payload_len()))

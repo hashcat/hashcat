@@ -41,12 +41,13 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": (65536, 131072)}],
     },
   }
 
 
 def module_generate_hash(word, salt, iterations=None):
-  count    = random_number(200000000, 300000000)
+  count    = random_number(200000000, 300000000) if iterations is None else int(iterations)
   salt_raw = random_bytes(8)
 
   # The nonce comes from the salt and the password, not from the generator, for the reason

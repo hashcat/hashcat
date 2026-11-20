@@ -5497,16 +5497,19 @@ def edge_build_ruleset(ruleset, context_lines):
   _w(os.path.join(ruleset, "Context", "1.txt"), b"".join(l + b"\n" for l in context_lines))
 
 
-def edge_oracle(mode, attack, optimized):
+def edge_oracle(mode, attack, optimized, association_groups=False):
   # The edge vectors for one mode, attack and kernel family, from the same engine test_edge.sh's
   # run_oracle uses. Each line is mode,attack,optimized,word_len,salt_len,word_hex,salt_hex,hash_hex;
   # the fields are hex so a comma or quote in the value never splits the line.
-
   report_iterations(mode)
 
-  proc = subprocess.run([sys.executable, RUNNER, "edge", str(mode), str(attack),
-                         "1" if optimized else "0"],
-                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  cmd = [sys.executable, RUNNER, "edge", str(mode), str(attack), "1" if optimized else "0"]
+
+  # Association vectors are grouped on iteration count, as mixing them isn't allowed.
+  if attack == 9 and association_groups:
+    cmd.append("--association-groups")
+
+  proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
   vectors = []
 
@@ -5514,26 +5517,33 @@ def edge_oracle(mode, attack, optimized):
     if not line:
       continue
 
-    fields = line.split(b",", 7)
+    fields = line.split(b",")
 
-    if len(fields) < 8:
-      continue
+    # The ninth field is optional and names the association group.
+    if len(fields) not in (8, 9):
+      return [], 1
 
     try:
+      # Reject vectors from a different mode, attack, or kernel family.
+      if (int(fields[0]) != mode or int(fields[1]) != attack or
+          int(fields[2]) != (1 if optimized else 0)):
+        return [], 1
+
       word_len = int(fields[3])
       salt_len = int(fields[4])
-    except ValueError:
-      continue
+      group = int(fields[8]) if len(fields) == 9 else 0
 
-    # bytes.fromhex of an empty field is b"". The rstrip mirrors the way test_edge.sh reads each
-    # field through a command substitution, which strips a value's trailing newlines.
+      # bytes.fromhex of an empty field is b"". The rstrip mirrors the way test_edge.sh reads each
+      # field through a command substitution, which strips a value's trailing newlines.
 
-    word = bytes.fromhex(fields[5].decode("ascii")).rstrip(b"\n") if fields[5] else b""
-    salt = bytes.fromhex(fields[6].decode("ascii")).rstrip(b"\n") if fields[6] else b""
-    dig  = bytes.fromhex(fields[7].decode("ascii")).rstrip(b"\n") if fields[7] else b""
+      word = bytes.fromhex(fields[5].decode("ascii")).rstrip(b"\n") if fields[5] else b""
+      salt = bytes.fromhex(fields[6].decode("ascii")).rstrip(b"\n") if fields[6] else b""
+      dig  = bytes.fromhex(fields[7].decode("ascii")).rstrip(b"\n") if fields[7] else b""
+    except (ValueError, UnicodeDecodeError):
+      return [], 1
 
     vectors.append({"word_len": word_len, "salt_len": salt_len,
-                    "word": word, "salt": salt, "hash": dig})
+                    "word": word, "salt": salt, "hash": dig, "association_group": group})
 
   return vectors, proc.returncode
 
@@ -5980,7 +5990,29 @@ def edge_multi_cmd(ctx, selected, width, tmp):
   return [], None
 
 
+# Run each vector group as a separate multi-target check.
 def edge_multi(ctx, width, opts, outfile, vectors, tmp):
+  groups = {}
+
+  for vector in vectors:
+    groups.setdefault(vector.get("association_group", 0), []).append(vector)
+
+  errors = 0
+  cells = 0
+  stop = False
+
+  for group in groups.values():
+    e, c, stop = edge_multi_group(ctx, width, opts, outfile, group, tmp)
+    errors += e
+    cells += c
+
+    if stop:
+      break
+
+  return errors, cells, stop
+
+
+def edge_multi_group(ctx, width, opts, outfile, vectors, tmp):
   mode   = ctx.mode
   attack = ctx.attack
   hh     = ctx.hh
@@ -6184,18 +6216,27 @@ def edge_process_mode(args, mode, cfg, tmp):
           if attack not in EDGE_WHOLE_WORD and cfg["all_scope"] and mode != 400:
             continue
 
-      vectors, oracle_rc = edge_oracle(mode, attack, optimized)
+      vector_sets = {}
+      oracle_cache = {}
 
-      if oracle_rc != 0:
-        print("[ test.py edge ] !> error Type %d: oracle failed (rc=%d)" % (mode, oracle_rc))
-        errors += 1
+      for target in cfg["targets"]:
+        grouped = attack == 9 and target == 1
 
-        break
+        if grouped not in oracle_cache:
+          oracle_cache[grouped] = edge_oracle(mode, attack, optimized, association_groups=grouped)
 
-      if not vectors or not vectors[0]["hash"]:
-        print("[ test.py edge ] !> error Type %d: empty test vectors" % mode)
+        vectors, oracle_rc = oracle_cache[grouped]
 
-        errors += 1
+        if oracle_rc != 0 or not vectors or not all(vector["hash"] for vector in vectors):
+          print("[ test.py edge ] !> error Type %d: oracle failed or returned invalid vectors (rc=%d)" % (mode, oracle_rc))
+
+          errors += 1
+
+          break
+
+        vector_sets[target] = vectors
+
+      if len(vector_sets) != len(cfg["targets"]):
 
         break
 
@@ -6207,13 +6248,13 @@ def edge_process_mode(args, mode, cfg, tmp):
         opts    = edge_opts(args, optimized, width, pt_hex, outfile)
 
         if 0 in cfg["targets"]:
-          e, c = edge_single(ctx, width, opts, outfile, vectors, tmp)
+          e, c = edge_single(ctx, width, opts, outfile, vector_sets[0], tmp)
 
           errors += e
           cells  += c
 
         if 1 in cfg["targets"]:
-          e, c, stop = edge_multi(ctx, width, opts, outfile, vectors, tmp)
+          e, c, stop = edge_multi(ctx, width, opts, outfile, vector_sets[1], tmp)
 
           errors += e
           cells  += c

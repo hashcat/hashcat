@@ -271,7 +271,7 @@ def usage_exit():
 
   sys.stderr.write(
     "\nUsage:\n"
-    " {0} edge        <mode> [attack-type] [optimized]\n"
+    " {0} edge        <mode> [attack-type] [optimized] [--association-groups]\n"
     " {0} single      <mode> [length]\n"
     " {0} spare       <mode> [length]\n"
     " {0} password    <mode> [length]\n"
@@ -437,7 +437,7 @@ def edge_constraints(mod, optimized):
   return word, salt, comb
 
 
-def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok):
+def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters=None, group=None):
   while True:
     word = random_non_ascii_string(word_len, non_ascii_ok)
     salt = random_numeric_string(salt_len)
@@ -445,7 +445,7 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = test_iterations.generate_iteration_hash(mod, word, salt)
+    digest = test_iterations.generate_iteration_hash(mod, word, salt, **(parameters or {}))
 
     # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
     # again rather than passed on
@@ -463,12 +463,16 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
   # unbalance the quoting around it. Hex contains neither, so a field stays separable whatever the
   # module puts in it, and the consumer decodes rather than parses.
 
-  sys.stdout.write("%d,%d,%d,%d,%d,%s,%s,%s\n" % (
-    mode, attack_type, 1 if optimized else 0, word_len, salt_len,
-    word.hex(), salt.encode("ascii").hex(), digest.encode("utf-8").hex()))
+  line = (f"{mode},{attack_type},{1 if optimized else 0},{word_len},{salt_len},"
+          f"{word.hex()},{salt.encode('ascii').hex()},{digest.encode('utf-8').hex()}")
+
+  if group is not None:
+    line += f",{group}"
+
+  sys.stdout.write(line + "\n")
 
 
-def edge(mod, mode, attack_type, optimized):
+def edge(mod, mode, attack_type, optimized, association_groups=False):
   if attack_type not in (0, 1, 3, 4, 6, 7, 8, 9, 12):
     return -1
 
@@ -497,8 +501,22 @@ def edge(mod, mode, attack_type, optimized):
   if attack_type == 4 and word_min == 0:
     word_min = 1
 
+  groups = None
+
+  if association_groups and attack_type == 9:
+    declared = mod.module_test_properties()["constraints"].get("association_parameters")
+
+    if declared:
+      # A tuple is an inclusive range. Pick once so every vector in the group uses the same value.
+      groups = [{key: random_number(*value) if isinstance(value, tuple) else value
+                 for key, value in parameters.items()} for parameters in declared]
+
   def emit(word_len, salt_len):
-    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+    if groups is None:
+      edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+    else:
+      for group, parameters in enumerate(groups):
+        edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters, group)
 
   # word_min, salt_min / word_min, salt_max / word_max, salt_min / word_max, salt_max
 
@@ -928,7 +946,7 @@ def main():
     if not attack_type.isdigit() or optimized not in ("0", "1"):
       usage_exit()
 
-    sys.exit(0 if edge(mod, mode, int(attack_type), optimized == "1") == 0 else 1)
+    sys.exit(0 if edge(mod, mode, int(attack_type), optimized == "1", "--association-groups" in argv[4:]) == 0 else 1)
 
   extra = argv[2] if len(argv) > 2 else None
 
