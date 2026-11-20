@@ -4352,7 +4352,6 @@ typedef struct status_ctx
   time_t timer_bypass_cur;
 
   bool bypass_eta_checked;      // --bypass-eta decides once per queue item
-  u128 bypass_eta_words_from;   // words_cur when the queue item started
 
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict

@@ -736,8 +736,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
     time (&status_ctx->runtime_start);
 
-    status_ctx->bypass_eta_checked    = false;
-    status_ctx->bypass_eta_words_from = status_ctx->words_cur;
+    status_ctx->bypass_eta_checked = false;
   }
 
   const time_t runtime_start = status_ctx->runtime_start;

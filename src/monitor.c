@@ -531,10 +531,16 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    // --bypass-eta decides once per queue item, when the restore point first moves. Before that the
-    // speed is still settling, and the estimate is not one to drop a whole mask or wordlist over.
+    // --bypass-eta decides once per queue item, as soon as there is a speed to estimate from. The
+    // restore point moving is not that gate: it means one work slice finished, and a slice is a
+    // fixed number of base words whatever each one is worth in candidates, so the items with the
+    // largest amplifiers are the ones the option would take longest to act on.
+    //
+    // The speed here is the one the status view shows, averaged over the launches recorded so far.
+    // An item with no speed has no estimate to compare, and the decision waits rather than being
+    // spent on it.
 
-    if ((bypass_eta_check == true) && (status_ctx->bypass_eta_checked == false) && (status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->words_cur > status_ctx->bypass_eta_words_from))
+    if ((bypass_eta_check == true) && (status_ctx->bypass_eta_checked == false) && (status_ctx->devices_status == STATUS_RUNNING) && (status_get_hashes_msec_all (hashcat_ctx) > 0))
     {
       status_ctx->bypass_eta_checked = true;
 
