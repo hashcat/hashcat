@@ -120,6 +120,7 @@ typedef enum option_type
   OPTION_TYPE_COUNTER,
   OPTION_TYPE_U32,
   OPTION_TYPE_U64,
+  OPTION_TYPE_U128,
   OPTION_TYPE_STR,
 
 } option_type_t;
@@ -147,6 +148,10 @@ typedef struct option_given
 
 } option_given_t;
 
+// The text of a number option, long enough for any u128 in decimal.
+
+typedef char option_num_t[U128_DEC_SIZE];
+
 typedef struct option_rule option_rule_t;
 
 // Every array below has one element per option: the core options and then the module options, which
@@ -166,7 +171,7 @@ typedef struct option_table
 
   option_given_t *given;
   u64            *value;
-  char          (*numbers)[24];
+  option_num_t   *numbers;
 
   option_id_t    *order;
   u32             order_cnt;
@@ -898,7 +903,7 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   },
   [OPT_LIMIT] =
   {
-    .type         = OPTION_TYPE_U64,
+    .type         = OPTION_TYPE_U128,
     .flags        = OPTION_FLAG_MIN,
     .min          = 1,
     .def          = LIMIT,
@@ -1210,7 +1215,7 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   },
   [OPT_SKIP] =
   {
-    .type         = OPTION_TYPE_U64,
+    .type         = OPTION_TYPE_U128,
     .def          = SKIP,
     .actions      = ACT_CRACK | ACT_STDOUT,
   },
@@ -2178,7 +2183,7 @@ static option_table_t *table_create (module_options_t *module_options)
   table->long_options = (struct option *)   hccalloc (core_cnt + module_cnt + 1, sizeof (struct option));
   table->given        = (option_given_t *)  hccalloc (table->count,             sizeof (option_given_t));
   table->value        = (u64 *)             hccalloc (table->count,             sizeof (u64));
-  table->numbers      = (char (*)[24])      hccalloc (table->count,             sizeof (*table->numbers));
+  table->numbers      = (option_num_t *)    hccalloc (table->count,             sizeof (option_num_t));
   table->order        = (option_id_t *)     hccalloc (table->count,             sizeof (option_id_t));
   table->ignored      = (bool *)            hccalloc (table->count,             sizeof (bool));
   table->implied      = (bool *)            hccalloc (table->count,             sizeof (bool));
@@ -2370,6 +2375,23 @@ static void table_parse_argv (option_table_t *table, option_verdict_t *v, const 
   optopt = 0;
 }
 
+// The struct keeps an OPTION_TYPE_U128 option wider than the table's u64, so its text is taken from
+// the struct field rather than from the table.
+
+static u128 table_struct_u128 (const user_options_t *user_options, const option_id_t id)
+{
+  u128 value = 0;
+
+  switch (id)
+  {
+    case OPT_LIMIT: value = user_options->limit; break;
+    case OPT_SKIP:  value = user_options->skip;  break;
+    default:                                     break;
+  }
+
+  return value;
+}
+
 // A program that fills user_options itself has no command line, so what it gave is read off the
 // struct: an option counts as given where its field differs from the default user_options_init ()
 // set, or where its _chgd flag is set. A caller never has a reason to set a _chgd flag, so a field
@@ -2466,7 +2488,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_TOTAL_CANDIDATES:          count = (uo->total_candidates          == true);                                                      break;
     case OPT_LEFT:                      count = (uo->left                      == true);                                                      break;
     case OPT_LENGTH_SORT_DISABLE:       count = (uo->length_sort_disable       == true);                                                      break;
-    case OPT_LIMIT:                     count = ((uo->limit_chgd == true) || (uo->limit != LIMIT));  *value = uo->limit;                                 break;
+    case OPT_LIMIT:                     count = ((uo->limit_chgd == true) || (uo->limit != LIMIT));  *value = u128_saturate_u64 (uo->limit);             break;
     case OPT_LOGFILE_DISABLE:           count = (uo->logfile                   == false);                                                     break;
     case OPT_LOOKUP:                    count = (uo->lookup                    != NULL);  *arg   = uo->lookup;                                break;
     case OPT_LOOPBACK:                  count = (uo->loopback                  == true);                                                      break;
@@ -2506,7 +2528,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_SEPARATOR:                 count = ((uo->separator_chgd == true) || ((uo->separator != NULL) && (strcmp (uo->separator, ":") != 0)));  *arg   = uo->separator;                             break;
     case OPT_SESSION:                   count = (uo->session_chgd              == true);  *arg   = uo->session;                               break;
     case OPT_SHOW:                      count = (uo->show                      == true);                                                      break;
-    case OPT_SKIP:                      count = ((uo->skip_chgd == true) || (uo->skip != SKIP));  *value = uo->skip;                                  break;
+    case OPT_SKIP:                      count = ((uo->skip_chgd == true) || (uo->skip != SKIP));  *value = u128_saturate_u64 (uo->skip);              break;
     case OPT_SLOW_CANDIDATES:           count = (uo->slow_candidates           == true);                                                      break;
     case OPT_SPEED_ONLY:                count = (uo->speed_only                == true);                                                      break;
     case OPT_STATUS:                    count = (uo->status                    == true);                                                      break;
@@ -2567,7 +2589,14 @@ static void table_parse_struct (option_table_t *table, const user_options_t *use
 
     if (arg == NULL)
     {
-      snprintf (table->numbers[id], sizeof (table->numbers[id]), "%" PRIu64, value);
+      if (option_rule (table, id)->type == OPTION_TYPE_U128)
+      {
+        u128_to_dec (table->numbers[id], table_struct_u128 (user_options, id));
+      }
+      else
+      {
+        snprintf (table->numbers[id], sizeof (table->numbers[id]), "%" PRIu64, value);
+      }
 
       arg = table->numbers[id];
     }
@@ -2652,6 +2681,55 @@ static void table_parse_option (option_table_t *table, option_verdict_t *v, cons
   }
 
   if (rule->type == OPTION_TYPE_FLAG) return;
+
+  // A keyspace position. It may pass 2^64, so it is parsed whole here and kept in user_options. The
+  // table keeps the value only for its own rules, which compare it to small bounds, so a value past
+  // 2^64 is held there as the largest u64.
+
+  if (rule->type == OPTION_TYPE_U128)
+  {
+    if (hc_string_is_digit (given->arg) == false)
+    {
+      text_printf (&text, "--%s takes a number, '%s' is not one.", option_name (table, id), given->arg);
+
+      verdict_refuse (v, "parse", "type", id, OPT_NONE, &text);
+
+      return;
+    }
+
+    u128 value128 = 0;
+
+    if (hc_strtou128 (given->arg, &value128) == false)
+    {
+      text_printf (&text, "--%s %s is too large.", option_name (table, id), given->arg);
+
+      verdict_refuse (v, "parse", "range", id, OPT_NONE, &text);
+
+      return;
+    }
+
+    const u64 value = u128_saturate_u64 (value128);
+
+    table->value[id] = value;
+
+    if (((rule->flags & OPTION_FLAG_MIN) != 0) && (value < rule->min))
+    {
+      text_printf (&text, "--%s must be at least %" PRIu64 ".", option_name (table, id), rule->min);
+
+      verdict_refuse (v, "parse", "range", id, OPT_NONE, &text);
+
+      return;
+    }
+
+    if (((rule->flags & OPTION_FLAG_MAX) != 0) && (value > rule->max))
+    {
+      text_printf (&text, "--%s must be at most %" PRIu64 ".", option_name (table, id), rule->max);
+
+      verdict_refuse (v, "parse", "range", id, OPT_NONE, &text);
+
+      return;
+    }
+  }
 
   if ((rule->type == OPTION_TYPE_U32) || (rule->type == OPTION_TYPE_U64))
   {

@@ -6,6 +6,10 @@
 #ifndef INC_MARKOV_H
 #define INC_MARKOV_H
 
+// off and off_hi are the low and the high half of a base position, which can pass 2^64. The high half
+// comes last, so the parameters before it keep their indexes. The right side stays u64, because its
+// position is inside one inner loop.
+
 #ifdef IS_METAL
 
 #define KERN_ATTR_L_MARKOV                \
@@ -19,6 +23,7 @@
   CONSTANT_AS const u32  &bits14,         \
   CONSTANT_AS const u32  &bits15,         \
   CONSTANT_AS const u64  &gid_max,        \
+  CONSTANT_AS const u64  &off_hi,         \
                     uint3 hc_gid [[ thread_position_in_grid ]]
 
 #define KERN_ATTR_R_MARKOV                \
@@ -43,6 +48,7 @@
   CONSTANT_AS const u32  &bits14,         \
   CONSTANT_AS const u32  &bits15,         \
   CONSTANT_AS const u64  &gid_max,        \
+  CONSTANT_AS const u64  &off_hi,         \
                     uint3 hc_gid [[ thread_position_in_grid ]]
 
 #else // CUDA, HIP, OpenCL
@@ -57,7 +63,8 @@
               const u32   mask80,         \
               const u32   bits14,         \
               const u32   bits15,         \
-              const u64   gid_max
+              const u64   gid_max,        \
+              const u64   off_hi
 
 #define KERN_ATTR_R_MARKOV                \
   GLOBAL_AS         bf_t *pws_buf_r,      \
@@ -79,7 +86,8 @@
               const u32   mask80,         \
               const u32   bits14,         \
               const u32   bits15,         \
-              const u64   gid_max
+              const u64   gid_max,        \
+              const u64   off_hi
 
 #endif // IS_METAL
 

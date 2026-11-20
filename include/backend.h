@@ -94,7 +94,7 @@ int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_devi
 int gidd_to_pw_t_host                       (const hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
 u64 gidvid_to_feed_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
-u64 gidvid_to_word_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
+u128 gidvid_to_word_pos                     (const hc_device_param_t *device_param, const u64 gidvid);
 
 bool is_opti_kernel_no_pcfg                 (const hashcat_ctx_t *hashcat_ctx);
 
@@ -129,7 +129,7 @@ int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_kernel_decompress                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
 int run_copy                                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 int pcfg_seed_cells                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
-int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt);
+int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u128 pws_pos, const u64 pws_cnt);
 
 HC_THREAD_FUNC hook12_thread (void *p);
 HC_THREAD_FUNC hook23_thread (void *p);

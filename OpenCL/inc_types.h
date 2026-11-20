@@ -89,6 +89,36 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 #endif
 
+// A keyspace position or count. No 128-bit integer type builds on every backend, so the kernels keep
+// it as two u64 limbs. Where a backend has one, dividing it by a charset size compiles into a full
+// 128-by-128 division, which is slower than the limbs.
+//
+// The host uses the compiler's own type. GCC and Clang have it on every 64-bit target, and requiring
+// it there keeps every program that includes these headers on one layout of the structs that hold a
+// u128. A 32-bit host keeps u64, and with it the 64-bit limits.
+
+#ifdef KERNEL_STATIC
+
+typedef struct u128
+{
+  u64 lo;
+  u64 hi;
+
+} u128_t;
+
+#else
+
+#if defined (__SIZEOF_INT128__) && (__SIZEOF_POINTER__ == 8)
+#define U128_WIDE
+__extension__ typedef unsigned __int128 u128;
+#elif (__SIZEOF_POINTER__ == 8)
+#error "A 64-bit host needs a compiler with unsigned __int128."
+#else
+typedef uint64_t u128;
+#endif
+
+#endif
+
 //testwise disabled
 //typedef u8  u8a  __attribute__ ((aligned (8)));
 //typedef u16 u16a __attribute__ ((aligned (8)));

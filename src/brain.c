@@ -246,13 +246,12 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   // --skip used to be left out here, but by accident: it was cleared as soon as the first round had
   // taken it, which was long before this ran.
 
-  // Both are u64 in user_options and both are truncated to 32 bits here, so two attacks whose --skip
-  // differs only above 2^32 get the same identity, and a --skip past 2^31 is hashed as a negative
-  // number. Widening these two would give every attack that has ever run a new identity, so it is
-  // left as it is rather than changed in passing.
+  // Both are truncated to 32 bits here, so two attacks whose --skip differs only above 2^32 get the
+  // same identity, and a --skip past 2^31 is hashed as a negative number. Widening these two would
+  // give every attack that has ever run a new identity, so they stay at 32 bits.
 
-  const int skip  = user_options->skip;
-  const int limit = user_options->limit;
+  const int skip  = (int) u128_lo (user_options->skip);
+  const int limit = (int) u128_lo (user_options->limit);
 
   paw64_update (&state, &skip,  sizeof (skip));
   paw64_update (&state, &limit, sizeof (limit));

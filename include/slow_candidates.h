@@ -11,7 +11,10 @@
 
 typedef struct extra_info_combi
 {
-  u64 pos;
+  // A candidate position, base words times the amplifier, so it can pass 2^64 where the base does
+  // not. The pos of the two structs below is the same kind of position.
+
+  u128 pos;
 
   // Both sources are feed instances and a feed keeps one cursor per device, so this carries the
   // device rather than a pair of file handles.
@@ -46,7 +49,7 @@ typedef struct extra_info_combi
 
 typedef struct extra_info_mask
 {
-  u64 pos;
+  u128 pos;
 
   u8  out_buf[256];
   u32 out_len;
@@ -63,7 +66,7 @@ typedef struct extra_info_mask
 
 typedef struct extra_info_generic
 {
-  u64 pos;
+  u128 pos;
 
   int device_id;
 
@@ -82,7 +85,7 @@ typedef struct extra_info_generic
 
 } extra_info_generic_t;
 
-void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end);
+void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u128 cur, const u128 end);
 void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info);
 
 #endif // HC_SLOW_CANDIDATES_H

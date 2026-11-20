@@ -44,8 +44,8 @@
 #define MTL4_PIPELINE_DATA_SET_SERIALIZER_CAPTURE_BINARIES 2
 
 // Bytes a kernel takes by value go through one Shared buffer per device on Metal 4, where setBytes:
-// has no equivalent. Each argument starts on a 256 byte boundary, so this holds 16 of them, and no
-// launch passes more than seven.
+// has no equivalent. Each argument starts on a 256 byte boundary, so this holds 16 of them. No launch
+// passes more than eight. l_markov passes eight, two of them the halves of its base position.
 
 #define METAL4_SCRATCH_SIZE 4096
 

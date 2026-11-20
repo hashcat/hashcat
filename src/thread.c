@@ -10,6 +10,7 @@
 #include "user_options.h"
 #include "status.h"
 #include "thread.h"
+#include "shared.h"
 
 /*
 #if defined (_WIN)
@@ -253,7 +254,7 @@ int myquit (hashcat_ctx_t *hashcat_ctx)
 // dropped, and the progress the run had made is replaced by what the position means. It is the same
 // bargain --restore already offers, where resuming a session does not recover the last few batches.
 
-static void seek_arm (hashcat_ctx_t *hashcat_ctx, const u64 target)
+static void seek_arm (hashcat_ctx_t *hashcat_ctx, const u128 target)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -292,7 +293,7 @@ void seek_apply (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
-  const u64 target = status_ctx->seek_target;
+  const u128 target = status_ctx->seek_target;
 
   status_ctx->seek_pending = false;
 
@@ -376,9 +377,9 @@ void seek_apply (hashcat_ctx_t *hashcat_ctx)
 // past anywhere the dispatcher will reach, which ends the run as exhausted with the counters
 // describing a keyspace that was never tried.
 
-static u64 seek_end (const status_ctx_t *status_ctx)
+static u128 seek_end (const status_ctx_t *status_ctx)
 {
-  const u64 words_end = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
+  const u128 words_end = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
 
   return words_end;
 }
@@ -396,11 +397,11 @@ static u64 seek_end (const status_ctx_t *status_ctx)
 // A seek that has been asked for but not yet applied answers with its own target, so that pressing a
 // key twice in a row moves twice rather than asking for the same move again.
 
-u64 seek_position (const hashcat_ctx_t *hashcat_ctx)
+u128 seek_position (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  const u64 position = (status_ctx->seek_pending == true) ? status_ctx->seek_target : status_ctx->words_cur;
+  const u128 position = (status_ctx->seek_pending == true) ? status_ctx->seek_target : status_ctx->words_cur;
 
   return position;
 }
@@ -409,12 +410,12 @@ u64 seek_position (const hashcat_ctx_t *hashcat_ctx)
 // -l narrow that window, and a seek moves inside it, so the percentage is of the window rather than
 // of the whole keyspace.
 
-double seek_percent (const hashcat_ctx_t *hashcat_ctx, const u64 words)
+double seek_percent (const hashcat_ctx_t *hashcat_ctx, const u128 words)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  const u64 words_end  = seek_end (status_ctx);
-  const u64 words_skip = status_ctx->words_skip;
+  const u128 words_end  = seek_end (status_ctx);
+  const u128 words_skip = status_ctx->words_skip;
 
   if (words_end <= words_skip) return 0;
   if (words     <= words_skip) return 0;
@@ -429,7 +430,7 @@ double seek_percent (const hashcat_ctx_t *hashcat_ctx, const u64 words)
 // A target beyond the keyspace is refused rather than clamped. Clamping would end the run and call
 // it a seek, and a position past the end is a mistake worth telling the user about.
 
-static int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u64 target)
+static int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u128 target)
 {
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -442,10 +443,10 @@ static int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u64 target)
 
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  // A producer that cannot say how much keyspace it has leaves words_base derived from a count that
-  // means "unknown", and a percentage of that is a position no run will ever reach.
+  // A producer that cannot say how much keyspace it has leaves words_base at the end of what a feed
+  // can address, and a percentage of that is a position no run will ever reach.
 
-  if (status_ctx->words_cnt == (u64) -1) return -1;
+  if (status_ctx->words_cnt == KEYSPACE_UNSIZED) return -1;
 
   // Asking to move the run is asking to run it, so a paused run is resumed rather than refused. That
   // is also what makes the move possible at all: a paused device thread is parked in a wait of its
@@ -455,7 +456,7 @@ static int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u64 target)
 
   if (status_ctx->devices_status != STATUS_RUNNING) return -1;
 
-  const u64 words_end = seek_end (status_ctx);
+  const u128 words_end = seek_end (status_ctx);
 
   // -s and -l narrow the range the run will ever walk, so they narrow where a seek may land as well.
   // words_off starts at words_skip rather than at zero, and get_work () stops at words_end, so a
@@ -538,16 +539,23 @@ int bypass_seek_step (hashcat_ctx_t *hashcat_ctx, const int direction)
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  const u64 words_end  = seek_end (status_ctx);
-  const u64 words_skip = status_ctx->words_skip;
+  const u128 words_end  = seek_end (status_ctx);
+  const u128 words_skip = status_ctx->words_skip;
 
   if (words_end <= words_skip) return -1;
 
-  const u64 base = seek_position (hashcat_ctx);
+  // A u128 is two loads, so the position is read under mux_dispatcher, the lock the device threads
+  // move it under. The seek built on it becomes the restore point.
+
+  hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+  const u128 base = seek_position (hashcat_ctx);
+
+  hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
   if (base < words_skip) return -1;
 
-  const u64 span = words_end - words_skip;
+  const u128 span = words_end - words_skip;
 
   const double since = hc_timer_get (status_ctx->seek_timer);
 
@@ -561,11 +569,11 @@ int bypass_seek_step (hashcat_ctx_t *hashcat_ctx, const int direction)
   }
   else
   {
-    u64 first = span / SEEK_STEP_DIV;
+    u128 first = span / SEEK_STEP_DIV;
 
     if (first == 0) first = 1;
 
-    first = MIN (first, (u64) SEEK_STEP_WORDS);
+    first = MIN (first, (u128) SEEK_STEP_WORDS);
 
     step = (double) first;
   }
@@ -581,9 +589,11 @@ int bypass_seek_step (hashcat_ctx_t *hashcat_ctx, const int direction)
 
   hc_timer_set (&status_ctx->seek_timer);
 
-  const u64 words = (u64) (step + 0.5);
+  // The step is capped at a share of the window, and the window can pass 2^64, so the step can too.
 
-  u64 target = 0;
+  const u128 words = (u128) (step + 0.5);
+
+  u128 target = 0;
 
   if (direction >= 0)
   {
@@ -651,11 +661,20 @@ static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
 
   if (global_ctx->segments_cnt < 2) return false;
 
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  // get_work () moves words_off under mux_dispatcher, so it is read under the same lock.
+
+  hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+  const u128 run_off = status_ctx->words_off;
+
+  hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
   // The segment table counts lines, and under --slow-candidates a run position counts candidates.
+  // The lines are a feed's, whose positions inner2_loop () holds to u64.
 
-  const u64 words_off = status_get_base_word (hashcat_ctx, status_ctx->words_off);
+  const u64 words_off = u128_lo (status_get_base_word (hashcat_ctx, run_off));
 
   u64 next_first = 0;
 

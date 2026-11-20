@@ -44,6 +44,11 @@ u32   mp_get_length (const char *mask, const u32 opts_type);
 
 HC_PLUGIN_API void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
 
+// sp_exec () for a position that can pass 2^64. The two share one walk. Not for plugins, whose
+// positions are u64.
+
+void sp_exec_u128 (const u128 ctx, char *pw_buf, const cs_t *root_css_buf, const cs_t *markov_css_buf, const u32 start, const u32 stop);
+
 // The right side of a split mask in the order the device walks it, for the core's own rebuild of a
 // candidate from its two offsets. Not for plugins, which see the mask whole.
 

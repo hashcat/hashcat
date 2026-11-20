@@ -3429,12 +3429,18 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   // would hand over what the human one refuses to print. The keyspace total stays: the operator
   // supplied the wordlist, so it is not news to them.
 
-  const u64 mr_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
-  const u64 mr_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+  const u128 mr_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u128 mr_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
 
-  printf ("CURKU\t%" PRIu64 "\t", mr_restore_point);
+  // The positions and counts can pass 2^64, and printf has no conversion for them, so they go out as
+  // decimal digits. For a value that fits a u64 they are the digits PRIu64 prints.
 
-  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", mr_progress_cur, hashcat_status->progress_end_relative_skip);
+  char mr_buf1[U128_DEC_SIZE];
+  char mr_buf2[U128_DEC_SIZE];
+
+  printf ("CURKU\t%s\t", u128_to_dec (mr_buf1, mr_restore_point));
+
+  printf ("PROGRESS\t%s\t%s\t", u128_to_dec (mr_buf1, mr_progress_cur), u128_to_dec (mr_buf2, hashcat_status->progress_end_relative_skip));
 
   printf ("RECHASH\t%u\t%u\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
@@ -3465,10 +3471,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
+  printf ("REJECTED\t%s\t", u128_to_dec (mr_buf1, hashcat_status->progress_rejected));
 
   #ifdef WITH_BRAIN
-  printf ("BRAIN_REJECTED\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->brain_rejects_attacks, hashcat_status->brain_rejects_hashes);
+  printf ("BRAIN_REJECTED\t%s\t%" PRIu64 "\t", u128_to_dec (mr_buf1, hashcat_status->brain_rejects_attacks), hashcat_status->brain_rejects_hashes);
   #endif
 
   printf ("UTIL\t");
@@ -3564,7 +3570,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   // two decimals, and the two element [done, total] arrays. They are built into numbuf and emitted
   // raw so their exact spelling is kept, while the emitter owns the object, the commas and the
   // string escaping around them.
-  char numbuf[64];
+  char numbuf[96];
 
   json_ctx_t js;
 
@@ -3608,15 +3614,22 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   // see the note in status_display_machine_readable
 
-  const u64 json_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
-  const u64 json_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
-  const u64 json_rejected      = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_rejected;
+  const u128 json_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u128 json_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+  const u128 json_rejected      = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_rejected;
 
-  snprintf (numbuf, sizeof (numbuf), "[%" PRIu64 ", %" PRIu64 "]", json_progress_cur, hashcat_status->progress_end_relative_skip);
+  // JSON numbers have no width, so a value past 2^64 is written as the digits it has. json_kv_uint ()
+  // takes a u64, so these go in raw.
+
+  char json_buf1[U128_DEC_SIZE];
+  char json_buf2[U128_DEC_SIZE];
+
+  snprintf (numbuf, sizeof (numbuf), "[%s, %s]", u128_to_dec (json_buf1, json_progress_cur), u128_to_dec (json_buf2, hashcat_status->progress_end_relative_skip));
   json_key (&js, "progress");
   json_raw (&js, numbuf);
 
-  json_kv_uint (&js, "restore_point", json_restore_point);
+  json_key (&js, "restore_point");
+  json_raw (&js, u128_to_dec (json_buf1, json_restore_point));
 
   snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->digests_done, hashcat_status->digests_cnt);
   json_key (&js, "recovered_hashes");
@@ -3631,10 +3644,12 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   json_key (&js, "recovered_salts");
   json_raw (&js, numbuf);
 
-  json_kv_uint (&js, "rejected", json_rejected);
+  json_key (&js, "rejected");
+  json_raw (&js, u128_to_dec (json_buf1, json_rejected));
 
   #ifdef WITH_BRAIN
-  json_kv_uint (&js, "brain_rejected_position", hashcat_status->brain_rejects_attacks);
+  json_key (&js, "brain_rejected_position");
+  json_raw (&js, u128_to_dec (json_buf1, hashcat_status->brain_rejects_attacks));
   json_kv_uint (&js, "brain_rejected_candidate", hashcat_status->brain_rejects_hashes);
   #endif
 
@@ -4407,10 +4422,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     const double queue_percent = ((double) hashcat_status->queue_progress_done / (double) hashcat_status->queue_keyspace) * 100;
 
+    char queue_buf1[U128_DEC_SIZE];
+    char queue_buf2[U128_DEC_SIZE];
+
     event_log_info (hashcat_ctx,
-      "Queue.Keyspace...: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-      hashcat_status->queue_progress_done,
-      hashcat_status->queue_keyspace,
+      "Queue.Keyspace...: %s/%s (%.02f%%)",
+      u128_to_dec (queue_buf1, hashcat_status->queue_progress_done),
+      u128_to_dec (queue_buf2, hashcat_status->queue_keyspace),
       queue_percent);
 
     event_log_info (hashcat_ctx,
@@ -4541,20 +4559,23 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
+    char progress_buf1[U128_DEC_SIZE];
+    char progress_buf2[U128_DEC_SIZE];
+
     switch (hashcat_status->progress_mode)
     {
       case PROGRESS_MODE_KEYSPACE_KNOWN:
 
         event_log_info (hashcat_ctx,
-          "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-          hashcat_status->progress_cur_relative_skip,
-          hashcat_status->progress_end_relative_skip,
+          "Progress.........: %s/%s (%.02f%%)",
+          u128_to_dec (progress_buf1, hashcat_status->progress_cur_relative_skip),
+          u128_to_dec (progress_buf2, hashcat_status->progress_end_relative_skip),
           hc_percent_display (hashcat_status->progress_finished_percent));
 
         event_log_info (hashcat_ctx,
-          "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-          hashcat_status->progress_rejected,
-          hashcat_status->progress_cur_relative_skip,
+          "Rejected.........: %s/%s (%.02f%%)",
+          u128_to_dec (progress_buf1, hashcat_status->progress_rejected),
+          u128_to_dec (progress_buf2, hashcat_status->progress_cur_relative_skip),
           hc_percent_display (hashcat_status->progress_rejected_percent));
 
         break;
@@ -4562,12 +4583,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
         event_log_info (hashcat_ctx,
-          "Progress.........: %" PRIu64,
-          hashcat_status->progress_cur_relative_skip);
+          "Progress.........: %s",
+          u128_to_dec (progress_buf1, hashcat_status->progress_cur_relative_skip));
 
         event_log_info (hashcat_ctx,
-          "Rejected.........: %" PRIu64,
-          hashcat_status->progress_rejected);
+          "Rejected.........: %s",
+          u128_to_dec (progress_buf1, hashcat_status->progress_rejected));
 
         break;
     }
@@ -4585,10 +4606,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     // line is the brain's own share of it, split the way the two client features work: position is
     // feature 2 skipping a keyspace range, candidate is feature 1 dropping a word already seen.
 
+    char brain_buf1[U128_DEC_SIZE];
+    char brain_buf2[U128_DEC_SIZE];
+
     event_log_info (hashcat_ctx,
-      "Brain.Rejects....: %" PRIu64 " (position %" PRIu64 ", candidate %" PRIu64 ")",
-      hashcat_status->brain_rejects_attacks + hashcat_status->brain_rejects_hashes,
-      hashcat_status->brain_rejects_attacks,
+      "Brain.Rejects....: %s (position %s, candidate %" PRIu64 ")",
+      u128_to_dec (brain_buf1, hashcat_status->brain_rejects_attacks + hashcat_status->brain_rejects_hashes),
+      u128_to_dec (brain_buf2, hashcat_status->brain_rejects_attacks),
       hashcat_status->brain_rejects_hashes);
 
     if (bridge_ctx->enabled == true)
@@ -4756,14 +4780,17 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
+    char restore_buf1[U128_DEC_SIZE];
+    char restore_buf2[U128_DEC_SIZE];
+
     switch (hashcat_status->progress_mode)
     {
       case PROGRESS_MODE_KEYSPACE_KNOWN:
 
         event_log_info (hashcat_ctx,
-          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)%s",
-          hashcat_status->restore_point,
-          hashcat_status->restore_total,
+          "Restore.Point....: %s/%s (%.02f%%)%s",
+          u128_to_dec (restore_buf1, hashcat_status->restore_point),
+          u128_to_dec (restore_buf2, hashcat_status->restore_total),
           hc_percent_display (hashcat_status->restore_percent),
           totals_buf);
 
@@ -4772,8 +4799,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
         event_log_info (hashcat_ctx,
-          "Restore.Point....: %" PRIu64 "%s",
-          hashcat_status->restore_point,
+          "Restore.Point....: %s%s",
+          u128_to_dec (restore_buf1, hashcat_status->restore_point),
           totals_buf);
 
         break;

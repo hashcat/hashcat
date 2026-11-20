@@ -1658,8 +1658,8 @@ typedef struct pw_pre
 
 typedef struct pw_run
 {
-  u64 pws_idx;    // the first candidate that came from here
-  u64 words_off;  // and its position in the keyspace
+  u64  pws_idx;   // the first candidate that came from here
+  u128 words_off; // and its position in the keyspace
 
 } pw_run_t;
 
@@ -1697,9 +1697,9 @@ typedef struct pw_batch
   // where this batch sits in the keyspace. The restore point may only advance past a batch that has
   // actually been launched, so the figures travel with the batch instead of with the device.
 
-  u64 words_off;
-  u64 words_fin;
-  u64 words_extra;
+  u128 words_off;
+  u128 words_fin;
+  u64  words_extra;
 
   pw_run_t runs_buf[PW_RUNS_MAX];
   u32      runs_cnt;
@@ -1725,7 +1725,7 @@ typedef struct cpt
 
 typedef struct curve_point
 {
-  u64       progress;
+  u128      progress;
   u32       remaining;
 
   // When the point was taken, which is what turns a window of seconds into a span of candidates.
@@ -2155,21 +2155,21 @@ typedef struct hc_device_param
 
   void    *h_tmps; // we need this only for bridges
 
-  u64     words_off;
+  u128    words_off;
 
   // Where the batch being launched starts. words_off above belongs to the producer, which is filling
   // the next batch while this one runs, so by the time a crack is reported it has already moved on.
   // A crack is booked at a position in the keyspace, so that position has to come from the batch and
   // not from wherever the producer happens to have got to.
 
-  u64     words_off_launch;
+  u128    words_off_launch;
 
   // and where inside that batch it goes on from somewhere else, read from the batch while it runs
 
   const pw_run_t *runs_launch_buf;
   u32             runs_launch_cnt;
 
-  u64     words_done;
+  u128    words_done;
 
   u64     outerloop_pos;
 
@@ -2961,6 +2961,11 @@ typedef struct pot_orig_line_entry
 
 } pot_orig_line_entry_t;
 
+// words_cur is the low half of the restore position. A host with the wide u128 writes the high half
+// into the argv slot, which every reader replaces with a pointer of its own after reading. Its
+// pointers are eight bytes, so words_cur_check fits the padding between argc and that slot. A 32-bit
+// host has neither field and no high half to write. See write_restore ().
+
 typedef struct restore_data
 {
   int  version;
@@ -2972,6 +2977,11 @@ typedef struct restore_data
   u64  words_cur;
 
   u32  argc;
+
+  #ifdef U128_WIDE
+  u32  words_cur_check;
+  #endif
+
   char **argv;
 
 } restore_data_t;
@@ -3009,7 +3019,11 @@ typedef struct restore_ctx
 
   u32  dicts_pos_prev;
   u32  masks_pos_prev;
-  u64  words_cur_prev;
+  u128 words_cur_prev;
+
+  // The high half of the position the restore file holds, zero for a file without one.
+
+  u64  words_cur_hi;
 
   // Set while writing the restore file keeps failing, so the error is reported once and not with
   // every update. cycle_restore () runs about once a second.
@@ -3297,8 +3311,8 @@ typedef struct user_options
   u32          stdin_timeout_abort;
   u32          stdin_timeout_flush;
   u32          usage;
-  u64          limit;
-  u64          skip;
+  u128         limit;
+  u128         skip;
   u64          stdin_count;
   bool         hash_copy;
 
@@ -3522,7 +3536,7 @@ typedef struct mask_lookup
   u32   round;      // masks_pos of the round that reached it
   char  mask[0x400]; // as wide as mf_t's, so no mask a maskfile can hold is truncated
 
-  u64   word;       // the -s value, counted from the start of the queue
+  u128  word;       // the -s value, counted from the start of the queue
   u64   amp;        // where in that base word's cell the candidate sits
   u64   amp_cnt;    // how wide the cell is, which is 1 when -s counts candidates
 
@@ -3570,7 +3584,7 @@ typedef struct combi_lookup
   u32   round;
   char  mask[0x400];
 
-  u64   word;       // the -s value, counted from the start of the queue
+  u128  word;       // the -s value, counted from the start of the queue
   u64   amp;        // where in that base word's cell the candidate sits
   u64   amp_cnt;    // how wide the cell is
 
@@ -3665,7 +3679,7 @@ typedef struct mask_ctx
   // before round i, entry masks_cnt is the whole queue. Read by the status thread, so it is
   // built once and never written again.
 
-  u64   *masks_prefix_cnt;
+  u128  *masks_prefix_cnt;
 
   char  *mask;
 
@@ -4130,32 +4144,32 @@ typedef struct hashcat_status
   double      salts_percent;
   int         progress_mode;
   double      progress_finished_percent;
-  u64         progress_cur;
-  u64         progress_cur_relative_skip;
-  u64         progress_done;
-  u64         progress_end;
-  u64         progress_end_relative_skip;
-  u64         progress_ignore;
-  u64         progress_rejected;
+  u128        progress_cur;
+  u128        progress_cur_relative_skip;
+  u128        progress_done;
+  u128        progress_end;
+  u128        progress_end_relative_skip;
+  u128        progress_ignore;
+  u128        progress_rejected;
   double      progress_rejected_percent;
   #ifdef WITH_BRAIN
-  u64         brain_rejects_attacks;
+  u128        brain_rejects_attacks;
   u64         brain_rejects_hashes;
   #endif
-  u64         progress_restored;
-  u64         progress_skip;
+  u128        progress_restored;
+  u128        progress_skip;
 
   // The queue-wide counterparts of progress_end, progress_cur and the two time_estimated strings.
   // queue_keyspace is zero when the run has no mask queue whose keyspace is known, and the other
   // three then carry nothing either.
 
-  u64         queue_keyspace;
-  u64         queue_progress_done;
+  u128        queue_keyspace;
+  u128        queue_progress_done;
   char       *queue_time_estimated_absolute;
   char       *queue_time_estimated_relative;
 
-  u64         restore_point;
-  u64         restore_total;
+  u128        restore_point;
+  u128        restore_total;
   double      restore_percent;
   int         cpt_cur_min;
   int         cpt_cur_hour;
@@ -4179,6 +4193,16 @@ typedef struct hashcat_status
   char   *speed_sec_all;
 
 } hashcat_status_t;
+
+// A keyspace count the core holds but cannot state: a feed whose word count is unknown, or a product
+// or sum that did not fit the type. It is the largest value of the type. A product or sum that could
+// reach this value is checked. One that overflows is set to KEYSPACE_UNSIZED rather than wrapped. A
+// count that lands on exactly this value reads as unsized, which needs a contrived queue of masks.
+//
+// A feed reports the same state as GENERIC_KEYSPACE_UNKNOWN in its own u64. The core turns one into
+// the other where it reads the feed.
+
+#define KEYSPACE_UNSIZED ((u128) ~((u128) 0))
 
 typedef struct status_ctx
 {
@@ -4236,11 +4260,11 @@ typedef struct status_ctx
    * workload
    */
 
-  u64  words_off;               // used by dispatcher; get_work () as offset; attention: needs to be redone on in restore case!
-  u64  words_cur;               // used by dispatcher; the different to words_cur_next is that this counter guarantees that the work from zero to this counter has been actually computed
+  u128 words_off;               // used by dispatcher; get_work () as offset; attention: needs to be redone on in restore case!
+  u128 words_cur;               // used by dispatcher; the different to words_cur_next is that this counter guarantees that the work from zero to this counter has been actually computed
                                 // has been finished actually, can be used for restore point therefore
-  u64  words_base;              // the unamplified max keyspace
-  u64  words_cnt;               // the amplified max keyspace
+  u128 words_base;              // the unamplified max keyspace
+  u128 words_cnt;               // the amplified max keyspace
 
   // What the producer of this round knows its unamplified keyspace to be.
   //
@@ -4250,7 +4274,7 @@ typedef struct status_ctx
   // division recovers the wrong number from a saturated product. A producer that knows the base says
   // so here and the division is not consulted. Zero means it did not, which is every mask.
 
-  u64  words_base_given;
+  u128 words_base_given;
 
   // -i and a mask file are a queue of rounds, and the queue is one keyspace. --skip and --limit
   // address the queue, so each round takes its own share of that window rather than applying the
@@ -4258,28 +4282,28 @@ typedef struct status_ctx
   // into the queue the rounds before this one already got, unamplified and amplified, and --keyspace
   // is what they are for once the queue has been walked.
 
-  u64  words_walk_base;
-  u64  words_walk_cnt;
+  u128 words_walk_base;
+  u128 words_walk_cnt;
 
   // The keyspace of the whole queue of masks, summed by mask_ctx_queue_keyspace () before the first
   // round runs, so that the status screen can measure the run against the whole mask file rather
   // than against the round in progress. Zero means there is no queue of masks or it could not be
-  // sized, and (u64) -1 that the sum did not fit.
+  // sized, and KEYSPACE_UNSIZED that the sum did not fit.
 
-  u64  words_queue_cnt;
+  u128 words_queue_cnt;
 
   // This round's share of the window, both positions in the round's own keyspace. words_limit is
   // zero when the round runs to its own end, which is what --limit not being given means.
 
-  u64  words_skip;
-  u64  words_limit;
+  u128 words_skip;
+  u128 words_limit;
 
   // Where a seek is taking the run, once the devices it stopped have wound down. Only the position is
   // kept, because everything the run counts is a function of it and seek_apply () writes the rest
   // from the position alone.
 
   bool seek_pending;
-  u64  seek_target;
+  u128 seek_target;
 
   // How far the next press of a seek key moves, which way the run of presses is going, and when the
   // last one arrived. A held key repeats and each repeat moves further than the last, so one press
@@ -4294,9 +4318,9 @@ typedef struct status_ctx
    * progress
    */
 
-  u64 *words_progress_done;     // progress number of words done     per salt
-  u64 *words_progress_rejected; // progress number of words rejected per salt
-  u64 *words_progress_restored; // progress number of words restored per salt
+  u128 *words_progress_done;     // progress number of words done     per salt
+  u128 *words_progress_rejected; // progress number of words rejected per salt
+  u128 *words_progress_restored; // progress number of words restored per salt
 
   #ifdef WITH_BRAIN
   // words_progress_rejected mixes every reason a candidate was dropped, so it cannot answer "how much
@@ -4304,8 +4328,8 @@ typedef struct status_ctx
   // are independent: ATTACKS skips a keyspace position another client already reserved, HASHES drops
   // a candidate the brain has seen before whatever position it came from.
 
-  u64 brain_rejects_attacks;
-  u64 brain_rejects_hashes;
+  u128 brain_rejects_attacks;
+  u64  brain_rejects_hashes;
   #endif
 
   int bypass_digests_done_new;  // --bypass-threshold cracked counter
@@ -4328,7 +4352,7 @@ typedef struct status_ctx
   time_t timer_bypass_cur;
 
   bool bypass_eta_checked;      // --bypass-eta decides once per queue item
-  u64  bypass_eta_words_from;   // words_cur when the queue item started
+  u128 bypass_eta_words_from;   // words_cur when the queue item started
 
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict

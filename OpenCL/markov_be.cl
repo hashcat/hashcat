@@ -7,12 +7,13 @@
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_u128.cl)
 #include M2S(INCLUDE_PATH/inc_markov.h)
 #endif
 
 #define CHARSIZ 256
 
-DECLSPEC void generate_pw (PRIVATE_AS u32 *pw_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
+DECLSPEC void generate_pw (PRIVATE_AS u32 *pw_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u128_t val)
 {
   GLOBAL_AS const cs_t *cs = &root_css_buf[pw_r_len];
 
@@ -23,10 +24,7 @@ DECLSPEC void generate_pw (PRIVATE_AS u32 *pw_buf, GLOBAL_AS const cs_t *root_cs
   {
     const u32 len = cs->cs_len;
 
-    const u64 next = val / len;
-    const u64 pos  = val % len;
-
-    val = next;
+    const u32 pos = hc_u128_divmod_u32 (&val, len);
 
     const u32 key = cs->cs_buf[pos];
 
@@ -123,7 +121,9 @@ KERNEL_FQ KERNEL_FA void l_markov (KERN_ATTR_L_MARKOV)
 
   pw.pw_len = pw_l_len + pw_r_len;
 
-  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_l_len, pw_r_len, mask80, bits14, bits15, off + gid);
+  const u128_t val = hc_u128_add_u64 (hc_u128_make (off_hi, off), gid);
+
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_l_len, pw_r_len, mask80, bits14, bits15, val);
 
   pws_buf_l[gid] = pw;
 }
@@ -217,7 +217,7 @@ KERNEL_FQ KERNEL_FA void r_markov (KERN_ATTR_R_MARKOV)
     val /= len;
   }
 
-  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_r_len, 0, 0, 0, 0, fwd);
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_r_len, 0, 0, 0, 0, hc_u128_make (0, fwd));
 
   pws_buf_r[gid].i = pw.i[0];
 }
@@ -297,7 +297,9 @@ KERNEL_FQ KERNEL_FA void C_markov (KERN_ATTR_C_MARKOV)
 
   pw.pw_len = pw_len;
 
-  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_len, 0, mask80, bits14, bits15, off + gid);
+  const u128_t val = hc_u128_add_u64 (hc_u128_make (off_hi, off), gid);
+
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_len, 0, mask80, bits14, bits15, val);
 
   pws_buf[gid] = pw;
 }

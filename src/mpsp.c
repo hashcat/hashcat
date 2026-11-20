@@ -1380,20 +1380,36 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
+static int sp_get_sum (const u32 start, const u32 stop, const cs_t *root_css_buf, u128 *result)
 {
-  u64 sum = 1;
+  u128 sum = 1;
 
   u32 i;
 
   for (i = start; i < stop; i++)
   {
-    if (overflow_check_u64_mul (sum, root_css_buf[i].cs_len) == true) return -1;
+    if (overflow_check_u128_mul (sum, root_css_buf[i].cs_len) == true) return -1;
 
     sum *= root_css_buf[i].cs_len;
   }
 
   *result = sum;
+
+  return 0;
+}
+
+// For the counts that stay u64: a mask piece the feeds count, an amplifier, an inner loop. The keyspace
+// of a -a 3 mask is the one count that may pass 2^64, and it takes sp_get_sum () directly.
+
+static int sp_get_sum_u64 (const u32 start, const u32 stop, const cs_t *root_css_buf, u64 *result)
+{
+  u128 sum = 0;
+
+  if (sp_get_sum (start, stop, root_css_buf, &sum) == -1) return -1;
+
+  if (u128_fits_u64 (sum) == false) return -1;
+
+  *result = u128_lo (sum);
 
   return 0;
 }
@@ -1489,27 +1505,67 @@ static int sp_tbl_to_css (hashcat_ctx_t *hashcat_ctx, hcstat_table_t *root_table
   return 0;
 }
 
-void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
+// One position of the walk, shared by both decoders below: the digit selects the character, which is
+// written out and chooses the charset of the next position. The digits are taken in the order
+// generate_pw () in the markov kernels takes them, so a crack decodes to the candidate the device
+// hashed.
+
+static inline const cs_t *sp_exec_step (const cs_t *cs, const cs_t *markov_css_buf, char *pw_buf, const u32 start, const u32 i, const u32 m)
 {
-  u64 v = ctx;
+  const u32 k = cs->cs_buf[m];
 
-  cs_t *cs = &root_css_buf[start];
+  pw_buf[i - start] = (char) k;
 
-  u32 i;
+  const cs_t *next = &markov_css_buf[(i * CHARSIZ) + k];
 
-  for (i = start; i < stop; i++)
+  return next;
+}
+
+// The rest of a walk below 2^64, from the position from on, where cs is the charset that position
+// takes.
+
+static inline void sp_exec_walk (u64 v, char *pw_buf, const cs_t *cs, const cs_t *markov_css_buf, const u32 start, const u32 from, const u32 stop)
+{
+  for (u32 i = from; i < stop; i++)
   {
     const u64 m = v % cs->cs_len;
     const u64 d = v / cs->cs_len;
 
     v = d;
 
-    const u32 k = cs->cs_buf[m];
-
-    pw_buf[i - start] = (char) k;
-
-    cs = &markov_css_buf[(i * CHARSIZ) + k];
+    cs = sp_exec_step (cs, markov_css_buf, pw_buf, start, i, (u32) m);
   }
+}
+
+void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
+{
+  sp_exec_walk (ctx, pw_buf, &root_css_buf[start], markov_css_buf, start, start, stop);
+}
+
+// Each position divides by a charset size, so a position past 2^64 drops below it after a few steps.
+// Only those steps divide in 128 bits, and the u64 walk takes over from there. A position below 2^64
+// goes straight to the walk, which keeps the library calls of the wide division out of its loop.
+
+void sp_exec_u128 (const u128 ctx, char *pw_buf, const cs_t *root_css_buf, const cs_t *markov_css_buf, const u32 start, const u32 stop)
+{
+  u128 v = ctx;
+
+  const cs_t *cs = &root_css_buf[start];
+
+  u32 i = start;
+
+  while ((i < stop) && (u128_fits_u64 (v) == false))
+  {
+    const u32 m = (u32) (v % cs->cs_len);
+
+    v /= cs->cs_len;
+
+    cs = sp_exec_step (cs, markov_css_buf, pw_buf, start, i, m);
+
+    i++;
+  }
+
+  sp_exec_walk (u128_lo (v), pw_buf, cs, markov_css_buf, start, i, stop);
 }
 
 // The right side of a split mask, the amplifier the device walks in its inner loop, is walked with
@@ -1572,10 +1628,10 @@ void sp_exec_r (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf,
 // A character the arrived-at charset does not hold is a real refusal and the position is reported, so
 // the caller can say whether the mask never allowed it there or --markov-threshold dropped it.
 
-static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u64 *result, u32 *fail_pos)
+static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u128 *result, u32 *fail_pos)
 {
-  u64 off = 0;
-  u64 mul = 1;
+  u128 off = 0;
+  u128 mul = 1;
 
   const cs_t *cs = &root_css_buf[start];
 
@@ -1597,7 +1653,7 @@ static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const
       return false;
     }
 
-    off += (u64) m * mul;
+    off += ((u128) m) * mul;
     mul *= cs->cs_len;
 
     cs = &markov_css_buf[(i * CHARSIZ) + k];
@@ -1608,13 +1664,26 @@ static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const
   return true;
 }
 
+// sp_rank () for a piece of a mask that sp_get_sum_u64 () sized, so its offset fits a u64.
+
+static bool sp_rank_u64 (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u64 *result, u32 *fail_pos)
+{
+  u128 off = 0;
+
+  if (sp_rank (root_css_buf, markov_css_buf, pw_buf, start, stop, &off, fail_pos) == false) return false;
+
+  *result = u128_lo (off);
+
+  return true;
+}
+
 // sp_rank () for the right side, whose offset counts the other way.
 
 static bool sp_rank_r (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u64 *result, u32 *fail_pos)
 {
   u64 left = 0;
 
-  if (sp_rank (root_css_buf, markov_css_buf, pw_buf, start, stop, &left, fail_pos) == false) return false;
+  if (sp_rank_u64 (root_css_buf, markov_css_buf, pw_buf, start, stop, &left, fail_pos) == false) return false;
 
   *result = sp_left_to_right (left, root_css_buf, start, stop);
 
@@ -1643,7 +1712,7 @@ static bool mp_css_allows (const cs_t *css_buf, const u32 css_pos, const u32 chr
 
 static bool mask_ctx_lookup_whole (const mask_ctx_t *mask_ctx, const u8 *pw_buf, const u32 css_cnt_orig)
 {
-  u64 whole = 0;
+  u128 whole = 0;
 
   u32 whole_fail = 0;
 
@@ -1780,8 +1849,8 @@ static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig,
     return;
   }
 
-  u64 amp  = 0;
-  u64 word = 0;
+  u64  amp  = 0;
+  u128 word = 0;
 
   u32 fail_pos = 0;
 
@@ -2441,7 +2510,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // the way the combinator arm multiplies it, because the feed owns both wordlists and counts them
     // itself. What the feed cannot count is the mask, so that is what this reports.
 
-    if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
+    if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -2521,7 +2590,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // set here: the feed reports this as its keyspace and straight_ctx_update_loop multiplies it by
     // the rule count, which is the same arrangement every other feed is counted under.
 
-    if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
+    if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -2568,7 +2637,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (rc_tbl_to_css == -1) return -1;
 
-      if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
+      if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -2611,7 +2680,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (rc_tbl_to_css == -1) return -1;
 
-      if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
+      if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -2862,7 +2931,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         if (run_fixed < css_cnt_lr[1])
         {
-          if (sp_get_sum (run_fixed, css_cnt_lr[1], mask_ctx->root_css_buf, &bfs_run) == -1)
+          if (sp_get_sum_u64 (run_fixed, css_cnt_lr[1], mask_ctx->root_css_buf, &bfs_run) == -1)
           {
             event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -2876,7 +2945,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         mask_ctx->bfs_run_mask = (1u << (run_fixed * 8)) - 1;
       }
 
-      if (sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
+      if (sp_get_sum_u64 (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -3012,7 +3081,7 @@ static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx)
 
     u32 fail_pos = 0;
 
-    if (sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, cand, 0, css_cnt, &mask_off, &fail_pos) == false)
+    if (sp_rank_u64 (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, cand, 0, css_cnt, &mask_off, &fail_pos) == false)
     {
       const u32 chr = cand[fail_pos];
 
@@ -3136,7 +3205,7 @@ static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx)
 
     if (css_cnt > 0)
     {
-      if (sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt, &mask_off, &fail_pos) == false)
+      if (sp_rank_u64 (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt, &mask_off, &fail_pos) == false)
       {
         const u32 chr = pw_buf[fail_pos];
 
@@ -3326,36 +3395,41 @@ void combi_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "lookup: cut as %u bytes of the wordlist and the rest from the mask", lookup->base_len);
   }
 
-  const char *segment = (lookup->mask_base == true) ? NULL : generic_ctx_segment_of (hashcat_ctx, GENERIC_ROLE_BASE, lookup->word);
+  // The segments are a feed's dictionaries, whose positions are u64.
+
+  const char *segment = (lookup->mask_base == true) ? NULL : generic_ctx_segment_of (hashcat_ctx, GENERIC_ROLE_BASE, u128_lo (lookup->word));
 
   const double pct = (double) lookup->word * 100.0 / (double) status_ctx->words_walk_base;
 
+  char lk_buf1[U128_DEC_SIZE];
+  char lk_buf2[U128_DEC_SIZE];
+
   if (segment != NULL)
   {
-    event_log_info (hashcat_ctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", in %s, %.4f%% into the run", lookup->word, status_ctx->words_walk_base, segment, pct);
+    event_log_info (hashcat_ctx, "lookup: base word %s of %s, in %s, %.4f%% into the run", u128_to_dec (lk_buf1, lookup->word), u128_to_dec (lk_buf2, status_ctx->words_walk_base), segment, pct);
   }
   else
   {
-    event_log_info (hashcat_ctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", lookup->word, status_ctx->words_walk_base, pct);
+    event_log_info (hashcat_ctx, "lookup: base word %s of %s, %.4f%% into the run", u128_to_dec (lk_buf1, lookup->word), u128_to_dec (lk_buf2, status_ctx->words_walk_base), pct);
   }
 
-  event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because it counts -s in base words", lookup->word);
+  event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %s, because it counts -s in base words", u128_to_dec (lk_buf1, lookup->word));
 
-  event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one cell of %" PRIu64 " candidates that holds it, where it is number %" PRIu64,
-    lookup->word, lookup->amp_cnt, lookup->amp + 1);
+  event_log_info (hashcat_ctx, "lookup: -s %s -l 1 runs the one cell of %" PRIu64 " candidates that holds it, where it is number %" PRIu64,
+    u128_to_dec (lk_buf1, lookup->word), lookup->amp_cnt, lookup->amp + 1);
 
   if ((user_options->skip != 0) || (user_options->limit != 0))
   {
-    const u64 from = user_options->skip;
-    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+    const u128 from = user_options->skip;
+    const u128 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
 
     if ((lookup->word >= from) && (lookup->word < upto))
     {
-      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+      event_log_info (hashcat_ctx, "lookup: the -s %s -l %s window given here covers it", u128_to_dec (lk_buf1, from), u128_to_dec (lk_buf2, upto - from));
     }
     else
     {
-      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+      event_log_info (hashcat_ctx, "lookup: the -s %s -l %s window given here does not cover it", u128_to_dec (lk_buf1, from), u128_to_dec (lk_buf2, upto - from));
     }
   }
 }
@@ -3457,22 +3531,25 @@ void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   const double pct = (double) lookup->word * 100.0 / (double) status_ctx->words_walk_base;
 
+  char lk_buf1[U128_DEC_SIZE];
+  char lk_buf2[U128_DEC_SIZE];
+
   if (lookup->amp_cnt > 1)
   {
-    event_log_info (hashcat_ctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", lookup->word, status_ctx->words_walk_base, pct);
+    event_log_info (hashcat_ctx, "lookup: base word %s of %s, %.4f%% into the run", u128_to_dec (lk_buf1, lookup->word), u128_to_dec (lk_buf2, status_ctx->words_walk_base), pct);
 
-    event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -a 3 counts -s in base words", lookup->word);
+    event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %s, because -a 3 counts -s in base words", u128_to_dec (lk_buf1, lookup->word));
 
-    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one cell of %" PRIu64 " candidates that holds it, where it is number %" PRIu64,
-      lookup->word, lookup->amp_cnt, lookup->amp + 1);
+    event_log_info (hashcat_ctx, "lookup: -s %s -l 1 runs the one cell of %" PRIu64 " candidates that holds it, where it is number %" PRIu64,
+      u128_to_dec (lk_buf1, lookup->word), lookup->amp_cnt, lookup->amp + 1);
   }
   else
   {
-    event_log_info (hashcat_ctx, "lookup: candidate %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", lookup->word, status_ctx->words_walk_base, pct);
+    event_log_info (hashcat_ctx, "lookup: candidate %s of %s, %.4f%% into the run", u128_to_dec (lk_buf1, lookup->word), u128_to_dec (lk_buf2, status_ctx->words_walk_base), pct);
 
-    event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -S counts -s in candidates", lookup->word);
+    event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %s, because -S counts -s in candidates", u128_to_dec (lk_buf1, lookup->word));
 
-    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one candidate", lookup->word);
+    event_log_info (hashcat_ctx, "lookup: -s %s -l 1 runs the one candidate", u128_to_dec (lk_buf1, lookup->word));
   }
 
   // The other engine holds a different set of candidates whenever --markov-threshold prunes, so an
@@ -3494,16 +3571,16 @@ void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->skip != 0) || (user_options->limit != 0))
   {
-    const u64 from = user_options->skip;
-    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+    const u128 from = user_options->skip;
+    const u128 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
 
     if ((lookup->word >= from) && (lookup->word < upto))
     {
-      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+      event_log_info (hashcat_ctx, "lookup: the -s %s -l %s window given here covers it", u128_to_dec (lk_buf1, from), u128_to_dec (lk_buf2, upto - from));
     }
     else
     {
-      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+      event_log_info (hashcat_ctx, "lookup: the -s %s -l %s window given here does not cover it", u128_to_dec (lk_buf1, from), u128_to_dec (lk_buf2, upto - from));
     }
   }
 }
@@ -3620,11 +3697,12 @@ static int maskfile_split (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, mf_
 // character each, which multiply the product by one, so they are not reproduced here either.
 //
 // A mask a run would pass over adds nothing, exactly as when its round is reached: one outside the
-// mode's length range, one that does not parse, and one whose keyspace does not fit a u64. A mask
-// that does not parse is reported here and reported again when its round parses it, because the
-// parsers are the shared ones and they say what they fail on.
+// mode's length range, one that does not parse, and one whose keyspace does not fit the keyspace
+// type. A mask that does not parse is reported here and reported again when its round parses it,
+// because the parsers are the shared ones and they say what they fail on. A sum that does not fit is
+// KEYSPACE_UNSIZED.
 
-static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_pos, const u32 end_pos)
+static u128 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_pos, const u32 end_pos)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -3648,7 +3726,7 @@ static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_
   mf_t *mfs_buf = (mf_t *) hccalloc (MAX_MFS, sizeof (mf_t));
   cs_t *mp_usr  = (cs_t *) hccalloc (8, sizeof (cs_t));
 
-  u64 queue_cnt = 0;
+  u128 queue_cnt = 0;
 
   for (u32 mask_pos = start_pos; mask_pos < end_pos; mask_pos++)
   {
@@ -3692,13 +3770,13 @@ static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_
 
     if ((css_cnt < hashconfig->pw_min) || (css_cnt > hashconfig->pw_max)) continue;
 
-    u64 mask_cnt = 1;
+    u128 mask_cnt = 1;
 
     for (u32 i = 0; i < css_cnt; i++)
     {
       const u64 cs_len = MIN (mask_ctx->css_buf[i].cs_len, threshold);
 
-      if (overflow_check_u64_mul (mask_cnt, cs_len) == true)
+      if (overflow_check_u128_mul (mask_cnt, cs_len) == true)
       {
         mask_cnt = 0;
 
@@ -3710,9 +3788,9 @@ static u64 mask_ctx_queue_keyspace (hashcat_ctx_t *hashcat_ctx, const u32 start_
 
     if (mask_cnt == 0) continue;
 
-    if (overflow_check_u64_add (queue_cnt, mask_cnt) == true)
+    if (overflow_check_u128_add (queue_cnt, mask_cnt) == true)
     {
-      queue_cnt = UINT64_MAX;
+      queue_cnt = KEYSPACE_UNSIZED;
 
       break;
     }
@@ -3772,8 +3850,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   // markov_table_buf, markov_css_buf and sp_setup_tbl () are at the end of this function rather than
   // here, because how much of them a run needs is a property of the mask queue and the queue does not
   // exist yet. Nothing between here and there reads any of them: sp_tbl_to_css () is the only reader
-  // of the tables, sp_exec () and sp_rank () are the only readers of the css, and all three run per
-  // round.
+  // of the tables, sp_exec (), sp_exec_u128 () and sp_rank () are the only readers of the css, and all
+  // four run per round.
 
   mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX, sizeof (cs_t));
 
@@ -4154,15 +4232,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       // reads them for every estimate, and re-parsing masks there would race the round's own
       // parse of this same context.
 
-      mask_ctx->masks_prefix_cnt = (u64 *) hccalloc (mask_ctx->masks_cnt + 1, sizeof (u64));
+      mask_ctx->masks_prefix_cnt = (u128 *) hccalloc (mask_ctx->masks_cnt + 1, sizeof (u128));
 
       for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
       {
-        const u64 mask_cnt = mask_ctx_queue_keyspace (hashcat_ctx, mask_pos, mask_pos + 1);
+        const u128 mask_cnt = mask_ctx_queue_keyspace (hashcat_ctx, mask_pos, mask_pos + 1);
 
-        if ((mask_cnt == UINT64_MAX) || (overflow_check_u64_add (mask_ctx->masks_prefix_cnt[mask_pos], mask_cnt) == true))
+        if ((mask_cnt == KEYSPACE_UNSIZED) || (overflow_check_u128_add (mask_ctx->masks_prefix_cnt[mask_pos], mask_cnt) == true))
         {
-          mask_ctx->masks_prefix_cnt[mask_pos + 1] = UINT64_MAX;
+          mask_ctx->masks_prefix_cnt[mask_pos + 1] = KEYSPACE_UNSIZED;
         }
         else
         {

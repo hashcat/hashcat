@@ -381,9 +381,9 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HASH_INFO:                 user_options->hash_info++;                                                 break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
       case IDX_SELF_TEST_DISABLE:         user_options->self_test                 = false;                           break;
-      case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
+      case IDX_SKIP:                      hc_strtou128 (optarg, &user_options->skip);
                                           user_options->skip_chgd                 = true;                            break;
-      case IDX_LIMIT:                     user_options->limit                     = hc_strtoull (optarg, NULL, 10);
+      case IDX_LIMIT:                     hc_strtou128 (optarg, &user_options->limit);
                                           user_options->limit_chgd                = true;                            break;
       case IDX_KEEP_GUESSING:             user_options->keep_guessing             = true;                            break;
       case IDX_KEYSPACE:                  user_options->keyspace                  = true;                            break;
@@ -1496,9 +1496,20 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->restore_position = false;
   }
 
+  // From here on --limit is where the window ends. An end past the type's range lies past every
+  // keyspace, and so does the largest value. The sum therefore stops there rather than wrapping to a
+  // position near the start.
+
   if (user_options->skip != 0 && user_options->limit != 0)
   {
-    user_options->limit += user_options->skip;
+    if (overflow_check_u128_add (user_options->limit, user_options->skip) == true)
+    {
+      user_options->limit = U128_MAX;
+    }
+    else
+    {
+      user_options->limit += user_options->skip;
+    }
   }
 
   if (user_options->markov_threshold == 0)
@@ -3480,8 +3491,10 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   logfile_top_string (user_options->brain_host);
   #endif
-  logfile_top_uint64 (user_options->limit);
-  logfile_top_uint64 (user_options->skip);
+
+  logfile_top_uint128 (user_options->limit);
+  logfile_top_uint128 (user_options->skip);
+
   logfile_top_uint64 (user_options->stdin_count);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);

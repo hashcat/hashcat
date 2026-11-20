@@ -13,6 +13,7 @@
 #include "path.h"
 #include "pidfile.h"
 #include "folder.h"
+#include "thread.h"
 #include "restore.h"
 
 #include <time.h>
@@ -315,6 +316,39 @@ static bool restore_arg_is_ours (const char *arg)
 
 static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir);
 
+// The check value ties the argv slot to this low half. An older hashcat writes a pointer back there
+// when that hashcat resumes the file and saves it again, and the check keeps it from being taken for a
+// high half. That older hashcat cannot hold a position past 2^64, so a slot it rewrote is read as a
+// high half of zero.
+
+#ifdef U128_WIDE
+static u32 restore_words_cur_check (const u64 lo, const u64 hi)
+{
+  const u64 mix = lo ^ (hi * 0x9e3779b97f4a7c15ULL) ^ 0x31323862ULL;
+
+  const u32 check = (u32) (mix >> 32) ^ (u32) (mix >> 0);
+
+  return check;
+}
+#endif
+
+static u64 restore_read_words_cur_hi (MAYBE_UNUSED const restore_data_t *rd)
+{
+  #ifdef U128_WIDE
+  if (rd->version < RESTORE_VERSION_WIDE) return 0;
+
+  u64 hi = 0;
+
+  memcpy (&hi, &rd->argv, sizeof (hi));
+
+  if (rd->words_cur_check != restore_words_cur_check (rd->words_cur, hi)) return 0;
+
+  return hi;
+  #else
+  return 0;
+  #endif
+}
+
 static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const bool with_chdir)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -342,6 +376,8 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
 
     return -1;
   }
+
+  restore_ctx->words_cur_hi = restore_read_words_cur_hi (rd);
 
   // cwd is read straight out of the file and everything below reads it as a string. Nothing in the
   // file guarantees a zero appears anywhere in those 256 bytes, and a path filling all of them would
@@ -537,11 +573,10 @@ static void write_restore_failed (hashcat_ctx_t *hashcat_ctx, const char *path, 
   restore_ctx->write_failed = true;
 }
 
-static int write_restore (hashcat_ctx_t *hashcat_ctx)
+static int write_restore (hashcat_ctx_t *hashcat_ctx, const u128 words_cur)
 {
   const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
   const restore_ctx_t  *restore_ctx  = hashcat_ctx->restore_ctx;
-  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
   if (restore_ctx->enabled == false) return 0;
@@ -550,7 +585,22 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   rd->masks_pos = mask_ctx->masks_pos;
   rd->dicts_pos = straight_ctx->dicts_pos;
-  rd->words_cur = status_ctx->words_cur;
+  rd->words_cur = u128_lo (words_cur);
+  rd->version   = RESTORE_VERSION_CUR;
+
+  // What goes into the file: the high half of the position in the argv slot, see restore_data_t.
+  // The struct in memory keeps its own argv, which the lines below still write out.
+
+  restore_data_t rd_disk = *rd;
+
+  #ifdef U128_WIDE
+  const u64 words_cur_hi = u128_hi (words_cur);
+
+  memset (&rd_disk.argv, 0, sizeof (rd_disk.argv));
+  memcpy (&rd_disk.argv, &words_cur_hi, sizeof (words_cur_hi));
+
+  rd_disk.words_cur_check = restore_words_cur_check (rd_disk.words_cur, words_cur_hi);
+  #endif
 
   char *new_restore_file = restore_ctx->new_restore_file;
 
@@ -576,7 +626,7 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
   // reports its own result, and cycle_restore () must not replace the last restore file with a short
   // one.
 
-  bool written = (hc_fwrite (rd, sizeof (restore_data_t), 1, &fp) == 1);
+  bool written = (hc_fwrite (&rd_disk, sizeof (restore_data_t), 1, &fp) == 1);
 
   for (u32 i = 0; i < rd->argc; i++)
   {
@@ -688,13 +738,23 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   if (restore_ctx->enabled == false) return 0;
 
   const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
-  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  // A u128 is two stores, so the position is read once and under the lock the device threads write
+  // it under. A torn read would put the file 2^64 positions off.
+
+  hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+  const u128 words_cur = status_ctx->words_cur;
+
+  hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
   // no updates, no need to write
   if ((restore_ctx->masks_pos_prev == mask_ctx->masks_pos)
    && (restore_ctx->dicts_pos_prev == straight_ctx->dicts_pos)
-   && (restore_ctx->words_cur_prev == status_ctx->words_cur)) return 0;
+   && (restore_ctx->words_cur_prev == words_cur)) return 0;
 
   const char *eff_restore_file = restore_ctx->eff_restore_file;
   const char *new_restore_file = restore_ctx->new_restore_file;
@@ -703,7 +763,7 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   // progress since that file and not the session. The positions count as written only once they are,
   // so a failed write is tried again at the next update even if the positions have not moved.
 
-  if (write_restore (hashcat_ctx) == -1)
+  if (write_restore (hashcat_ctx, words_cur) == -1)
   {
     unlink (new_restore_file);
 
@@ -714,7 +774,7 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 
   restore_ctx->masks_pos_prev = mask_ctx->masks_pos;
   restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
-  restore_ctx->words_cur_prev = status_ctx->words_cur;
+  restore_ctx->words_cur_prev = words_cur;
 
   if (hc_path_exist (eff_restore_file) == true)
   {

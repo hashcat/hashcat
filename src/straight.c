@@ -365,13 +365,13 @@ static int straight_ctx_words_apply (hashcat_ctx_t *hashcat_ctx, const u64 words
   // are all positions in it, and it is what --keyspace answers with. The product is the number of
   // guesses, which only the progress display reads.
   //
-  // So a product too large to hold is not a reason to refuse the run. It saturates, the progress
-  // display is short of the truth in a regime no run reaches the end of anyway, and the base is
-  // stated here rather than recovered by division from a number that no longer divides.
+  // So a product too large to hold is not a reason to refuse the run. With the wide u128 the product
+  // of two u64 always fits. A 32-bit host keeps u64, where an overflow leaves the total unsized, and
+  // the base is stated here rather than recovered by division from a number that no longer divides.
 
   status_ctx->words_base_given = words_cnt;
 
-  status_ctx->words_cnt = (overflow_check_u64_mul (words_cnt, amplifier) == true) ? UINT64_MAX : (words_cnt * amplifier);
+  status_ctx->words_cnt = (overflow_check_u128_mul (words_cnt, amplifier) == true) ? KEYSPACE_UNSIZED : (((u128) words_cnt) * amplifier);
 
   return 0;
 }
@@ -392,7 +392,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   // is only sized a few lines earlier, by mask_ctx_update_loop.
 
   // A pipe comes here too and is the one whose keyspace is never known, so it leaves below with
-  // words_cnt set to GENERIC_KEYSPACE_UNKNOWN and the run has no denominator.
+  // words_cnt set to KEYSPACE_UNSIZED and the run has no denominator.
 
   if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
@@ -439,9 +439,12 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
 
+    // A feed reports an unknown count as GENERIC_KEYSPACE_UNKNOWN in its u64, and the core stores it as
+    // KEYSPACE_UNSIZED.
+
     if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN)
     {
-      status_ctx->words_cnt = GENERIC_KEYSPACE_UNKNOWN;
+      status_ctx->words_cnt = KEYSPACE_UNSIZED;
 
       return 0;
     }
@@ -486,20 +489,21 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // word and a mask together, so the feed counts the words it holds, both wordlists where the mask
     // has a ?q, and the mask is the factor it cannot count for itself.
 
-    u64 base_cnt = generic_ctx->keyspace;
+    u128 base_cnt = generic_ctx->keyspace;
 
     const mask_feed_kind_t mask_feed = mask_feed_kind (user_options);
 
     if (mask_feed == MASK_FEED_MASK) base_cnt = mask_ctx->feed_keyspace;
 
+    // The hybrid base is stated exactly, because inner2_loop () refuses a feed base past 2^64 and has
+    // to see one to refuse it. With a ?q the feed counts the two wordlists itself in its u64, and a
+    // count past 2^64 wraps there before it gets here. On a 32-bit host the product overflows to
+    // KEYSPACE_UNSIZED, and the run addresses at most 2^64-1 base words.
+
     if (mask_feed == MASK_FEED_HYBRID)
     {
-      base_cnt = (overflow_check_u64_mul (generic_ctx->keyspace, mask_ctx->feed_keyspace) == true) ? UINT64_MAX : (generic_ctx->keyspace * mask_ctx->feed_keyspace);
+      base_cnt = (overflow_check_u128_mul (generic_ctx->keyspace, mask_ctx->feed_keyspace) == true) ? KEYSPACE_UNSIZED : (((u128) generic_ctx->keyspace) * mask_ctx->feed_keyspace);
     }
-
-    // As above: the feed's keyspace is the base and is what the run is addressed by, so a product
-    // that does not fit saturates rather than ending the run. A feed that generates its base words
-    // is the only producer whose base is large enough to reach that.
 
     status_ctx->words_base_given = base_cnt;
 
@@ -517,7 +521,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (generic_ctx->global_ctx.dev_rules == true)
       {
-        status_ctx->words_cnt = (overflow_check_u64_mul (dev_total, straight_ctx->kernel_rules_cnt) == true) ? UINT64_MAX : (dev_total * straight_ctx->kernel_rules_cnt);
+        status_ctx->words_cnt = (overflow_check_u128_mul (dev_total, straight_ctx->kernel_rules_cnt) == true) ? KEYSPACE_UNSIZED : (((u128) dev_total) * straight_ctx->kernel_rules_cnt);
       }
       else
       {
@@ -526,7 +530,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      status_ctx->words_cnt = (overflow_check_u64_mul (base_cnt, amplifier) == true) ? UINT64_MAX : (base_cnt * amplifier);
+      status_ctx->words_cnt = (overflow_check_u128_mul (base_cnt, amplifier) == true) ? KEYSPACE_UNSIZED : (base_cnt * amplifier);
     }
 
     return 0;
@@ -673,16 +677,19 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->skip != 0) || (user_options->limit != 0))
   {
-    const u64 from = user_options->skip;
-    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+    const u128 from = user_options->skip;
+    const u128 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+
+    char lk_buf1[U128_DEC_SIZE];
+    char lk_buf2[U128_DEC_SIZE];
 
     if ((index >= from) && (index < upto))
     {
-      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+      event_log_info (hashcat_ctx, "lookup: the -s %s -l %s window given here covers it", u128_to_dec (lk_buf1, from), u128_to_dec (lk_buf2, upto - from));
     }
     else
     {
-      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+      event_log_info (hashcat_ctx, "lookup: the -s %s -l %s window given here does not cover it", u128_to_dec (lk_buf1, from), u128_to_dec (lk_buf2, upto - from));
     }
   }
 }

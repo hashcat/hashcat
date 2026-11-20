@@ -34,6 +34,10 @@
 #define logfile_top_string(var) logfile_top_var_string (#var, (var))
 #define logfile_sub_string(var) logfile_sub_var_string (#var, (var))
 
+// A keyspace value can pass 2^64, and the u64 macros above would cut it, so it goes out as digits.
+
+#define logfile_top_uint128(var) do { char logfile_u128_buf[U128_DEC_SIZE]; logfile_top_var_string (#var, u128_to_dec (logfile_u128_buf, (var))); } while (0)
+
 #ifndef __MINGW_PRINTF_FORMAT
 #define __MINGW_PRINTF_FORMAT printf
 #endif

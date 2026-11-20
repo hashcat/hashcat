@@ -349,8 +349,8 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
-      u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
-      u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
+      const u128 l_off = u128_join (device_param->kernel_params_mp_l_buf64[10], device_param->kernel_params_mp_l_buf64[3]) + gidvid;
+      const u64  r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
 
       u32 l_start = device_param->kernel_params_mp_l_buf32[5];
       u32 r_start = device_param->kernel_params_mp_r_buf32[5];
@@ -358,7 +358,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       u32 l_stop = device_param->kernel_params_mp_l_buf32[4];
       u32 r_stop = device_param->kernel_params_mp_r_buf32[4];
 
-      sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
+      sp_exec_u128 (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
       sp_exec_r (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
 
       plain_len = (int) mask_ctx->css_cnt;
@@ -369,12 +369,12 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       // the way -a 7 puts it together under a pure kernel: the mask from the outer loop position, then
       // the amplifier word behind it.
 
-      const u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
+      const u128 off = u128_join (device_param->kernel_params_mp_buf64[9], device_param->kernel_params_mp_buf64[3]) + gidvid;
 
       const u32 start = 0;
       const u32 stop  = device_param->kernel_params_mp_buf32[4];
 
-      sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+      sp_exec_u128 (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
       plain_len = (int) stop;
 
@@ -458,7 +458,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   return 0;
 }
 
-int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u64 *out_pos)
+int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u128 *out_pos)
 {
   const combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
   const mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
@@ -470,10 +470,10 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   // so this is the position the work item's word came in at, in the batch being launched and not the
   // one the producer has moved on to filling.
 
-  const u64 word_pos = gidvid_to_word_pos (device_param, plain->gidvid);
-  const u32 il_pos   = plain->il_pos;
+  const u128 word_pos = gidvid_to_word_pos (device_param, plain->gidvid);
+  const u32  il_pos   = plain->il_pos;
 
-  u64 crackpos = 0;
+  u128 crackpos = 0;
 
   if (user_options->slow_candidates == true)
   {
@@ -548,9 +548,10 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   const u32 *pool = (amp == true) ? generic_ctx->dev_pool : NULL;
 
   // Where this candidate's base word sat in the feed's own keyspace, which is the same position
-  // build_crackpos () starts from before it multiplies by whatever amplifies.
+  // build_crackpos () starts from before it multiplies by whatever amplifies. Only a feed reaches
+  // here, and inner2_loop () holds a feed's positions to u64.
 
-  const u64 pos = gidvid_to_word_pos (device_param, gidvid);
+  const u64 pos = u128_lo (gidvid_to_word_pos (device_param, gidvid));
 
   const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, cell, pool, base, base_len, (amp == true) ? il_pos : 0, pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
 
@@ -844,7 +845,7 @@ static int outfile_append_fmt (char *buf, const int len, const char *fmt, ...)
   return len + n;
 }
 
-int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, const bool print_eol, char *tmp_buf)
+int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u128 crackpos, const unsigned char *username, const u32 user_len, const bool print_eol, char *tmp_buf)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -1006,7 +1007,9 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
     if (outfile_format & OUTFILE_FMT_CRACKPOS)
     {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "%" PRIu64, crackpos);
+      char crackpos_buf[U128_DEC_SIZE];
+
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "%s", u128_to_dec (crackpos_buf, crackpos));
     }
   }
 

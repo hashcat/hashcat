@@ -1084,7 +1084,7 @@ int generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, c
 
   const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
 
-  const u64 rejected = status_ctx->words_off * amplifier_cnt;
+  const u128 rejected = status_ctx->words_off * amplifier_cnt;
 
   for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {

@@ -142,7 +142,7 @@ The hash file is the base, because the words come out of it, and the phase is wh
 
 `Progress` covers the complete run rather than only the current phase, while its total includes every phase sized so far. Sizing requires opening the phase, and loading the grammar takes several seconds, so the total grows as each phase begins instead of being known at startup. In return, progress never resets or moves backward.
 
-On the grammar phase the total is astronomical and the percentage sits near zero, which is correct. Status field `Time.Estimated` reads `Next Big Bang`, which accurately describes a phase with no end.
+On the grammar phase the total is astronomical and the percentage sits near zero, which is correct. Status field `Time.Estimated` usually reads `Next Century` there, the marker for an estimate of 100 years or more.
 
 ## 7. Seeing what made a candidate
 

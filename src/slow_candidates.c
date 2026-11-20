@@ -111,7 +111,7 @@ static bool slow_candidates_combs_next (hashcat_ctx_t *hashcat_ctx, const int de
 // cur is unused now that neither branch replays, and it stays in the signature because it is what a
 // producer knows without having to work anything out.
 
-void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_UNUSED const u64 cur, const u64 end)
+void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_UNUSED const u128 cur, const u128 end)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
@@ -131,8 +131,10 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
 
     const u64 combs_cnt = combinator_ctx->combs_cnt;
 
-    const u64 base_idx = end / combs_cnt;
-    const u64 comb_idx = end % combs_cnt;
+    // inner2_loop () holds every feed base to u64 positions, so the quotient fits.
+
+    const u64 base_idx = u128_lo (end / combs_cnt);
+    const u64 comb_idx = u128_lo (end % combs_cnt);
 
     // Landing past the end of the feed means there is nothing here to generate. Saying so with the
     // reject flag stops the caller counting a candidate that does not exist.
@@ -171,8 +173,8 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
 
     const u64 rules_cnt = straight_ctx->kernel_rules_cnt;
 
-    const u64 base_idx = end / rules_cnt;
-    const u64 rule_idx = end % rules_cnt;
+    const u64 base_idx = u128_lo (end / rules_cnt);
+    const u64 rule_idx = u128_lo (end % rules_cnt);
 
     if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, extra_info_generic->device_id, base_idx) != 0)
     {
@@ -332,6 +334,6 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
   {
     extra_info_mask_t *extra_info_mask = (extra_info_mask_t *) extra_info;
 
-    sp_exec (extra_info_mask->pos, (char *) extra_info_mask->out_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
+    sp_exec_u128 (extra_info_mask->pos, (char *) extra_info_mask->out_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
   }
 }

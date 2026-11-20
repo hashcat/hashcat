@@ -332,7 +332,7 @@ void pw_batch_reset (pw_batch_t *batch)
 //
 // Both producers stop refilling once the table is full, so the bound below is only a backstop.
 
-void pw_batch_from (pw_batch_t *batch, const u64 words_off)
+void pw_batch_from (pw_batch_t *batch, const u128 words_off)
 {
   if (batch->pws_cnt == 0)
   {

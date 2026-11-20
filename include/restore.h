@@ -24,7 +24,12 @@
 // failure it would let through is silent.
 
 #define RESTORE_VERSION_MIN 720
-#define RESTORE_VERSION_CUR 720
+
+// 810 keeps the high half of a position past 2^64 in the argv slot, see restore_data_t. A 720 file
+// has no high half, which is right for every position it can hold, so the minimum stays.
+
+#define RESTORE_VERSION_CUR  810
+#define RESTORE_VERSION_WIDE 810
 
 void restore_keep_earlier (hashcat_ctx_t *hashcat_ctx);
 

@@ -19,6 +19,7 @@
 #include "timer.h"
 
 #include <stdarg.h>
+#include <inttypes.h>
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
@@ -117,6 +118,93 @@ bool overflow_check_u64_mul (const u64 a, const u64 b)
   if (a == 0 || b == 0) return false;
 
   return a > (UINT64_MAX / b);
+}
+
+bool overflow_check_u128_add (const u128 a, const u128 b)
+{
+  u128 r;
+
+  const bool rc = __builtin_add_overflow (a, b, &r);
+
+  return rc;
+}
+
+bool overflow_check_u128_mul (const u128 a, const u128 b)
+{
+  u128 r;
+
+  const bool rc = __builtin_mul_overflow (a, b, &r);
+
+  return rc;
+}
+
+// Decimal digits into buf, which holds at least U128_DEC_SIZE bytes. Returns buf, so a call can sit
+// directly in a "%s" argument.
+
+const char *u128_to_dec (char *buf, const u128 v)
+{
+  if (u128_fits_u64 (v) == true)
+  {
+    snprintf (buf, U128_DEC_SIZE, "%" PRIu64, u128_lo (v));
+
+    return buf;
+  }
+
+  char tmp[U128_DEC_SIZE];
+
+  u32 len = 0;
+
+  u128 x = v;
+
+  while (x > 0)
+  {
+    tmp[len] = (char) ('0' + (u32) (x % 10));
+
+    len++;
+
+    x /= 10;
+  }
+
+  for (u32 i = 0; i < len; i++) buf[i] = tmp[len - 1 - i];
+
+  buf[len] = 0;
+
+  return buf;
+}
+
+// Decimal only. Refuses an empty string, any character that is not a digit and any value that does
+// not fit, so a value past the type's range is an error rather than a wrapped number.
+
+bool hc_strtou128 (const char *str, u128 *out)
+{
+  if (str == NULL) return false;
+
+  const size_t len = strlen (str);
+
+  if (len == 0) return false;
+
+  u128 v = 0;
+
+  for (size_t i = 0; i < len; i++)
+  {
+    const char c = str[i];
+
+    if ((c < '0') || (c > '9')) return false;
+
+    if (overflow_check_u128_mul (v, 10) == true) return false;
+
+    v *= 10;
+
+    const u128 d = (u128) (c - '0');
+
+    if (overflow_check_u128_add (v, d) == true) return false;
+
+    v += d;
+  }
+
+  *out = v;
+
+  return true;
 }
 
 bool is_power_of_2 (const u32 v)

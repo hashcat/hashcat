@@ -247,6 +247,34 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
   return 0;
 }
 
+#ifdef WITH_BRAIN
+// The brain reserves ranges of the keyspace in u64 positions, on the wire and in the server's
+// database, so a round whose positions pass 2^64 cannot share its work that way. Deduplicating
+// candidates does not depend on positions, so --brain-client-features 1 works for any keyspace.
+//
+// This stops the run rather than skipping the round. --keyspace runs without the brain and cannot
+// skip what this check skips, so a skip would shift every later round away from the positions a
+// chunk cut from --keyspace addresses.
+
+static int inner2_brain_check (hashcat_ctx_t *hashcat_ctx, const rc_final_t round_error)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->brain_client == false) return 0;
+
+  if ((user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS) == 0) return 0;
+
+  if (u128_fits_u64 (status_ctx->words_base) == true) return 0;
+
+  event_log_error (hashcat_ctx, "The keyspace passes 2^64 positions, which a brain cannot reserve. Use --brain-client-features 1.");
+
+  status_set_rc_error (hashcat_ctx, round_error);
+
+  return -1;
+}
+#endif
+
 // inner2_loop iterates through wordlists, then calls kernel execution
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
@@ -320,7 +348,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
     restore_data_t *rd = restore_ctx->rd;
 
-    status_ctx->words_off = rd->words_cur;
+    status_ctx->words_off = u128_join (restore_ctx->words_cur_hi, rd->words_cur);
     status_ctx->words_cur = status_ctx->words_off;
 
     restored = true;
@@ -367,13 +395,59 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const bool base_given = ((status_ctx->words_base_given > 0) && (user_options->slow_candidates == false));
 
-  status_ctx->words_base = (base_given == true) ? status_ctx->words_base_given : (status_ctx->words_cnt / amplifier_cnt);
+  if (base_given == true)
+  {
+    status_ctx->words_base = status_ctx->words_base_given;
+  }
+  else if (status_ctx->words_cnt == KEYSPACE_UNSIZED)
+  {
+    status_ctx->words_base = KEYSPACE_UNSIZED;
+  }
+  else
+  {
+    status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
+  }
+
+  // The feed check below caps an unknown base at 2^64-1 for the run. The queue sum reads this flag
+  // instead, so --keyspace refuses an unknown count on every host.
+
+  const bool base_unsized = (status_ctx->words_base == KEYSPACE_UNSIZED);
+
+  // A round whose feed base this run cannot address is skipped with this error, the same way as a
+  // mask whose keyspace overflows. The queue then goes on with its other rounds, and --keyspace counts
+  // the same rounds a run walks.
+
+  const rc_final_t round_error = (mask_ctx->mask_from_file == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND;
+
+  // A feed addresses its base words with u64 positions, see thread_seek () in feed.h. Every place that
+  // hands a position to a feed narrows it on the strength of this block. A feed whose count is unknown
+  // reaches as far as those positions go, so a --skip or a restore point past that is refused below as
+  // past the keyspace. A base the feed stated past 2^64, which only the hybrid feed can reach, skips
+  // the round.
+
+  if (user_options_extra->base_source == BASE_SOURCE_FEED)
+  {
+    if (status_ctx->words_cnt == KEYSPACE_UNSIZED) status_ctx->words_base = MIN (status_ctx->words_base, (u128) UINT64_MAX);
+
+    if (u128_fits_u64 (status_ctx->words_base_given) == false)
+    {
+      event_log_error (hashcat_ctx, "The keyspace passes 2^64 base words, which this attack cannot address. Split the wordlist or the mask.");
+
+      status_set_rc_error (hashcat_ctx, round_error);
+
+      return 0;
+    }
+  }
+
+  #ifdef WITH_BRAIN
+  if (inner2_brain_check (hashcat_ctx, round_error) == -1) return -1;
+  #endif
 
   // Where this round sits in the queue, and how much longer the queue is now. A mask that was skipped
   // for being too short or too long returned above and adds nothing, which is right: it is not part
   // of the keyspace and --keyspace must not count it.
 
-  const u64 walk_first = status_ctx->words_walk_base;
+  const u128 walk_first = status_ctx->words_walk_base;
 
   // --lookup answered in this round's own numbering, because that is the only numbering the round's
   // tables know. --skip addresses the queue, so the answer is moved into the queue's here, where how
@@ -393,15 +467,17 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   // How much the whole queue holds, summed as each round of it is sized. A round that cannot be counted
-  // reports UINT64_MAX, which is hashcat's way of saying more than a u64 holds, and adding anything to
-  // that wraps. The status line then measures the progress against a total smaller than itself:
-  // -a 9 with phases=rules,pcfg and -r rules/best66.rule reported 2528130 of 65999.
+  // reports KEYSPACE_UNSIZED. A sum that passes what the type holds is set to KEYSPACE_UNSIZED as well,
+  // and adding to it keeps it there. A wrapped sum would measure the progress against a total smaller
+  // than itself, such as 2528130 of 65999 for -a 9 with phases=rules,pcfg and -r rules/best66.rule.
 
-  const bool walk_base_over = overflow_check_u64_add (status_ctx->words_walk_base, status_ctx->words_base);
-  const bool walk_cnt_over  = overflow_check_u64_add (status_ctx->words_walk_cnt,  status_ctx->words_cnt);
+  const bool cnt_unsized = (status_ctx->words_cnt == KEYSPACE_UNSIZED);
 
-  status_ctx->words_walk_base = (walk_base_over == true) ? UINT64_MAX : (status_ctx->words_walk_base + status_ctx->words_base);
-  status_ctx->words_walk_cnt  = (walk_cnt_over  == true) ? UINT64_MAX : (status_ctx->words_walk_cnt  + status_ctx->words_cnt);
+  const bool walk_base_over = (base_unsized == true) || (overflow_check_u128_add (status_ctx->words_walk_base, status_ctx->words_base) == true);
+  const bool walk_cnt_over  = (cnt_unsized  == true) || (overflow_check_u128_add (status_ctx->words_walk_cnt,  status_ctx->words_cnt)  == true);
+
+  status_ctx->words_walk_base = (walk_base_over == true) ? KEYSPACE_UNSIZED : (status_ctx->words_walk_base + status_ctx->words_base);
+  status_ctx->words_walk_cnt  = (walk_cnt_over  == true) ? KEYSPACE_UNSIZED : (status_ctx->words_walk_cnt  + status_ctx->words_cnt);
 
   // --keyspace answers for the whole queue, so every round is sized and none of them is run. The
   // total is reported once the queue has been walked, by outer_loop.
@@ -511,7 +587,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (device_id == -1) return -1;
 
-    if (generic_ctx_base_discard (hashcat_ctx, device_id, status_ctx->words_off) == -1) return -1;
+    // A pipe cannot count itself, so the position is within u64, see the feed check above.
+
+    if (generic_ctx_base_discard (hashcat_ctx, device_id, u128_lo (status_ctx->words_off)) == -1) return -1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
@@ -526,19 +604,19 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
     const u32 salts_cnt = hashes->salts_cnt;
 
-    const u64 rounds = (salts_cnt > 0) ? (status_ctx->words_off / salts_cnt) : 0;
-    const u32 extra  = (salts_cnt > 0) ? (u32) (status_ctx->words_off % salts_cnt) : 0;
+    const u128 rounds = (salts_cnt > 0) ? (status_ctx->words_off / salts_cnt) : 0;
+    const u32  extra  = (salts_cnt > 0) ? (u32) (status_ctx->words_off % salts_cnt) : 0;
 
     for (u32 i = 0; i < salts_cnt; i++)
     {
-      const u64 done = rounds + ((i < extra) ? 1 : 0);
+      const u128 done = rounds + ((i < extra) ? 1 : 0);
 
       status_ctx->words_progress_restored[i] = done * amplifier_cnt;
     }
   }
   else
   {
-    const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
+    const u128 progress_restored = status_ctx->words_off * amplifier_cnt;
 
     for (u32 i = 0; i < hashes->salts_cnt; i++)
     {
@@ -2064,15 +2142,38 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
   // the answer exists. One number, whether the queue held one round or fifty, which is what lets
-  // --skip and --limit address it.
+  // --skip and --limit address it. A skipped round leaves the sum of the rounds that can run. An
+  // aborted walk has no answer.
 
-  if (user_options->keyspace == true)
+  if ((user_options->keyspace == true) && (status_ctx->devices_status != STATUS_ABORTED))
   {
     status_ctx->words_base = status_ctx->words_walk_base;
     status_ctx->words_cnt  = status_ctx->words_walk_cnt;
 
-    EVENT (EVENT_CALCULATED_WORDS_BASE);
-    EVENT (EVENT_CALCULATED_WORDS_CNT);
+    // A count that cannot be stated is an error rather than a number. Printing the largest value would
+    // hand a controller a keyspace to cut chunks from that does not exist. --lookup prints neither
+    // figure, so neither check applies to it.
+
+    const bool asks_base = (user_options->lookup == NULL) && (user_options->total_candidates == false);
+    const bool asks_cnt  = (user_options->lookup == NULL) && (user_options->total_candidates == true);
+
+    const bool unsized_base = (asks_base == true) && (status_ctx->words_base == KEYSPACE_UNSIZED);
+    const bool unsized_cnt  = (asks_cnt  == true) && (status_ctx->words_cnt  == KEYSPACE_UNSIZED);
+
+    if (unsized_base == true) event_log_error (hashcat_ctx, "The keyspace cannot be stated.");
+    if (unsized_cnt  == true) event_log_error (hashcat_ctx, "The number of candidates cannot be stated.");
+
+    if ((unsized_base == true) || (unsized_cnt == true))
+    {
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+      rc_outer = -1;
+    }
+    else
+    {
+      EVENT (EVENT_CALCULATED_WORDS_BASE);
+      EVENT (EVENT_CALCULATED_WORDS_CNT);
+    }
   }
 
   // --lookup borrows --keyspace to have every round sized, and answers here for the same reason

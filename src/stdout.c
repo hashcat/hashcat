@@ -280,12 +280,19 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   }
   else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
+    // Every candidate passes through this loop. A batch whose base positions all fit a u64 is decoded
+    // by sp_exec (), which keeps the wide arithmetic out of it for every run below 2^64.
+
+    const u128 l_base = u128_join (device_param->kernel_params_mp_l_buf64[10], device_param->kernel_params_mp_l_buf64[3]);
+
+    const bool l_narrow = u128_fits_u64 (l_base + pws_cnt);
+
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
-        u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
+        const u128 l_off = l_base + gidvid;
+        const u64  r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
 
         u32 l_start = device_param->kernel_params_mp_l_buf32[5];
         u32 r_start = device_param->kernel_params_mp_r_buf32[5];
@@ -293,7 +300,15 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         u32 l_stop = device_param->kernel_params_mp_l_buf32[4];
         u32 r_stop = device_param->kernel_params_mp_r_buf32[4];
 
-        sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
+        if (l_narrow == true)
+        {
+          sp_exec (u128_lo (l_off), (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
+        }
+        else
+        {
+          sp_exec_u128 (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
+        }
+
         sp_exec_r (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
 
         plain_len = mask_ctx->css_cnt;
@@ -312,12 +327,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     {
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
+        const u128 off = u128_join (device_param->kernel_params_mp_buf64[9], device_param->kernel_params_mp_buf64[3]) + gidvid;
 
         u32 start = 0;
         u32 stop  = device_param->kernel_params_mp_buf32[4];
 
-        sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+        sp_exec_u128 (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
         plain_len = stop;
 

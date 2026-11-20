@@ -115,11 +115,15 @@ static void pcfg_order_batch (pw_idx_t *pws_idx, pcfg_cell_t *cells, const u64 c
   hcfree (ord);
 }
 
-static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
+// Both run with mux_dispatcher held. So does every update of words_done and words_cur while the
+// device threads run. A u128 is two stores, and a torn read would move the restore point by 2^64.
+// The setup of a round in inner2_loop () writes them without the lock.
+
+static u128 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  u64 words_cur = 0;
+  u128 words_cur = 0;
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -128,7 +132,7 @@ static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped == true) continue;
     if (device_param->skipped_warning == true) continue;
 
-    const u64 words_done = device_param->words_done;
+    const u128 words_done = device_param->words_done;
 
     if (words_done > words_cur) words_cur = words_done;
   }
@@ -136,11 +140,11 @@ static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
   return words_cur;
 }
 
-static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
+static u128 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  u64 words_cur = 0xffffffffffffffff;
+  u128 words_cur = U128_MAX;
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -149,7 +153,7 @@ static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped == true) continue;
     if (device_param->skipped_warning == true) continue;
 
-    const u64 words_done = device_param->words_done;
+    const u128 words_done = device_param->words_done;
 
     if (words_done < words_cur) words_cur = words_done;
   }
@@ -210,8 +214,8 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   // are a queue of rounds and the queue is one keyspace, so a round that starts part way into the
   // window stops part way into it as well.
 
-  const u64 words_off  = status_ctx->words_off;
-  const u64 words_base = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
+  const u128 words_off  = status_ctx->words_off;
+  const u128 words_base = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
 
   device_param->words_off = words_off;
 
@@ -219,22 +223,24 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // words_off can start beyond the keyspace. The brain sets it to the highest position the session
   // has already reached, and a later run of the same attack can have a smaller keyspace: fewer rules,
-  // a tighter --limit, a wordlist that shrank. Unsigned subtraction then wraps to about 1.8e19, work
-  // never runs out and the attack never finishes.
+  // a tighter --limit, a wordlist that shrank. Unsigned subtraction then wraps, work never runs out
+  // and the attack never finishes.
 
-  const u64 words_left = (words_off < words_base) ? words_base - words_off : 0;
+  const u128 words_left = (words_off < words_base) ? words_base - words_off : 0;
 
   if (words_left < kernel_power_all)
   {
     if (backend_ctx->kernel_power_final == 0)
     {
-      set_kernel_power_final (hashcat_ctx, words_left);
+      set_kernel_power_final (hashcat_ctx, u128_lo (words_left));
     }
   }
 
   const u64 kernel_power = get_power (backend_ctx, device_param);
 
-  u64 work = MIN (words_left, kernel_power);
+  // What is left of the keyspace can pass 2^64. A launch cannot, so the capped work is a u64.
+
+  u64 work = u128_lo (MIN (words_left, (u128) kernel_power));
 
   work = MIN (work, max);
 
@@ -258,7 +264,7 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (salts_cnt > 0)
     {
-      const u64 round_left = salts_cnt - (words_off % salts_cnt);
+      const u64 round_left = salts_cnt - u128_lo (words_off % salts_cnt);
 
       work = MIN (work, round_left);
     }
@@ -279,7 +285,7 @@ typedef struct slow_fill_state
 {
   void *extra_info;
 
-  u64       *pos;
+  u128      *pos;
   const u8  *out_buf;
   const u32 *out_len;
 
@@ -293,7 +299,7 @@ typedef struct slow_fill_state
 
   const bool *reject;          // NULL when the mode can never refuse a candidate it was asked for
 
-  u64 words_cur;
+  u128 words_cur;
 
   #ifdef WITH_BRAIN
   u64 brain_highest;
@@ -338,7 +344,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   // Where the last chunk this batch walked ended. A chunk that goes on from there continues the run
   // the batch is in, and one that does not starts a run of its own.
 
-  u64 walked_fin = 0;
+  u128 walked_fin = 0;
 
   while (pre_rejects > pre_rejects_ignore)
   {
@@ -384,7 +390,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       words_extra = 0;
 
-      u64 words_off = device_param->words_off;
+      u128 words_off = device_param->words_off;
 
       #ifdef WITH_BRAIN
       if (user_options->brain_client == true)
@@ -403,7 +409,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         {
           u64 overlap = 0;
 
-          if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
+          if (brain_client_reserve (device_param, status_ctx, u128_lo (words_off), work, &overlap) == false)
           {
             brain_client_disconnect (device_param);
           }
@@ -418,7 +424,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       }
       #endif
 
-      const u64 words_fin = words_off + work;
+      const u128 words_fin = words_off + work;
 
       // Where this batch starts in the keyspace. fill_generic () sets the same field and this did not,
       // so under --slow-candidates words_off_launch stayed 0 for every launch and everything that
@@ -459,7 +465,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       sc->words_cur = words_off;
 
-      for (u64 i = sc->words_cur; i < words_fin; i++)
+      for (u128 i = sc->words_cur; i < words_fin; i++)
       {
         sc->pos[0] = i;
 
@@ -842,7 +848,9 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     words_extra = 0;
 
-    u64 words_off = device_param->words_off;
+    // inner2_loop () holds every feed base to u64 positions, so the position fits.
+
+    u64 words_off = u128_lo (device_param->words_off);
 
     #ifdef WITH_BRAIN
     if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
@@ -1187,9 +1195,9 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // flush
     //
 
-    const u64 pws_cnt   = batch->pws_cnt;
-    const u64 words_off = batch->words_off;
-    const u64 words_fin = batch->words_fin;
+    const u64  pws_cnt   = batch->pws_cnt;
+    const u128 words_off = batch->words_off;
+    const u128 words_fin = batch->words_fin;
 
     device_param->pws_idx  = batch->pws_idx;
     device_param->pws_comp = batch->pws_comp;
@@ -1231,7 +1239,7 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       pipe_acc (device_param, PIPE_COPY, &timer_copy);
 
-      const u64 pws_pos = (slow == true) ? (u64) -1 : words_off;
+      const u128 pws_pos = (slow == true) ? U128_MAX : words_off;
 
       if (run_cracker (hashcat_ctx, device_param, pws_pos, pws_cnt) == -1)
       {
@@ -1272,9 +1280,13 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (status_ctx->run_thread_level2 == true)
     {
+      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
       device_param->words_done = MAX (device_param->words_done, words_fin);
 
       status_ctx->words_cur = (slow == true) ? get_highest_words_done (hashcat_ctx) : get_lowest_words_done (hashcat_ctx);
+
+      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
     }
 
     if (status_ctx->run_thread_level1 == false) break;
@@ -1544,13 +1556,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (work == 0) break;
 
-        u64 words_off = device_param->words_off;
+        u128 words_off = device_param->words_off;
 
         // Where this chunk ends, which is what the keyspace has been advanced past once the launch
         // returns. It is the whole chunk rather than the part that survived the brain, because ground
         // the brain already covered is still ground this run does not have to come back to.
 
-        const u64 words_fin = words_off + work;
+        const u128 words_fin = words_off + work;
 
         u64 work_cur = work;
 
@@ -1559,7 +1571,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         {
           u64 overlap = 0;
 
-          if (brain_client_reserve (device_param, status_ctx, words_off, work_cur, &overlap) == false)
+          if (brain_client_reserve (device_param, status_ctx, u128_lo (words_off), work_cur, &overlap) == false)
           {
             brain_client_disconnect (device_param);
           }
@@ -1595,9 +1607,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           {
             if (status_ctx->run_thread_level2 == true)
             {
+              hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
               device_param->words_done = MAX (device_param->words_done, words_fin);
 
               status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+
+              hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
             }
 
             continue;
@@ -1658,9 +1674,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (status_ctx->run_thread_level2 == true)
         {
+          hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
           device_param->words_done = MAX (device_param->words_done, words_fin);
 
           status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+
+          hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
         }
       }
     }
