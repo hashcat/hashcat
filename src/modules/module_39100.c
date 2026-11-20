@@ -26,6 +26,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COMBI_PURE_SWAP;
+static const u64   KERN_BITS      = KERN_BIT_TM;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5tgs$1$user$realm$0a47b86e58028355b853b493fde21c3b$71dc52f58d538ed229fb3b0ce43e9a0e4801773037e956cff5547b558e295dbc0a89a48c7efb1b5c6fd856a37db0adea1a76fefcf8a922d4d5c288cc69e542b5de3eb02876e0e018783b3fcd5b9fe8f0b8b208928c8912a5039812078d5b100e4914875c8d8178ff41756945496d507b1a062f52c28b79f9668171a8cf3d2a3ebb97d5d6ba5a136f0d9845b14058455e681f7b067177a96c5cfc20fb78a04b8838f6b86dd52fb316e74ab1c884bdae20";
@@ -68,6 +69,11 @@ static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u64 esalt_size = (const u64) sizeof (krb5tgs_1_t);
 
   return esalt_size;
+}
+
+static u64 module_kern_bits (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return KERN_BITS;
 }
 
 static u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -332,5 +338,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_pw_max                   = module_pw_max;
 }

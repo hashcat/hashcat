@@ -25,6 +25,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COMBI_PURE_SWAP;
+static const u64   KERN_BITS      = KERN_BIT_TM;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5pa$1$user$realm$d14232b792340ad0602eb4be61e1d559$52b90599796726835e3562f6ad2f9c840d0978312ddd5317";
@@ -62,6 +63,11 @@ static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u64 esalt_size = (const u64) sizeof (krb5pa_1_t);
 
   return esalt_size;
+}
+
+static u64 module_kern_bits (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return KERN_BITS;
 }
 
 static u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -324,5 +330,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_pw_max                   = module_pw_max;
 }

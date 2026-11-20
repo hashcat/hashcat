@@ -27,6 +27,20 @@ CLEARTEXT_ASREP = (
     "b72627467741b0b6578616d706c652e636f6d"
 )
 
+# The same reply with a longer realm in srealm and sname. At 278 bytes its length is on two bytes
+# behind 0x82, where the one above has it on one behind 0x81.
+
+CLEARTEXT_ASREP_LONG = (
+    "798201123082010ea01b3019a003020111a1120410e2aa1c894df723b7277eef29700bf7"
+    "60a11c301a3018a003020100a111180f32303233303333313132303434355aa20602041d"
+    "9d970ba311180f32303337303931343032343830355aa40703050040c10000a511180f32"
+    "303233303333313132303434355aa611180f32303233303333313132303434355aa71118"
+    "0f32303233303333313232303434355aa811180f32303233303430373132303434355aa9"
+    "261b24574f524b53544154494f4e532e454e47494e454552494e472e4558414d504c452e"
+    "434f4daa393037a003020102a130302e1b066b72627467741b24776f726b73746174696f"
+    "6e732e656e67696e656572696e672e6578616d706c652e636f6d"
+)
+
 
 def _encrypt(key, data):
     return DES.new(key, DES.MODE_CBC, key).encrypt(data)
@@ -94,7 +108,7 @@ def module_generate_hash(
     key = string_to_key(word, (realm.upper() + user).encode())
 
     if edata2 is None:
-        cipher = _wrap(key, bytes.fromhex(CLEARTEXT_ASREP))
+        cipher = _wrap(key, bytes.fromhex(random.choice((CLEARTEXT_ASREP, CLEARTEXT_ASREP_LONG))))
     else:
         cipher = bytes.fromhex(checksum + edata2)
 
