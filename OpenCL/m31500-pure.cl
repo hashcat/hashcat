@@ -63,6 +63,15 @@ KERNEL_FQ KERNEL_FA void m31500_init (KERN_ATTR_TMPS (dcc_tmp_t))
   in[ 6] = pws[gid].i[ 6];
   in[ 7] = pws[gid].i[ 7];
 
+  if (is_valid_hex_32_incl_uppercase (in[0]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[1]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[2]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[3]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[4]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[5]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[6]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[7]) == 0) return;
+
   u32 out[4];
 
   PRIVATE_AS u8 *in_ptr  = (PRIVATE_AS u8 *) in;
@@ -94,6 +103,16 @@ KERNEL_FQ KERNEL_FA void m31500_comp (KERN_ATTR_TMPS (dcc_tmp_t))
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
+
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[0]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[1]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[2]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[3]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[4]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[5]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[6]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (pws[gid].i[7]) == 0) return;
+
 
  /**
    * salt
