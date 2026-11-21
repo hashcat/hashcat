@@ -33,7 +33,7 @@ DECLSPEC void u32_to_hex_utf16le (const u32 val, PRIVATE_AS u32 *out)
   out[3] = nib_to_hex (b3 >> 4) | (nib_to_hex (b3 & 0xf) << 16);
 }
 
-KERNEL_FQ KERNEL_FA void m1001_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01001_mxx (KERN_ATTR_BASIC ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
@@ -78,7 +78,7 @@ KERNEL_FQ KERNEL_FA void m1001_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ KERNEL_FA void m1001_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01001_sxx (KERN_ATTR_BASIC ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
