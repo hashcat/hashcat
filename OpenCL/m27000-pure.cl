@@ -117,6 +117,15 @@ KERNEL_FQ KERNEL_FA void m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netnt
   in[ 6] = pws[gid].i[ 6];
   in[ 7] = pws[gid].i[ 7];
 
+  if (is_valid_hex_32_incl_uppercase (in[0]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[1]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[2]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[3]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[4]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[5]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[6]) == 0) return;
+  if (is_valid_hex_32_incl_uppercase (in[7]) == 0) return;
+
   u32 out[4];
 
   PRIVATE_AS u8 *in_ptr  = (PRIVATE_AS u8 *) in;
