@@ -64,7 +64,21 @@ DECLSPEC bool krb5_des_crc_encpart_check (PRIVATE_AS const u32 *key, GLOBAL_AS c
         (p[1] & 0x00ff80ff) != 0x0030007a &&
         (p[1] & 0xff00ffff) != 0x30008179 &&
         (p[1] & 0xff00ffff) != 0x3000817a)
-      return false;
+    {
+      // A length of 256 or more is on two bytes behind 0x82, which puts the 0x30 of the SEQUENCE at
+      // the start of the next block.
+
+      if (((p[1] & 0x0000ffff) != 0x00008279) && ((p[1] & 0x0000ffff) != 0x0000827a)) return false;
+
+      c[0] = edata2[0];
+      c[1] = edata2[1];
+
+      _des_crypt_decrypt (p, c, Kc, Kd, s_SPtrans);
+
+      p[0] ^= checksum[2];
+
+      if ((p[0] & 0x000000ff) != 0x00000030) return false;
+    }
   }
 
   // full decrypt with IV=key and incremental CRC32 verification
