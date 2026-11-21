@@ -5199,7 +5199,7 @@ static bool span_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const u32 fixe
   return true;
 }
 
-static bool pin_walk (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t *pin, const u32 vi, const u32 spent, u16 *chosen)
+static bool pin_walk (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t *pin, const u32 *rest_lo, const u32 vi, const u32 spent, u16 *chosen)
 {
   const pcfg_global_t *pg = pc->pg;
 
@@ -5237,16 +5237,31 @@ static bool pin_walk (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_
     if (((pin->len[vi][len / 32] >> (len % 32)) & 1) == 0) continue;
 
     // The lengths come in ascending order, so once one of them puts the total past the ceiling the
-    // longer ones do as well. An open slot spends at least its shortest word on top.
+    // longer ones do as well. An open slot spends at least its shortest word on top, and so does every
+    // pinned slot behind this one.
 
-    if ((spent + len + pin->open_lo) > pg->pwmax) break;
+    if ((spent + len + rest_lo[vi + 1] + pin->open_lo) > pg->pwmax) break;
 
     chosen[vi] = (u16) len;
 
-    if (pin_walk (pc, s, pin, vi + 1, spent + len, chosen) == false) return false;
+    if (pin_walk (pc, s, pin, rest_lo, vi + 1, spent + len, chosen) == false) return false;
   }
 
   return true;
+}
+
+// The shortest length a pinned slot's words come in, or one past the longest there is where it has none.
+
+static u32 pin_shortest (const pcfg_pin_t *pin, const u32 vi)
+{
+  for (u32 len = 1; len <= PW_MAX; len++)
+  {
+    if (((pin->len[vi][len / 32] >> (len % 32)) & 1) == 1) return len;
+  }
+
+  const u32 none = PW_MAX + 1;
+
+  return none;
 }
 
 // Every combination of the pinned slots' lengths that lands inside the bound, each a structure of its
@@ -5264,9 +5279,20 @@ static bool pin_try (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t
 
   if (pin->open < PCFG_MAXSLOT) rest -= pin->open_lo;
 
+  // The fewest bytes the pinned slots from each one on can still spend. Without it the walk stops only
+  // where the slot it is choosing overflows the ceiling, and a prefix the slots behind it cannot fit is
+  // walked down to every one of its leaves. On a structure of many pinned slots that is most of a very
+  // large tree, and none of it is emitted, so the cap on combinations never ends the walk either.
+
+  u32 rest_lo[PCFG_MAXSLOT + 1];
+
+  rest_lo[pin->cnt] = 0;
+
+  for (u32 i = pin->cnt; i-- > 0; ) rest_lo[i] = rest_lo[i + 1] + pin_shortest (pin, i);
+
   u16 chosen[PCFG_MAXSLOT];
 
-  if (pin_walk (pc, s, pin, 0, rest, chosen) == true) return true;
+  if (pin_walk (pc, s, pin, rest_lo, 0, rest, chosen) == true) return true;
 
   if (pc->over == false) return false;
 
