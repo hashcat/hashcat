@@ -1480,9 +1480,10 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
 
 // --stdin-count counts lines, and a line is a base word, so it is amplified the way every other base
 // word count is. Both multiplications are checked because the count is whatever the user typed, and
-// a wrapped total would read as a percentage rather than as no hint at all.
+// a wrapped total would read as a percentage rather than as no hint at all. They are made in 128 bits,
+// as the keyspace they stand in for is, so a hint times the rules and the salts can pass 2^64.
 
-static u64 status_get_stdin_count_words (const hashcat_ctx_t *hashcat_ctx)
+static u128 status_get_stdin_count_words (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -1493,24 +1494,24 @@ static u64 status_get_stdin_count_words (const hashcat_ctx_t *hashcat_ctx)
 
   const u64 amplifier = user_options_extra_amplifier ((hashcat_ctx_t *) hashcat_ctx);
 
-  if (overflow_check_u64_mul (user_options->stdin_count, amplifier) == true) return 0;
+  if (overflow_check_u128_mul (user_options->stdin_count, amplifier) == true) return 0;
 
-  const u64 stdin_count_words = user_options->stdin_count * amplifier;
+  const u128 stdin_count_words = (u128) user_options->stdin_count * amplifier;
 
   return stdin_count_words;
 }
 
-static u64 status_get_stdin_count_end (const hashcat_ctx_t *hashcat_ctx)
+static u128 status_get_stdin_count_end (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
-  const u64 stdin_count_words = status_get_stdin_count_words (hashcat_ctx);
+  const u128 stdin_count_words = status_get_stdin_count_words (hashcat_ctx);
 
   if (stdin_count_words == 0) return 0;
 
-  if (overflow_check_u64_mul (stdin_count_words, hashes->salts_cnt) == true) return 0;
+  if (overflow_check_u128_mul (stdin_count_words, hashes->salts_cnt) == true) return 0;
 
-  const u64 stdin_count_end = stdin_count_words * hashes->salts_cnt;
+  const u128 stdin_count_end = stdin_count_words * hashes->salts_cnt;
 
   // A --skip at or past the hint leaves nothing to measure against, and the figures relative to the
   // skip would wrap.
@@ -1522,7 +1523,7 @@ static u64 status_get_stdin_count_end (const hashcat_ctx_t *hashcat_ctx)
 
 bool status_get_stdin_count_exceeded (const hashcat_ctx_t *hashcat_ctx)
 {
-  const u64 stdin_count_end = status_get_stdin_count_end (hashcat_ctx);
+  const u128 stdin_count_end = status_get_stdin_count_end (hashcat_ctx);
 
   if (stdin_count_end == 0) return false;
 

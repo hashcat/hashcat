@@ -1398,8 +1398,9 @@ static int sp_get_sum (const u32 start, const u32 stop, const cs_t *root_css_buf
   return 0;
 }
 
-// For the counts that stay u64: a mask piece the feeds count, an amplifier, an inner loop. The keyspace
-// of a -a 3 mask is the one count that may pass 2^64, and it takes sp_get_sum () directly.
+// For the counts that stay u64: a mask piece the hybrid feed counts, an amplifier, an inner loop. The
+// keyspace of a -a 3 mask, with or without rules, is the one count that may pass 2^64, and it takes
+// sp_get_sum () directly.
 
 static int sp_get_sum_u64 (const u32 start, const u32 stop, const cs_t *root_css_buf, u64 *result)
 {
@@ -2509,8 +2510,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // How many values this mask holds, and nothing else. The ?q wordlist is not multiplied in here
     // the way the combinator arm multiplies it, because the feed owns both wordlists and counts them
     // itself. What the feed cannot count is the mask, so that is what this reports.
+    //
+    // The hybrid feed steps through the mask in a u64, so a mask past 2^64 is refused here, as it is
+    // for the same hybrid without rules.
 
-    if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
+    u64 mask_cnt = 0;
+
+    if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_cnt) == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
@@ -2518,6 +2524,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    mask_ctx->feed_keyspace = mask_cnt;
 
     // Nothing carries any of this to a device. There is no combinator on the device to tell about
     // the mask pieces, no mask processor kernel to load the tables into, and the css buffers are
@@ -2589,8 +2597,10 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // The whole mask, because the feed produces the whole candidate. status_ctx->words_cnt is not
     // set here: the feed reports this as its keyspace and straight_ctx_update_loop multiplies it by
     // the rule count, which is the same arrangement every other feed is counted under.
+    //
+    // Sized in 128 bits, as -a 3 sizes a mask without rules, because the feed seeks in 128 bits.
 
-    if (sp_get_sum_u64 (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
+    if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 

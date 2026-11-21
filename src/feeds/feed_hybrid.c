@@ -186,7 +186,7 @@ static bool hybrid_base_fetch (hybrid_global_t *hybrid_global, generic_thread_ct
 
 static bool hybrid_place (hybrid_global_t *hybrid_global, generic_thread_ctx_t *thread_ctx, hybrid_thread_t *hybrid_thread, const u128 pos)
 {
-  const u64 mask_cnt = mask_feed_keyspace (&hybrid_global->mask);
+  const u128 mask_cnt = mask_feed_keyspace (&hybrid_global->mask);
 
   if (mask_cnt == 0) return false;
 
@@ -195,8 +195,9 @@ static bool hybrid_place (hybrid_global_t *hybrid_global, generic_thread_ctx_t *
   const u128 base_idx = pos / combs;
   const u128 comb_idx = pos % combs;
 
-  // comb_idx is below mask_cnt times amp_cnt, so the mask value and the ?q word fit a u64. A base word
-  // past the last one is the end of the round whatever its index, so it is held at base_cnt.
+  // comb_idx is below mask_cnt times amp_cnt, and the mask processor refuses a hybrid mask past 2^64,
+  // so the mask value and the ?q word fit a u64. A base word past the last one is the end of the round
+  // whatever its index, so it is held at base_cnt.
 
   hybrid_thread->base_idx = (base_idx >= hybrid_global->base_cnt) ? hybrid_global->base_cnt : u128_lo (base_idx);
   hybrid_thread->mask_pos = u128_lo (comb_idx / hybrid_global->amp_cnt);
@@ -450,7 +451,7 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
     }
   }
 
-  const u64 mask_cnt = mask_feed_keyspace (&hybrid_global->mask);
+  const u128 mask_cnt = mask_feed_keyspace (&hybrid_global->mask);
 
   if (mask_cnt == 0)
   {

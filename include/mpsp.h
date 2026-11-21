@@ -38,16 +38,17 @@ HC_PLUGIN_API u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, cons
 
 u32   mp_get_length (const char *mask, const u32 opts_type);
 
-// The one call that turns a position into a candidate, and the only part of the mask processor a
-// plugin may reach. src/feeds/feed_mask.c is the mask processor offered as a feed, so that -a 3 can
-// take rules without a second mask parser existing to disagree with this one.
+// The call that turns a position below 2^64 into a candidate, which a plugin may reach as well.
+// src/feeds/feed_mask.c is the mask processor offered as a feed, so that -a 3 can take rules without
+// a second mask parser existing to disagree with this one.
 
 HC_PLUGIN_API void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
 
-// sp_exec () for a position that can pass 2^64. The two share one walk. Not for plugins: the feeds
-// that walk a mask, the mask feed and the hybrid feed, count its values in a u64.
+// sp_exec () for a position that can pass 2^64. The two share one walk. The mask feed reaches it,
+// because -a 3 given rules walks a mask past 2^64 as -a 3 without them does. The hybrid feed counts
+// its mask piece in a u64.
 
-void sp_exec_u128 (const u128 ctx, char *pw_buf, const cs_t *root_css_buf, const cs_t *markov_css_buf, const u32 start, const u32 stop);
+HC_PLUGIN_API void sp_exec_u128 (const u128 ctx, char *pw_buf, const cs_t *root_css_buf, const cs_t *markov_css_buf, const u32 start, const u32 stop);
 
 // The right side of a split mask in the order the device walks it, for the core's own rebuild of a
 // candidate from its two offsets. Not for plugins, which see the mask whole.

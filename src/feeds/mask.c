@@ -42,7 +42,7 @@ typedef struct mask_feed_global
 
 typedef struct mask_feed_thread
 {
-  u64 pos;
+  u128 pos;
 
 } mask_feed_thread_t;
 
@@ -92,9 +92,10 @@ MAYBE_UNUSED static const mask_ctx_t *mask_feed_ctx (const mask_feed_global_t *m
 }
 
 // How many values this round's mask holds. Sized by the mask processor when it built the tables, so
-// a feed asking before the first round gets 0 and has to ask again.
+// a feed asking before the first round gets 0 and has to ask again. A mask under the mask feed can
+// pass 2^64, and one under the hybrid feed is refused before it does.
 
-MAYBE_UNUSED static u64 mask_feed_keyspace (const mask_feed_global_t *mask_global)
+MAYBE_UNUSED static u128 mask_feed_keyspace (const mask_feed_global_t *mask_global)
 {
   const mask_ctx_t *mask_ctx = mask_feed_ctx (mask_global);
 
@@ -130,7 +131,7 @@ MAYBE_UNUSED static bool mask_feed_has_q (const mask_feed_global_t *mask_global)
 // The mask value at one position, whole. It is cut at the markers by mask_feed_assemble () rather
 // than here, because the pieces are only meaningful once there is a word to put between them.
 
-MAYBE_UNUSED static int mask_feed_value (const mask_feed_global_t *mask_global, const u64 pos, char *mask_buf, const int mask_size)
+MAYBE_UNUSED static int mask_feed_value (const mask_feed_global_t *mask_global, const u128 pos, char *mask_buf, const int mask_size)
 {
   const mask_ctx_t *mask_ctx = mask_feed_ctx (mask_global);
 
@@ -140,7 +141,16 @@ MAYBE_UNUSED static int mask_feed_value (const mask_feed_global_t *mask_global, 
 
   if (mask_len > mask_size) return -1;
 
-  sp_exec (pos, mask_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
+  // Below 2^64, which is every position the hybrid feed asks for, sp_exec () is the cheaper call.
+
+  if (u128_fits_u64 (pos) == true)
+  {
+    sp_exec (u128_lo (pos), mask_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
+  }
+  else
+  {
+    sp_exec_u128 (pos, mask_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
+  }
 
   return mask_len;
 }
@@ -219,7 +229,7 @@ MAYBE_UNUSED static int mask_feed_next (const mask_feed_global_t *mask_global, g
   return out_len;
 }
 
-MAYBE_UNUSED static bool mask_feed_seek (mask_feed_thread_t *mask_thread, const u64 offset)
+MAYBE_UNUSED static bool mask_feed_seek (mask_feed_thread_t *mask_thread, const u128 offset)
 {
   mask_thread->pos = offset;
 

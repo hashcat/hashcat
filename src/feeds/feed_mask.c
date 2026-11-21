@@ -58,9 +58,12 @@ void global_term (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
   global_ctx->gbldata = NULL;
 }
 
-u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
+// The 128-bit forms, because a mask can pass 2^64. -a 3 without rules takes one up to 2^128, and the
+// same mask given rules comes here.
+
+u128 global_keyspace_u128 (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
-  const u64 keyspace = mask_feed_keyspace (global_ctx->gbldata);
+  const u128 keyspace = mask_feed_keyspace (global_ctx->gbldata);
 
   return keyspace;
 }
@@ -90,7 +93,7 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
   return out_len;
 }
 
-bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u64 offset)
+bool thread_seek_u128 (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u128 offset)
 {
   const bool rc = mask_feed_seek (thread_ctx->thrdata, offset);
 

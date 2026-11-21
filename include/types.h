@@ -3613,9 +3613,10 @@ typedef struct mask_ctx
 
   // How many candidates this round's mask holds, which is what the mask feed reports as its
   // keyspace. bfs_cnt is the part of the mask the device generates and is not the same number: it
-  // is a suffix of the mask, and under the feed there is no device side at all.
+  // is a suffix of the mask, and under the feed there is no device side at all. It is 128 bits wide
+  // because the mask feed is -a 3 given rules, and -a 3 takes a mask past 2^64.
 
-  u64    feed_keyspace;
+  u128   feed_keyspace;
 
   // How many consecutive right words share the low bytes of w0, which is what a mode's run kernels
   // hoist work on: the product of the charset sizes of the right positions above those bytes, and
