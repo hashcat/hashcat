@@ -24,6 +24,7 @@ static const char *HASH_NAME      = "NetNTLMv1 / NetNTLMv1+ESS (NT)";
 static const u64   KERN_TYPE      = 27000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_HASH_DECODE_EXPENSIVE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_PT_ADD80

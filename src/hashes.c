@@ -2555,13 +2555,8 @@ static void hashes_init_entry (const hashconfig_t *hashconfig, hashes_t *hashes,
   }
 }
 
-// parse the hash list on every core
-//
-// only for a plain hashcat format file of unsalted digests carrying no per hash side data, which is
-// the shape every list big enough to care about has. everything else keeps the loop in
-// hashes_init_stage1, which is still the only implementation of every case this one turns away.
-//
-// Salted hashes can also use this path when the eligibility checks pass.
+// Parse eligible plain hashcat-format files in parallel. The parser supports both unsalted
+// hashes and salted hashes with per-record esalt and hook-salt data.
 
 #define HASHLIST_BLOCK_SIZE (64 * 1024 * 1024)
 #define HASHLIST_PARSE_MIN  (256 * 1024)
@@ -3044,11 +3039,7 @@ static bool hashlist_parse_threaded_ok (hashcat_ctx_t *hashcat_ctx, const u32 ha
   if (user_options->hash_copy   == true) return false;
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
 
-  u64 min_hashes = HASHLIST_PARSE_MIN;
-
-  // Mode 5500 performs a DES scan per record.
-
-  if (hashconfig->hash_mode == 5500) min_hashes = 2;
+  const u64 min_hashes = ((hashconfig->opts_type & OPTS_TYPE_HASH_DECODE_EXPENSIVE) != 0) ? 2 : HASHLIST_PARSE_MIN;
 
   if (hashes_avail < min_hashes) return false;
 
