@@ -1,10 +1,6 @@
 /**
- * Double NTLM - NTLM(NTLM(password)) - Hash Shucking
- * Attack mode 3: Brute-force / Mask
- * License: MIT
- *
- * No NEW_SIMD_CODE: forces VECT_SIZE=1 so double-hash stays scalar.
- * Performance cost is negligible — MD4 is compute-trivial.
+ * Author......: Net-Doge
+ * License.....: MIT
  */
 
 //#define NEW_SIMD_CODE
@@ -18,22 +14,18 @@
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #endif
 
-DECLSPEC u32 nib_to_hex (const u32 n)
-{
-  return (n < 10) ? (n + 0x30) : (n + 0x57);
-}
+#define NIB2HEX(n) (((n) < 10) ? ((n) + 0x30) : ((n) + 0x57))
 
-DECLSPEC void u32_to_hex_utf16le (const u32 val, PRIVATE_AS u32 *out)
-{
-  const u32 b0 = (val >>  0) & 0xff;
-  const u32 b1 = (val >>  8) & 0xff;
-  const u32 b2 = (val >> 16) & 0xff;
-  const u32 b3 = (val >> 24) & 0xff;
-
-  out[0] = nib_to_hex (b0 >> 4) | (nib_to_hex (b0 & 0xf) << 16);
-  out[1] = nib_to_hex (b1 >> 4) | (nib_to_hex (b1 & 0xf) << 16);
-  out[2] = nib_to_hex (b2 >> 4) | (nib_to_hex (b2 & 0xf) << 16);
-  out[3] = nib_to_hex (b3 >> 4) | (nib_to_hex (b3 & 0xf) << 16);
+#define U32_TO_HEX_UTF16LE(val, out)                               \
+{                                                                  \
+  const u32 b0 = ((val) >>  0) & 0xff;                             \
+  const u32 b1 = ((val) >>  8) & 0xff;                             \
+  const u32 b2 = ((val) >> 16) & 0xff;                             \
+  const u32 b3 = ((val) >> 24) & 0xff;                             \
+  (out)[0] = NIB2HEX (b0 >> 4) | (NIB2HEX (b0 & 0xf) << 16);     \
+  (out)[1] = NIB2HEX (b1 >> 4) | (NIB2HEX (b1 & 0xf) << 16);     \
+  (out)[2] = NIB2HEX (b2 >> 4) | (NIB2HEX (b2 & 0xf) << 16);     \
+  (out)[3] = NIB2HEX (b3 >> 4) | (NIB2HEX (b3 & 0xf) << 16);     \
 }
 
 KERNEL_FQ KERNEL_FA void m01001_mxx (KERN_ATTR_VECTOR ())
@@ -72,10 +64,10 @@ KERNEL_FQ KERNEL_FA void m01001_mxx (KERN_ATTR_VECTOR ())
 
     u32 hex_buf[16];
 
-    u32_to_hex_utf16le (ctx1.h[0], hex_buf +  0);
-    u32_to_hex_utf16le (ctx1.h[1], hex_buf +  4);
-    u32_to_hex_utf16le (ctx1.h[2], hex_buf +  8);
-    u32_to_hex_utf16le (ctx1.h[3], hex_buf + 12);
+    U32_TO_HEX_UTF16LE (ctx1.h[0], hex_buf +  0);
+    U32_TO_HEX_UTF16LE (ctx1.h[1], hex_buf +  4);
+    U32_TO_HEX_UTF16LE (ctx1.h[2], hex_buf +  8);
+    U32_TO_HEX_UTF16LE (ctx1.h[3], hex_buf + 12);
 
     md4_ctx_t ctx2;
 
@@ -138,10 +130,10 @@ KERNEL_FQ KERNEL_FA void m01001_sxx (KERN_ATTR_VECTOR ())
 
     u32 hex_buf[16];
 
-    u32_to_hex_utf16le (ctx1.h[0], hex_buf +  0);
-    u32_to_hex_utf16le (ctx1.h[1], hex_buf +  4);
-    u32_to_hex_utf16le (ctx1.h[2], hex_buf +  8);
-    u32_to_hex_utf16le (ctx1.h[3], hex_buf + 12);
+    U32_TO_HEX_UTF16LE (ctx1.h[0], hex_buf +  0);
+    U32_TO_HEX_UTF16LE (ctx1.h[1], hex_buf +  4);
+    U32_TO_HEX_UTF16LE (ctx1.h[2], hex_buf +  8);
+    U32_TO_HEX_UTF16LE (ctx1.h[3], hex_buf + 12);
 
     md4_ctx_t ctx2;
 
