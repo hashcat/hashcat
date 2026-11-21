@@ -89,6 +89,24 @@ DECLSPEC bool krb5_des_crc_pa_timestamp_check (PRIVATE_AS const u32 *key_in, PRI
 
   _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
+  // The timestamp opens in the second half of the second block, and CBC needs only the first
+  // block to decrypt that one. So it is tested on its own before anything else is decrypted.
+
+  if (enc_timestamp_len >= 16)
+  {
+    u32 c[2];
+    u32 p[2];
+
+    c[0] = enc_timestamp[2];
+    c[1] = enc_timestamp[3];
+
+    _des_crypt_decrypt (p, c, Kc, Kd, s_SPtrans);
+
+    p[1] ^= enc_timestamp[1];
+
+    if ((p[1] & 0x000000ff) != 0x00000030) return false;
+  }
+
   u32 iv[2];
   iv[0] = key[0];
   iv[1] = key[1];
