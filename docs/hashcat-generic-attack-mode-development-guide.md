@@ -287,7 +287,7 @@ A device-amplifying feed whose total can pass 2^64 states it in `dev_total_u128`
 
 The brain reserves `u64` positions. A run whose `--brain-client-features` include attack reservations stops at a round whose keyspace passes 2^64, whichever form the feed exports.
 
-The hybrid feed, `src/feeds/feed_hybrid.c`, is the shipped example. It counts two wordlists, multiplies them in 128 bits, and splits a 128-bit position back into a word, a mask value and a second word.
+The hybrid feed, `src/feeds/feed_hybrid.c`, is the shipped example. It counts two wordlists, multiplies them in 128 bits, and splits a 128-bit position back into a word, a mask value and a second word. The table feed, `src/feeds/feed_table.c`, and the PCFG feed, `src/feeds/feed_pcfg.c`, export all three. On the device engine their positions count base words, and the total of the candidates the run makes goes in `dev_total_u128`.
 
 ## Global and thread contexts
 

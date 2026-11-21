@@ -1075,12 +1075,12 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_ICONV
 #define TABLE_SAMPLE_CHUNKS 16
 
 // How many lines one entry of the keyspace index stands for. A seek reads the entry in front of its
-// target and walks from there, so this is how many words a seek may have to walk over, against eight
+// target and walks from there, so this is how many words a seek may have to walk over, against 16
 // bytes of memory for every step of it.
 
 #define TABLE_INDEX_STEP 1024
 
-// and how many entries it may come to before the step is widened, which holds the index to 8 MiB
+// and how many entries it may come to before the step is widened, which holds the index to 16 MiB
 // however long the wordlist is.
 
 #define TABLE_INDEX_MAX (1024 * 1024)
@@ -1111,15 +1111,18 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_ICONV
 // Where the run is, in units, at every TABLE_INDEX_STEP'th line. What a word is worth depends on the
 // word and on the table, so this cannot be worked out from a line number the way an ordinary wordlist
 // attack can, and a seek would otherwise read the whole wordlist to find out.
+//
+// A word is worth at most what a u64 holds, but a wordlist of such words is not, so the run and every
+// position in it are counted in 128 bits.
 
 typedef struct table_index
 {
-  u64 *cum;
-  u64  cnt;
-  u64  step;
+  u128 *cum;
+  u64   cnt;
+  u64   step;
 
-  u64  units;
-  u64  total;
+  u128  units;
+  u128  total;
 
 } table_index_t;
 
@@ -1172,6 +1175,11 @@ typedef struct table_global
 
   u64 widest;
   u64 capped;
+
+  // how many words were worth more than a word's count holds and are walked only as far as it goes,
+  // for a startup line of their own
+
+  u64 cut;
 
   // What global_dev_init () worked out, kept rather than said. It runs before the wordlist is counted
   // and the counting prints a block of its own, so saying it there splits what this feed has to say
@@ -1270,11 +1278,15 @@ typedef struct table_thread
   u64 rect;
   u64 at;
 
+  // Whether rect stopped at 2^64-1, short of what the word is worth, see table_split ().
+
+  bool cut;
+
   // Where the next unit sits in the whole run, which is what makes a seek forward able to carry on
   // from here instead of counting from the first word again. A unit is a candidate for the host
   // engine and a base word for the device engine.
 
-  u64 pos;
+  u128 pos;
 
 } table_thread_t;
 
@@ -1742,6 +1754,28 @@ static u64 table_sat_add (const u64 a, const u64 b)
   if ((0xffffffffffffffffULL - a) < b) return 0xffffffffffffffffULL;
 
   const u64 r = a + b;
+
+  return r;
+}
+
+// What the run comes to, summed over its words. On a 64-bit host the base word count cannot overflow,
+// because a wordlist has fewer than 2^64 lines and each is worth a u64. On a 32-bit host a u128 is a
+// u64 and it can, so the sum saturates there and global_keyspace_u128 () refuses it.
+
+static u128 table_run_add (const u128 a, const u128 b)
+{
+  if (overflow_check_u128_add (a, b) == true) return U128_MAX;
+
+  const u128 r = a + b;
+
+  return r;
+}
+
+static u128 table_run_mul (const u128 a, const u128 b)
+{
+  if (overflow_check_u128_mul (a, b) == true) return U128_MAX;
+
+  const u128 r = a * b;
 
   return r;
 }
@@ -2260,15 +2294,22 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
 
   tt->drop_last = ((tg->single == false) && (tg->template == true) && (tg->tb.identity == true) && (tt->var_cnt > 0));
 
+  // A word's count is a u64 that stops at 2^64-1, in base words on the card and in candidates here.
+  // A word worth more is walked that far and no further, and the startup line counts such words.
+
   if (tg->dev == true)
   {
     tt->rect = tt->front_units;
+
+    tt->cut = (tt->rect == 0xffffffffffffffffULL);
 
     if ((tt->drop_last == true) && (tt->cell_rect <= 1) && (tt->rect > 0)) tt->rect--;
   }
   else
   {
     tt->rect = table_sat_mul (tt->front_units, tt->cell_rect);
+
+    tt->cut = (tt->rect == 0xffffffffffffffffULL);
 
     if ((tt->drop_last == true) && (tt->rect > 0)) tt->rect--;
   }
@@ -2429,6 +2470,7 @@ static bool table_take (const table_global_t *tg, table_thread_t *tt, const u8 *
     tt->wmax        = TABLE_WFULL;
     tt->rect        = 0;
     tt->at          = 0;
+    tt->cut         = false;
 
     return true;
   }
@@ -2516,7 +2558,7 @@ static int table_word_load (generic_global_ctx_t *global_ctx, table_global_t *tg
 // over costs only the tokenizing, and the word the target lands in is entered by unranking rather
 // than by stepping.
 
-static int table_skip (generic_global_ctx_t *global_ctx, table_global_t *tg, generic_thread_ctx_t *thread_ctx, table_thread_t *tt, u64 n)
+static int table_skip (generic_global_ctx_t *global_ctx, table_global_t *tg, generic_thread_ctx_t *thread_ctx, table_thread_t *tt, u128 n)
 {
   while (n > 0)
   {
@@ -2533,7 +2575,7 @@ static int table_skip (generic_global_ctx_t *global_ctx, table_global_t *tg, gen
 
     if (n < left)
     {
-      table_unrank (tg, tt, tt->at + n);
+      table_unrank (tg, tt, tt->at + u128_lo (n));
 
       tt->pos += n;
 
@@ -2913,15 +2955,21 @@ static void table_report (table_global_t *tg, const u64 lines, const double runt
 
   if (runtime > 1000) feed_say (tg->hcctx, "table: %" PRIu64 " words measured in %.1fs", lines, runtime / 1000);
 
-  const u64 mean = (tg->idx.units > 0) ? (tg->idx.total / tg->idx.units) : 1;
+  // The mean is what one base word comes to on the card, so it is a cell and fits a u64.
+
+  const u64 mean = (tg->idx.units > 0) ? u128_lo (tg->idx.total / tg->idx.units) : 1;
+
+  char units_buf[U128_DEC_SIZE];
 
   if (tg->dev == true)
   {
-    feed_say (tg->hcctx, "table: %" PRIu64 " base words for %" PRIu64 " candidates (x%" PRIu64 ")", tg->idx.units, tg->idx.total, mean);
+    char total_buf[U128_DEC_SIZE];
+
+    feed_say (tg->hcctx, "table: %s base words for %s candidates (x%" PRIu64 ")", u128_to_dec (units_buf, tg->idx.units), u128_to_dec (total_buf, tg->idx.total), mean);
   }
   else
   {
-    feed_say (tg->hcctx, "table: %" PRIu64 " candidates", tg->idx.units);
+    feed_say (tg->hcctx, "table: %s candidates", u128_to_dec (units_buf, tg->idx.units));
   }
 
   if (tg->outside > 0)
@@ -2929,18 +2977,40 @@ static void table_report (table_global_t *tg, const u64 lines, const double runt
     feed_say (tg->hcctx, "table: %" PRIu64 " words left out, no candidate of theirs is between the %u and %u bytes this hash mode accepts", tg->outside, tg->pwmin, tg->pwmax);
   }
 
+  // Nothing else in the run shows that a word stopped short, so the line says how many did.
+
+  const char *cut_unit = (tg->dev == true) ? "base words" : "candidates";
+
+  if (tg->cut == 1)
+  {
+    feed_say (tg->hcctx, "table: 1 word is worth more than 2^64-1 %s and is cut there", cut_unit);
+  }
+  else if (tg->cut > 1)
+  {
+    feed_say (tg->hcctx, "table: %" PRIu64 " words are worth more than 2^64-1 %s and are cut there", tg->cut, cut_unit);
+  }
+
   // Under single=1 a word is worth what its positions add up to and the budget never binds, so the
   // line reports the width alone rather than a limit that did nothing.
 
+  // A word wide enough to overflow the count is reported as wanting more than 2^64, rather than as the
+  // number the count saturated at.
+
   if ((tg->maxperm == 0) || (tg->single == true))
   {
+    if (tg->widest == 0xffffffffffffffffULL)
+    {
+      feed_say (tg->hcctx, "table: no limit per word, the widest wants more than 2^64 candidates");
+
+      return;
+    }
+
     feed_say (tg->hcctx, "table: no limit per word, the widest is %" PRIu64 " candidates", tg->widest);
 
     return;
   }
 
-  // A word wide enough to overflow the count is exactly the kind the budget is here for, so it says so
-  // rather than printing the number it saturated at.
+  // With a budget, such a word is exactly the kind it is here for.
 
   if (tg->widest == 0xffffffffffffffffULL)
   {
@@ -2959,12 +3029,12 @@ static void table_report (table_global_t *tg, const u64 lines, const double runt
 // read is the same every time for the same wordlist and the same tables, so it is done once and the
 // answer is written down.
 //
-// The file is raw u64 rather than packed. The index is one number per TABLE_INDEX_STEP lines and
-// TABLE_INDEX_MAX caps it, so a wordlist of any size comes to at most 8 MiB and a realistic one to
-// about a hundred kilobytes. Packing it would buy little and cost the reader something to get wrong.
+// The file is raw u128 rather than packed. The index is one number per TABLE_INDEX_STEP lines and
+// TABLE_INDEX_MAX caps it, so a wordlist of any size comes to at most 16 MiB and a realistic one to
+// a few hundred kilobytes. Packing it would buy little and cost the reader something to get wrong.
 
 #define TABLE_CACHE_MAGIC   0x584449454c424154ULL
-#define TABLE_CACHE_VERSION 8
+#define TABLE_CACHE_VERSION 10
 
 typedef struct table_cache_head
 {
@@ -3015,19 +3085,21 @@ typedef struct table_cache_head
   u32 maxword;
   u32 ilcnt;
   u32 template;
+  u32 countbytes;
   u64 index_step;
   u64 index_max;
 
   // What the pass found
 
-  u64 cnt;
-  u64 step;
-  u64 units;
-  u64 total;
-  u64 outside;
-  u64 unmatched;
-  u64 capped;
-  u64 widest;
+  u64  cnt;
+  u64  step;
+  u128 units;
+  u128 total;
+  u64  outside;
+  u64  unmatched;
+  u64  capped;
+  u64  widest;
+  u64  cut;
 
   // Last and on its own, because it can only be checked once the rows have been read
 
@@ -3054,6 +3126,7 @@ static void table_cache_head_fill (const table_global_t *tg, table_cache_head_t 
   h->maxword    = tg->maxword;
   h->ilcnt      = tg->il_cnt;
   h->template   = (tg->template == true) ? 1 : 0;
+  h->countbytes = sizeof (u128);
   h->index_step = TABLE_INDEX_STEP;
   h->index_max  = TABLE_INDEX_MAX;
   h->cnt        = tg->idx.cnt;
@@ -3064,6 +3137,7 @@ static void table_cache_head_fill (const table_global_t *tg, table_cache_head_t 
   h->unmatched  = tg->unmatched;
   h->capped     = tg->capped;
   h->widest     = tg->widest;
+  h->cut        = tg->cut;
 }
 
 // make says where a name goes: a load only reads, and creating the folder for it would leave an empty
@@ -3087,13 +3161,14 @@ static char *table_cache_path (const generic_global_ctx_t *global_ctx, const tab
 
   if (make == true) hc_mkdir_rec (dir, 0700);
 
-  // Every configuration of one wordlist and one table set is a file of its own, the engine included.
+  // Every configuration of one wordlist and one table set is a file of its own, the engine and the
+  // width of a count included.
   // Keeping any of it out of the name and only in the header would leave two runs that differ in it
   // writing the same file over each other, so neither would ever find what it wrote.
 
   char *path = NULL;
 
-  hc_asprintf (&path, "%s/%016" PRIx64 "-%016" PRIx64 "-%" PRIu64 "-%u-%u-%u-%u.tabledb", dir, tg->wl.ident, tg->tb.ident, tg->maxperm, tg->pwmin, tg->pwmax, (tg->dev == true) ? 1 : 0, (tg->single == true) ? 1 : 0);
+  hc_asprintf (&path, "%s/%016" PRIx64 "-%016" PRIx64 "-%" PRIu64 "-%u-%u-%u-%u-%u.tabledb", dir, tg->wl.ident, tg->tb.ident, tg->maxperm, tg->pwmin, tg->pwmax, (tg->dev == true) ? 1 : 0, (tg->single == true) ? 1 : 0, (u32) (sizeof (u128) * 8));
 
   hcfree (dir);
 
@@ -3139,6 +3214,7 @@ static bool table_cache_load (const generic_global_ctx_t *global_ctx, table_glob
   if (have.maxword    != want.maxword)    { hc_fclose (&fp); return false; }
   if (have.ilcnt      != want.ilcnt)      { hc_fclose (&fp); return false; }
   if (have.template   != want.template)   { hc_fclose (&fp); return false; }
+  if (have.countbytes != want.countbytes) { hc_fclose (&fp); return false; }
   if (have.index_step != want.index_step) { hc_fclose (&fp); return false; }
   if (have.index_max  != want.index_max)  { hc_fclose (&fp); return false; }
 
@@ -3148,17 +3224,17 @@ static bool table_cache_load (const generic_global_ctx_t *global_ctx, table_glob
   if (have.cnt > TABLE_INDEX_MAX + 1) { hc_fclose (&fp); return false; }
   if (have.step == 0)             { hc_fclose (&fp); return false; }
 
-  u64 *cum = (u64 *) hcmalloc (have.cnt * sizeof (u64));
+  u128 *cum = (u128 *) hcmalloc (have.cnt * sizeof (u128));
 
   if (cum == NULL) { hc_fclose (&fp); return false; }
 
-  const size_t got = hc_fread (cum, sizeof (u64), have.cnt, &fp);
+  const size_t got = hc_fread (cum, sizeof (u128), have.cnt, &fp);
 
   hc_fclose (&fp);
 
   if (got != have.cnt) { hcfree (cum); return false; }
 
-  if (paw64 (cum, have.cnt * sizeof (u64), 0) != have.sum) { hcfree (cum); return false; }
+  if (paw64 (cum, have.cnt * sizeof (u128), 0) != have.sum) { hcfree (cum); return false; }
 
   // The index only means anything if it climbs, because a seek finds its line by walking it
 
@@ -3183,6 +3259,7 @@ static bool table_cache_load (const generic_global_ctx_t *global_ctx, table_glob
   tg->unmatched = have.unmatched;
   tg->capped  = have.capped;
   tg->widest  = have.widest;
+  tg->cut     = have.cut;
 
   return true;
 }
@@ -3211,11 +3288,11 @@ static void table_cache_save (const generic_global_ctx_t *global_ctx, const tabl
 
   table_cache_head_fill (tg, &h, tg->wl.ident);
 
-  h.sum = paw64 (tg->idx.cum, tg->idx.cnt * sizeof (u64), 0);
+  h.sum = paw64 (tg->idx.cum, tg->idx.cnt * sizeof (u128), 0);
 
   bool ok = (hc_fwrite (&h, sizeof (h), 1, &fp) == 1);
 
-  if (ok == true) ok = (hc_fwrite (tg->idx.cum, sizeof (u64), tg->idx.cnt, &fp) == tg->idx.cnt);
+  if (ok == true) ok = (hc_fwrite (tg->idx.cum, sizeof (u128), tg->idx.cnt, &fp) == tg->idx.cnt);
 
   hc_fclose (&fp);
 
@@ -3274,10 +3351,10 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
 
   table_thread_t *tt = (table_thread_t *) hccalloc (1, sizeof (table_thread_t));
 
-  u64 *cum = (u64 *) hcmalloc (cnt * sizeof (u64));
+  u128 *cum = (u128 *) hcmalloc (cnt * sizeof (u128));
 
-  u64 units = 0;
-  u64 total = 0;
+  u128 units = 0;
+  u128 total = 0;
 
   bool ok = true;
 
@@ -3305,10 +3382,10 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
       break;
     }
 
-    // Saturating, like total below and widest above. maxperm=0 lets one word be worth 2^64-1, and a
-    // plain add would wrap the run length round to a small number or to zero.
+    // maxperm=0 lets one word be worth 2^64-1, so the words of a wordlist add up to more than a u64
+    // holds. That is why the run is summed in 128 bits while a word is counted in a u64.
 
-    units = table_sat_add (units, tt->rect);
+    units = table_run_add (units, tt->rect);
 
     if (tt->rect == 0)
     {
@@ -3316,6 +3393,8 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
     }
 
     if (tt->wmax != TABLE_WFULL) tg->capped++;
+
+    if ((tt->rect > 0) && (tt->cut == true)) tg->cut++;
 
     const u64 wanted = table_sat_mul (tt->front_full, tt->cell_rect);
 
@@ -3327,7 +3406,7 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
     // rect is base words on the card and candidates on the host, so the cell is what turns one into
     // the other only on the card. Multiplying by it on both would count the cell twice.
 
-    u64 full = (tg->dev == true) ? table_sat_mul (tt->rect, tt->cell_rect) : tt->rect;
+    u128 full = (tg->dev == true) ? table_run_mul (tt->rect, tt->cell_rect) : tt->rect;
 
     // Under single=1 every unit carries a rectangle of its own rather than one the whole word shares,
     // so what the word is worth is the sum the plan already worked out and not a product. A word the
@@ -3341,7 +3420,7 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
 
     if ((tt->drop_last == true) && (tg->dev == true) && (tt->cell_rect > 1) && (full > 0)) full--;
 
-    total = table_sat_add (total, full);
+    total = table_run_add (total, full);
   }
 
   hcfree (tt);
@@ -3364,13 +3443,13 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
   return true;
 }
 
-u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
+u128 global_keyspace_u128 (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   table_global_t *tg = global_ctx->gbldata;
 
   const u64 lines = wordlist_keyspace (global_ctx, thread_ctx[0], hashcat_ctx, &tg->wl);
 
-  if ((lines == GENERIC_KEYSPACE_ERROR) || (global_ctx->error == true)) return GENERIC_KEYSPACE_ERROR;
+  if ((lines == GENERIC_KEYSPACE_ERROR) || (global_ctx->error == true)) return GENERIC_KEYSPACE_ERROR_U128;
 
   // The reader publishes where each wordlist starts as a line number, which is what a position means
   // to the wordlist feed. It is not what one means here: this feed counts base words or candidates,
@@ -3405,10 +3484,21 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
     {
       error_set (global_ctx, "could not read the wordlist to measure the attack: %s", thread_ctx[0]->error_msg);
 
-      return GENERIC_KEYSPACE_ERROR;
+      return GENERIC_KEYSPACE_ERROR_U128;
     }
 
     table_cache_save (global_ctx, tg);
+  }
+
+  // The sums saturate where they overflow, which in practice takes a 32-bit host, where a u128 is a
+  // u64. A keyspace capped short of the run would be walked without a word about the rest, and a
+  // capped total would be shown as the run's length, so either is refused instead.
+
+  if ((tg->idx.units >= GENERIC_KEYSPACE_ERROR_U128) || (tg->idx.total >= GENERIC_KEYSPACE_ERROR_U128))
+  {
+    error_set (global_ctx, "the wordlist and the tables make more candidates than this build can count.");
+
+    return GENERIC_KEYSPACE_ERROR_U128;
   }
 
   table_report (tg, lines, (cache_hit == true) ? 0 : hc_timer_get (start));
@@ -3416,7 +3506,7 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
   // The run's length in candidates, which is known exactly here. Without it the status line multiplies
   // the base word count by a mean rounded down to an integer and never quite reaches its own total.
 
-  if (tg->dev == true) global_ctx->dev_total = tg->idx.total;
+  if (tg->dev == true) global_ctx->dev_total_u128 = tg->idx.total;
 
   return tg->idx.units;
 }
@@ -3497,7 +3587,7 @@ static u32 table_bucket_of (const table_t *tb, const u32 pool_off)
 // made on the host and carried in the base word, and the base word is what --debug-mode prints beside
 // this, so what the two say together is still the whole story.
 
-int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, MAYBE_UNUSED const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, MAYBE_UNUSED const u64 pos, char *out_buf, const int out_size)
+int global_explain_u128 (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, MAYBE_UNUSED const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, MAYBE_UNUSED const u128 pos, char *out_buf, const int out_size)
 {
   // No cell, so the card expanded nothing and there is nothing here to decompose. That is the host
   // engine, which a slow hash always gets, and everything below reads the cell.
@@ -3633,7 +3723,7 @@ int thread_next_dev (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 // It is still a walk. What it is not yet is an index, so a device handed a range deep in a large
 // wordlist pays for every word in front of it once.
 
-bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx, const u64 offset)
+bool thread_seek_u128 (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx, const u128 offset)
 {
   table_global_t *tg = global_ctx->gbldata;
   table_thread_t *tt = thread_ctx->thrdata;

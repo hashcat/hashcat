@@ -235,7 +235,7 @@ Settings are `key=value` arguments and go after the tables.
 
 The candidate count for a word is the product of its radices, and a radix is the number of replacement choices at one token position. That product grows exponentially with the length of the word while the likely benefit does not.
 
-Of rockyou's 14,344,391 lines, 14,222,506 are no longer than 16 bytes and 121,885 are longer, representing 0.85 percent of the file. With `leetspeak-common.table` and `toggle.table` and no limit, the shorter words alone produce 2,216,157,954,021 candidates. Adding the longer words saturates a 64-bit counter, and the widest individual word requires more than 2^64 candidates.
+Of rockyou's 14,344,391 lines, 14,222,506 are no longer than 16 bytes and 121,885 are longer, representing 0.85 percent of the file. With `leetspeak-common.table` and `toggle.table` and no limit, the shorter words alone produce 2,216,157,954,021 candidates. Adding the longer words takes the run past 2^64. The widest individual word requires more than 2^64 candidates by itself. A word's own count stops at 2^64-1, in candidates on the host engine and in base words on the device engine. A word worth more is cut there, and the startup line says how many were. A run that large uses the brain only with `--brain-client-features 1`, because the brain reserves attack ranges as 64-bit positions.
 
 hashcat reports this condition at startup. Without a limit, the attack can spend effectively all of its time on the first few long words.
 

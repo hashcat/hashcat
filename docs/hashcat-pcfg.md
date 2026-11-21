@@ -489,6 +489,8 @@ $ ./hashcat -m 0 -a 4 --keyspace
 
 and `--skip`, `--limit`, `--restore`, splitting one attack across several GPUs, and the brain. All of those need a keyspace with a fixed order and a way to jump into the middle of it.
 
+On a 64-bit build the count stays exact past 2^64, which a hints run over a long ranked hint file reaches. The brain reserves attack ranges as 64-bit positions, so a run that large uses the brain only with `--brain-client-features 1`.
+
 ```
 ./hashcat -m 0 -a 4 example0.hash /path/to/ruleset --skip 1000000 --limit 200000
 ```
