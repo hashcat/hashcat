@@ -89,7 +89,7 @@ static bool pw_pipe_sync (void)
   return hc_env_flag ("HASHCAT_PIPE_SYNC", &cache);
 }
 
-void pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state, const bool serial)
+void pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state)
 {
   memset (pipe, 0, sizeof (pw_pipe_t));
 
@@ -98,11 +98,7 @@ void pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param
   pipe->fill         = fill;
   pipe->state        = state;
 
-  // Some producers cannot be run ahead. A brain client reserves, looks up and commits one batch at a
-  // time over a single connection, so preparing the next batch early would interleave two batches
-  // into one conversation.
-
-  pipe->serial = (serial == true) || (pw_pipe_sync () == true);
+  pipe->serial = pw_pipe_sync ();
 
   // Told to the device, because the profiler reports per device and cannot see the pipe.
 

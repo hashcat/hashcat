@@ -3391,9 +3391,19 @@ int status_get_brain_link_client_id_dev (const hashcat_ctx_t *hashcat_ctx, const
 
   int brain_client_id = -1;
 
+  // A device holds one link per pipeline slot and the display has room for one id, so it names the
+  // first link that is up. Which is also what the status beside it answers about.
+
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
-    brain_client_id = device_param->brain_link_client_fd;
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      if (device_param->brain_link[slot_pos].client_fd == -1) continue;
+
+      brain_client_id = device_param->brain_link[slot_pos].client_fd;
+
+      break;
+    }
   }
 
   return brain_client_id;
@@ -3409,7 +3419,18 @@ int status_get_brain_link_status_dev (const hashcat_ctx_t *hashcat_ctx, const in
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
-    if (device_param->brain_link_client_fd   != -1)   brain_link_status_dev = BRAIN_LINK_STATUS_CONNECTED;
+    // Connected while any slot has a link. A slot whose link dropped retries it on its next batch,
+    // and a slot an attack never uses never opens one, so neither is the device losing the brain.
+
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      if (device_param->brain_link[slot_pos].client_fd == -1) continue;
+
+      brain_link_status_dev = BRAIN_LINK_STATUS_CONNECTED;
+
+      break;
+    }
+
     if (device_param->brain_link_recv_active == true) brain_link_status_dev = BRAIN_LINK_STATUS_RECEIVING;
     if (device_param->brain_link_send_active == true) brain_link_status_dev = BRAIN_LINK_STATUS_SENDING;
   }

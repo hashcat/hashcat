@@ -18573,6 +18573,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       slot->pcfg_cells_pinned = false;
       slot->pcfg_cells_clmem  = NULL;
       slot->pcfg_cells_size   = size_pcfg_cells;
+
+      // Which brain connection this slot talks over, so the batch being prepared and the batch being
+      // launched do not share a socket. calc () is what opens and closes them.
+
+      #ifdef WITH_BRAIN
+      slot->brain_link = &device_param->brain_link[slot_pos];
+      #endif
     }
 
     device_param->pws_comp     = device_param->pws_slot[0].pws_comp;
