@@ -15,7 +15,7 @@ try:
 except ImportError:
   HAVE_NACL = False
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
 
 # SubWallet / polkadot-js keyring. The key is scrypt(password, salt, N/r/p, 32), the payload is a
 # NaCl secretbox (XSalsa20-Poly1305) over the pkcs8 bytes. A crack is the Poly1305 tag matching,
@@ -133,13 +133,13 @@ SCRYPT_R = 8
 SCRYPT_P = 1
 
 
-def _make_hash(word, salt, pt_len):
+def _make_hash(word, salt, pt_len, scrypt_n):
   if isinstance(word, str):
     word = word.encode()
 
   nonce = os.urandom(24)
 
-  key = hashlib.scrypt(word, salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P, dklen=32,
+  key = hashlib.scrypt(word, salt=salt, n=scrypt_n, r=SCRYPT_R, p=SCRYPT_P, dklen=32,
                        maxmem=256 * 1024 * 1024)
 
   pt = os.urandom(pt_len)
@@ -150,7 +150,7 @@ def _make_hash(word, salt, pt_len):
     ct = _seal(key, nonce, pt)
 
   return "$subwallet$%d,%d,%d$%s$%s$%s$%s" % (
-    SCRYPT_N, SCRYPT_R, SCRYPT_P,
+    scrypt_n, SCRYPT_R, SCRYPT_P,
     base64.b64encode(salt).decode(),
     base64.b64encode(nonce).decode(),
     base64.b64encode(ct[:16]).decode(),
@@ -167,10 +167,14 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
 
 
-def module_generate_hash(word, salt=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt=None, scrypt_n=SCRYPT_N):
   if salt is None:
     salt = os.urandom(32)
 
@@ -180,7 +184,7 @@ def module_generate_hash(word, salt=None):
   if len(salt) != 32:
     salt = os.urandom(32)
 
-  return _make_hash(word, salt, random_number(8, 128))
+  return _make_hash(word, salt, random_number(8, 128), scrypt_n)
 
 
 def module_verify_hash(line):

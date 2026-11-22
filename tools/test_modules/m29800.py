@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, kernel_charset, utf16be
+from lib.test_helpers import random_bytes, kernel_charset, utf16be, test_iteration_parameters
 
 # Bisq wallet. The key is scrypt over the UTF-16BE password and the stored salt. A single
 # AES-256-CBC block holds a fixed marker (16 bytes of 0x10); the real password decrypts it back to
@@ -22,10 +22,10 @@ SCRYPT_P = 6
 DATA_FIXED = b"\x10" * 16
 
 
-def _derive_key(word, salt):
+def _derive_key(word, salt, scrypt_n):
   word_utf16be = utf16be(word, kernel_charset())
 
-  return hashlib.scrypt(word_utf16be, salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P,
+  return hashlib.scrypt(word_utf16be, salt=salt, n=scrypt_n, r=SCRYPT_R, p=SCRYPT_P,
                         dklen=32, maxmem=1024 * 1024 * 1024)
 
 
@@ -39,17 +39,21 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
 
 
-def module_generate_hash(word, salt, iv=None, data=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, iv=None, data=None, scrypt_n=SCRYPT_N):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
   if iv is None:
     iv = random_bytes(16)
 
-  key = _derive_key(word, salt)
+  key = _derive_key(word, salt, scrypt_n)
 
   aes_cbc = AES.new(key, AES.MODE_CBC, iv)
 
@@ -63,7 +67,7 @@ def module_generate_hash(word, salt, iv=None, data=None):
   else:
     data_block = aes_cbc.encrypt(DATA_FIXED)
 
-  return "$bisq$3*%d*%d*%d*%s*%s" % (SCRYPT_N, SCRYPT_R, SCRYPT_P, salt.hex(), (iv + data_block).hex())
+  return "$bisq$3*%d*%d*%d*%s*%s" % (scrypt_n, SCRYPT_R, SCRYPT_P, salt.hex(), (iv + data_block).hex())
 
 
 def module_verify_hash(line):
@@ -113,6 +117,6 @@ def module_verify_hash(line):
   if len(data) != 32 or any(c not in "0123456789abcdefABCDEF" for c in data):
     return None
 
-  new_hash = module_generate_hash(word, bytes.fromhex(salt), bytes.fromhex(iv), bytes.fromhex(data))
+  new_hash = module_generate_hash(word, bytes.fromhex(salt), bytes.fromhex(iv), bytes.fromhex(data), int(hash_in.split("*")[1]))
 
   return (new_hash, word)

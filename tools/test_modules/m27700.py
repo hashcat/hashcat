@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, kernel_charset, utf16be
+from lib.test_helpers import random_bytes, kernel_charset, utf16be, test_iteration_parameters
 
 # MultiBit Classic (.key). The key is scrypt over the UTF-16BE password and an 8 byte salt. A
 # single AES-256-CBC block carries a fixed 16 byte marker of 0x10 octets, which is what the pure
@@ -33,24 +33,28 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
 
 
-def _derive_key(word, salt):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def _derive_key(word, salt, scrypt_n):
   word_utf16be = utf16be(word, kernel_charset())
 
-  return hashlib.scrypt(word_utf16be, salt=salt, n=SCRYPT_N, r=SCRYPT_R,
+  return hashlib.scrypt(word_utf16be, salt=salt, n=scrypt_n, r=SCRYPT_R,
                         p=SCRYPT_P, dklen=32, maxmem=128 * 1024 * 1024)
 
 
-def module_generate_hash(word, salt, iv=None, data=None):
+def module_generate_hash(word, salt, iv=None, data=None, scrypt_n=SCRYPT_N):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
   if iv is None:
     iv = random_bytes(16)
 
-  key = _derive_key(word, salt)
+  key = _derive_key(word, salt, scrypt_n)
 
   data_block = b""
 
@@ -62,7 +66,7 @@ def module_generate_hash(word, salt, iv=None, data=None):
   else:
     data_block = AES.new(key, AES.MODE_CBC, iv).encrypt(DATA_FIXED)
 
-  return "$multibit$3*%d*%d*%d*%s*%s" % (SCRYPT_N, SCRYPT_R, SCRYPT_P,
+  return "$multibit$3*%d*%d*%d*%s*%s" % (scrypt_n, SCRYPT_R, SCRYPT_P,
                                          salt.hex(), (iv + data_block).hex())
 
 
@@ -99,6 +103,6 @@ def module_verify_hash(line):
   if len(data) != 32 or any(c not in hexset for c in data):
     return None
 
-  new_hash = module_generate_hash(word, bytes.fromhex(salt), bytes.fromhex(iv), bytes.fromhex(data))
+  new_hash = module_generate_hash(word, bytes.fromhex(salt), bytes.fromhex(iv), bytes.fromhex(data), int(fields[1]))
 
   return (new_hash, word)

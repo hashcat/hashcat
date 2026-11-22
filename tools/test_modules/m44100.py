@@ -7,6 +7,8 @@
 
 import hashlib
 
+from lib.test_helpers import test_iteration_parameters
+
 # Android FDE from 5.0 on, the footers whose kdf_type is one of the two keymaster variants that sign
 # a 256 byte message. The stored string is
 #
@@ -60,7 +62,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _scrypt(password, salt_raw, n, r, p, dklen):
@@ -96,10 +102,15 @@ def _build(n, r, p, salt, sik, kdf_type):
     kdf_type, n, r, p, salt, sik.hex(), RSA_N, RSA_D)
 
 
-def module_generate_hash(word, salt, iterations=None, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P):
+def module_generate_hash(word, salt, iterations=None, n=None, r=SCRYPT_R, p=SCRYPT_P, scrypt_n=None):
   # Both variants are one hash-mode and the vector's own salt picks which one it is, so a run covers
   # the offset 0 path as well as the offset 1 path rather than only the one ST_HASH carries. The
   # runner draws a fresh salt per vector, so this comes out near enough an even split.
+  if n is None:
+    n = SCRYPT_N if scrypt_n is None else scrypt_n
+
+  n = int(n)
+
   salt_raw = bytes.fromhex(salt)
 
   kdf_type = KDF_SCRYPT_KEYMASTER
