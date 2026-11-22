@@ -21,6 +21,7 @@
 #include "memory.h"
 #include "interface.h"
 #include "module_options.h"
+#include "mpsp.h"
 #include "brain.h"
 
 static bool keep_running = true;
@@ -213,10 +214,100 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
   return session;
 }
 
+// What a mask attack is besides its work arguments: the mask the round is walking, and every option
+// that changes what that mask produces or in what order. A mask walked through a feed needs the same,
+// because its work arguments only name the queue the masks come from.
+
+static void brain_compute_attack_mask (paw64_ctx_t *state, const hashcat_ctx_t *hashcat_ctx)
+{
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const char *mask = mask_ctx->mask;
+
+  paw64_update (state, mask, strlen (mask));
+
+  const int hex_charset = user_options->hex_charset;
+
+  paw64_update (state, &hex_charset, sizeof (hex_charset));
+
+  const int markov_classic   = user_options->markov_classic;
+  const int markov           = user_options->markov;
+  const int markov_inverse   = user_options->markov_inverse;
+  const int markov_threshold = user_options->markov_threshold;
+
+  paw64_update (state, &markov_classic,   sizeof (markov_classic));
+  paw64_update (state, &markov,           sizeof (markov));
+  paw64_update (state, &markov_inverse,   sizeof (markov_inverse));
+  paw64_update (state, &markov_threshold, sizeof (markov_threshold));
+
+  if (user_options->markov_hcstat2)
+  {
+    const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
+
+    paw64_update (state, markov_hcstat2, strlen (markov_hcstat2));
+  }
+
+  if (user_options->custom_charset_1)
+  {
+    const char *custom_charset_1 = user_options->custom_charset_1;
+
+    paw64_update (state, custom_charset_1, strlen (custom_charset_1));
+  }
+
+  if (user_options->custom_charset_2)
+  {
+    const char *custom_charset_2 = user_options->custom_charset_2;
+
+    paw64_update (state, custom_charset_2, strlen (custom_charset_2));
+  }
+
+  if (user_options->custom_charset_3)
+  {
+    const char *custom_charset_3 = user_options->custom_charset_3;
+
+    paw64_update (state, custom_charset_3, strlen (custom_charset_3));
+  }
+
+  if (user_options->custom_charset_4)
+  {
+    const char *custom_charset_4 = user_options->custom_charset_4;
+
+    paw64_update (state, custom_charset_4, strlen (custom_charset_4));
+  }
+
+  if (user_options->custom_charset_5)
+  {
+    const char *custom_charset_5 = user_options->custom_charset_5;
+
+    paw64_update (state, custom_charset_5, strlen (custom_charset_5));
+  }
+
+  if (user_options->custom_charset_6)
+  {
+    const char *custom_charset_6 = user_options->custom_charset_6;
+
+    paw64_update (state, custom_charset_6, strlen (custom_charset_6));
+  }
+
+  if (user_options->custom_charset_7)
+  {
+    const char *custom_charset_7 = user_options->custom_charset_7;
+
+    paw64_update (state, custom_charset_7, strlen (custom_charset_7));
+  }
+
+  if (user_options->custom_charset_8)
+  {
+    const char *custom_charset_8 = user_options->custom_charset_8;
+
+    paw64_update (state, custom_charset_8, strlen (custom_charset_8));
+  }
+}
+
 u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -246,15 +337,26 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   // --skip used to be left out here, but by accident: it was cleared as soon as the first round had
   // taken it, which was long before this ran.
 
-  // Both are truncated to 32 bits here, so two attacks whose --skip differs only above 2^32 get the
-  // same identity, and a --skip past 2^31 is hashed as a negative number. Widening these two would
-  // give every attack that has ever run a new identity, so they stay at 32 bits.
+  // The low 32 bits of each go in as an int, which is how every identity so far was built, so an
+  // attack whose --skip and --limit fit in 32 bits keeps the identity it always had. What lies above
+  // them goes in only when there is any, as four u64 halves whatever width a u128 has, so two attacks
+  // whose --skip or --limit differ only above 2^32 are no longer one.
 
   const int skip  = (int) u128_lo (user_options->skip);
   const int limit = (int) u128_lo (user_options->limit);
 
   paw64_update (&state, &skip,  sizeof (skip));
   paw64_update (&state, &limit, sizeof (limit));
+
+  const u128 skip_hi  = user_options->skip  >> 32;
+  const u128 limit_hi = user_options->limit >> 32;
+
+  if ((skip_hi != 0) || (limit_hi != 0))
+  {
+    const u64 hi[4] = { u128_lo (skip_hi), u128_hi (skip_hi), u128_lo (limit_hi), u128_hi (limit_hi) };
+
+    paw64_update (&state, hi, sizeof (hi));
+  }
 
   // A range is a pair of positions, and what a position counts is not the same on both producers. The
   // slow path walks candidates, so one position is one candidate. The device-side path walks base
@@ -387,6 +489,12 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
     // the same attack and refuse the second one as already done.
 
     paw64_update (&state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+
+    // -a 3 and the hybrid modes given rules walk their masks through a feed, one mask per round, and
+    // the work arguments above name only the queue. Without the round's own mask every round is the
+    // same attack, and the brain refuses the start of each later mask as covered by the first.
+
+    if (mask_is_feed (user_options) == true) brain_compute_attack_mask (&state, hashcat_ctx);
   }
   else if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -441,86 +549,7 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    const char *mask = mask_ctx->mask;
-
-    paw64_update (&state, mask, strlen (mask));
-
-    const int hex_charset = user_options->hex_charset;
-
-    paw64_update (&state, &hex_charset, sizeof (hex_charset));
-
-    const int markov_classic   = user_options->markov_classic;
-    const int markov           = user_options->markov;
-    const int markov_inverse   = user_options->markov_inverse;
-    const int markov_threshold = user_options->markov_threshold;
-
-    paw64_update (&state, &markov_classic,   sizeof (markov_classic));
-    paw64_update (&state, &markov,           sizeof (markov));
-    paw64_update (&state, &markov_inverse,   sizeof (markov_inverse));
-    paw64_update (&state, &markov_threshold, sizeof (markov_threshold));
-
-    if (user_options->markov_hcstat2)
-    {
-      const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
-
-      paw64_update (&state, markov_hcstat2, strlen (markov_hcstat2));
-    }
-
-    if (user_options->custom_charset_1)
-    {
-      const char *custom_charset_1 = user_options->custom_charset_1;
-
-      paw64_update (&state, custom_charset_1, strlen (custom_charset_1));
-    }
-
-    if (user_options->custom_charset_2)
-    {
-      const char *custom_charset_2 = user_options->custom_charset_2;
-
-      paw64_update (&state, custom_charset_2, strlen (custom_charset_2));
-    }
-
-    if (user_options->custom_charset_3)
-    {
-      const char *custom_charset_3 = user_options->custom_charset_3;
-
-      paw64_update (&state, custom_charset_3, strlen (custom_charset_3));
-    }
-
-    if (user_options->custom_charset_4)
-    {
-      const char *custom_charset_4 = user_options->custom_charset_4;
-
-      paw64_update (&state, custom_charset_4, strlen (custom_charset_4));
-    }
-
-    if (user_options->custom_charset_5)
-    {
-      const char *custom_charset_5 = user_options->custom_charset_5;
-
-      paw64_update (&state, custom_charset_5, strlen (custom_charset_5));
-    }
-
-    if (user_options->custom_charset_6)
-    {
-      const char *custom_charset_6 = user_options->custom_charset_6;
-
-      paw64_update (&state, custom_charset_6, strlen (custom_charset_6));
-    }
-
-    if (user_options->custom_charset_7)
-    {
-      const char *custom_charset_7 = user_options->custom_charset_7;
-
-      paw64_update (&state, custom_charset_7, strlen (custom_charset_7));
-    }
-
-    if (user_options->custom_charset_8)
-    {
-      const char *custom_charset_8 = user_options->custom_charset_8;
-
-      paw64_update (&state, custom_charset_8, strlen (custom_charset_8));
-    }
+    brain_compute_attack_mask (&state, hashcat_ctx);
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {

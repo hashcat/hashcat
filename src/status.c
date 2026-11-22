@@ -694,6 +694,16 @@ static char *status_get_guess_feed (const hashcat_ctx_t *hashcat_ctx)
     return guess_base;
   }
 
+  // The mask feed is named by the mask its round is walking. global_init () runs before the first round
+  // has picked one, and --increment or a mask file moves on to another mask every round.
+
+  if (mask_feed_kind (hashcat_ctx->user_options) == MASK_FEED_MASK)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    if (mask_ctx->mask != NULL) return strdup (mask_ctx->mask);
+  }
+
   // a feed that named itself during global_init () gets to say what it is generating from. One
   // that did not is named by the plugin the user asked for.
 
@@ -807,6 +817,15 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
+    // The mask feed runs a round per mask, the way -a 3 does, so the queue is the queue of masks.
+
+    if (mask_feed_kind (user_options) == MASK_FEED_MASK)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return mask_ctx->masks_pos + 1;
+    }
+
     // A feed handed every source at once is one entry in the queue, and it says where inside itself the
     // run has reached with its own segments instead. A feed scoped to one source per round is a real
     // queue of rounds, and the round is the position in it, so those fall through to the answer below.
@@ -855,6 +874,13 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
+    if (mask_feed_kind (user_options) == MASK_FEED_MASK)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return mask_ctx->masks_cnt;
+    }
+
     // A feed handed every source at once is one entry in the queue, and it says where inside itself the
     // run has reached with its own segments instead. A feed scoped to one source per round is a real
     // queue of rounds, and the round is the position in it, so those fall through to the answer below.
