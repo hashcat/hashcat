@@ -460,7 +460,7 @@ _hashcat ()
 {
   local VERSION=8.0.0
 
-  local ATTACK_MODES="0 1 3 4 5 6 7 8 9 10 12"
+  local ATTACK_MODES="0 1 3 4 5 6 7 8 9 10 12 13"
   local EAPOL_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6"
   local OPENCL_DEVICE_TYPES="1 2"

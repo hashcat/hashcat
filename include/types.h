@@ -428,6 +428,7 @@ typedef enum attack_mode
   ATTACK_MODE_ASSOCIATION = 9,
   ATTACK_MODE_PRINCE      = 10,
   ATTACK_MODE_HYBRID      = 12,
+  ATTACK_MODE_TOKENMASK   = 13,
   ATTACK_MODE_NONE        = 100
 
 } attack_mode_t;
