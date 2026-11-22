@@ -53,20 +53,27 @@ def load_test_properties(mode):
   if "reduced" in settings and "runtime" in settings:
     raise ValueError("m%05d.py: choose encoded or runtime reduction, not both" % mode)
   for name, section in settings.items():
-    allowed = {"limit", "compiled_cost", "scrypt", "copy_hash", "parameters"} if name == "runtime" else {"parameters"}
+    if name == "runtime":
+      allowed = {"limit", "compiled_cost", "scrypt", "copy_hash", "parameters"}
+    elif name == "reduced":
+      allowed = {"parameters", "copy_hash"}
+    else:
+      allowed = {"parameters"}
     if not isinstance(section, dict) or set(section) - allowed:
       raise ValueError("m%05d.py: invalid %s test settings" % (mode, name))
+    if "copy_hash" in section and type(section["copy_hash"]) is not bool:
+      raise ValueError("m%05d.py: copy_hash must be a boolean" % mode)
     if name == "runtime":
       limit = section.get("limit")
       if type(limit) is not int or not 1 <= limit <= 4294967295:
         raise ValueError("m%05d.py: runtime limit must be a positive uint32" % mode)
-      if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt", "copy_hash") if key in section):
+      if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt") if key in section):
         raise ValueError("m%05d.py: runtime flags must be booleans" % mode)
     parameters = section.get("parameters", {})
     if name == "normal":
       allowed_parameters = {"iterations", "scrypt_n", "user_hash_iterations"}
     elif name == "reduced":
-      allowed_parameters = {"iterations", "scrypt_n"}
+      allowed_parameters = {"iterations", "iterations_max", "scrypt_n", "argon2_memory_max", "argon2_passes_max"}
     else:
       allowed_parameters = {"iterations"}
     if not isinstance(parameters, dict) or set(parameters) - allowed_parameters:
@@ -74,8 +81,10 @@ def load_test_properties(mode):
     if any(type(value) is not int or value < 1 for value in parameters.values()):
       raise ValueError("m%05d.py: iteration counts must be positive integers" % mode)
     if name == "reduced":
-      if set(parameters) not in ({"iterations"}, {"scrypt_n"}):
-        raise ValueError("m%05d.py: reduced testing requires an encoded iteration or scrypt N count" % mode)
+      if set(parameters) not in ({"iterations"}, {"iterations_max"}, {"scrypt_n"}, {"argon2_memory_max", "argon2_passes_max"}):
+        raise ValueError("m%05d.py: reduced testing requires encoded iterations, an iteration cap, scrypt N or Argon2 cost caps" % mode)
+      if parameters.get("argon2_memory_max", 64) < 64:
+        raise ValueError("m%05d.py: reduced Argon2 memory must allow eight lanes" % mode)
       scrypt_n = parameters.get("scrypt_n")
       if scrypt_n is not None and (scrypt_n < 1024 or scrypt_n & (scrypt_n - 1)):
         raise ValueError("m%05d.py: reduced scrypt N must be a power of two at least 1024" % mode)
@@ -102,8 +111,11 @@ def iteration_reduction_enabled(mode):
 
 
 def iteration_copy_hash(mode):
-  # Preserve the input hash when runtime overrides change the count used by its encoder.
-  return iteration_reduction_enabled(mode) and runtime_iteration_policy(mode).get("copy_hash", False)
+  # Preserve generated hash forms that the mode encoder cannot reproduce.
+  settings = load_test_properties(mode)
+  policy = settings.get("reduced", settings.get("runtime", {}))
+
+  return iteration_reduction_enabled(mode) and policy.get("copy_hash", False)
 
 
 def generate_iteration_hash(mod, word, salt, iterations=None, **extra):
