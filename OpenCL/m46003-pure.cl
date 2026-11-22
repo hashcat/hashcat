@@ -18,13 +18,17 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
-typedef struct eternl
+#define EMIP3_CT_MAX 2048
+
+// MUST match module_46003.c field-for-field
+typedef struct emip3
 {
-    u32 salt_buf[8];
-    u32 nonce[3]; // 12 bytes
-    u32 tag[4];   // 16 bytes
-    u32 encrypted[42]; // 165 bytes
-} eternl_t;
+    u32 salt_buf[8];            // 32 bytes
+    u32 nonce[3];               // 12 bytes
+    u32 ct[EMIP3_CT_MAX / 4];   // ct only (tag rides in the digest)
+    u32 ct_len;
+
+} emip3_t;
 
 typedef struct pbkdf2_sha512_tmp
 {
@@ -189,7 +193,7 @@ DECLSPEC void poly1305_key_gen (PRIVATE_AS u32 *key, PRIVATE_AS u32 *nonce, PRIV
 
 CONSTANT_VK u32 block_idx_be[1] = { 0x01000000 };
 
-KERNEL_FQ KERNEL_FA void m37700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, eternl_t))
+KERNEL_FQ KERNEL_FA void m46003_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, emip3_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -222,7 +226,7 @@ KERNEL_FQ KERNEL_FA void m37700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   // For Eternl we only need block 1 (first 64 bytes of PBKDF2 output)
   // Copy context after salt update, then add block index
   sha512_hmac_ctx_t sha512_hmac_ctx2 = sha512_hmac_ctx;
-  
+
   // Append block index as u32 array like m07100
   u32 w0[4];
   u32 w1[4];
@@ -232,7 +236,7 @@ KERNEL_FQ KERNEL_FA void m37700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   u32 w5[4];
   u32 w6[4];
   u32 w7[4];
-  
+
   w0[0] = 1;  // Block index 1
   w0[1] = 0;
   w0[2] = 0;
@@ -265,7 +269,7 @@ KERNEL_FQ KERNEL_FA void m37700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   w7[1] = 0;
   w7[2] = 0;
   w7[3] = 0;
-  
+
   sha512_hmac_update_128 (&sha512_hmac_ctx2, w0, w1, w2, w3, w4, w5, w6, w7, 4);
 
   sha512_hmac_final (&sha512_hmac_ctx2);
@@ -289,7 +293,7 @@ KERNEL_FQ KERNEL_FA void m37700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   tmps[gid].out[7] = tmps[gid].dgst[7];
 }
 
-KERNEL_FQ KERNEL_FA void m37700_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, eternl_t))
+KERNEL_FQ KERNEL_FA void m46003_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, emip3_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -415,13 +419,13 @@ KERNEL_FQ KERNEL_FA void m37700_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   }
 }
 
-KERNEL_FQ KERNEL_FA void m37700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, eternl_t))
+KERNEL_FQ KERNEL_FA void m46003_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, emip3_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
 
-  const u32 encrypted_len = 165;
+  const u32 encrypted_len = esalt_bufs[DIGESTS_OFFSET_HOST].ct_len;
 
   // Convert PBKDF2 output to ChaCha20 key
   // PBKDF2-SHA512 stores output as big-endian u64 values
@@ -455,14 +459,14 @@ KERNEL_FQ KERNEL_FA void m37700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   // AAD (none)
 
   // Ciphertext
-  poly1305_update_global(&poly1305_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].encrypted, encrypted_len);
+  poly1305_update_global(&poly1305_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].ct, encrypted_len);
   poly1305_update_pad(&poly1305_ctx, encrypted_len);
 
   // Lengths (as per RFC 8439 Section 2.8)
   // aad_len (64-bit LE) || ciphertext_len (64-bit LE)
   u32 lens[4];
   lens[0] = 0;  // AAD length low 32 bits
-  lens[1] = 0;  // AAD length high 32 bits  
+  lens[1] = 0;  // AAD length high 32 bits
   lens[2] = encrypted_len;  // Ciphertext length low 32 bits
   lens[3] = 0;  // Ciphertext length high 32 bits
   poly1305_update_private(&poly1305_ctx, lens, 16);

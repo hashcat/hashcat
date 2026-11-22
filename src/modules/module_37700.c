@@ -19,7 +19,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME      = "Cardano Eternl Wallet (PBKDF2-HMAC-SHA512, ChaCha20)";
-static const u64   KERN_TYPE      = 37700;
+static const u64   KERN_TYPE      = 46003; // runs the m46003 kernels; ct_len rides in the esalt (165 here)
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -35,12 +35,13 @@ static const u32 ITER_V2 = 210012;
 
 static const char *SIGNATURE_ETERNL = "ETERNL";
 
+// MUST match the m46003-pure.cl layout this mode's kernel comes from
 typedef struct eternl
 {
   u32 salt_buf[8];
   u32 nonce[3]; // 12 bytes
-  u32 tag[4];   // 16 bytes
-  u32 encrypted[42]; // 165 bytes (padded to 168 bytes. 3 bytes unused)
+  u32 ct[512];  // ct only (tag rides in the digest); 165 bytes here
+  u32 ct_len;
 } eternl_t;
 
 typedef struct pbkdf2_sha512_tmp
@@ -131,17 +132,22 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   // Tag information
   const u8 *tag_pos = token.buf[3];
   const int tag_len = token.len[3];
-  hex_decode (tag_pos, tag_len, (u8 *) eternl->tag);
 
-  digest[0] = eternl->tag[0];
-  digest[1] = eternl->tag[1];
-  digest[2] = eternl->tag[2];
-  digest[3] = eternl->tag[3];
+  u8 tag_raw[16];
+
+  hex_decode (tag_pos, tag_len, tag_raw);
+
+  digest[0] = (u32) tag_raw[0]  | ((u32) tag_raw[1]  << 8) | ((u32) tag_raw[2]  << 16) | ((u32) tag_raw[3]  << 24);
+  digest[1] = (u32) tag_raw[4]  | ((u32) tag_raw[5]  << 8) | ((u32) tag_raw[6]  << 16) | ((u32) tag_raw[7]  << 24);
+  digest[2] = (u32) tag_raw[8]  | ((u32) tag_raw[9]  << 8) | ((u32) tag_raw[10] << 16) | ((u32) tag_raw[11] << 24);
+  digest[3] = (u32) tag_raw[12] | ((u32) tag_raw[13] << 8) | ((u32) tag_raw[14] << 16) | ((u32) tag_raw[15] << 24);
 
   // ciphertext
   const u8 *encrypted_pos = token.buf[4];
   const int encrypted_len = token.len[4];
-  hex_decode (encrypted_pos, encrypted_len, (u8 *) eternl->encrypted);
+  hex_decode (encrypted_pos, encrypted_len, (u8 *) eternl->ct);
+
+  eternl->ct_len = 165;
 
   return (PARSER_OK);
 }
@@ -156,11 +162,19 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   char nonce_hex[25] = { 0 };
   hex_encode ((const u8 *) eternl->nonce, 12, (u8 *) nonce_hex);
 
+  // the tag rides in the digest, LE-packed words -> raw bytes on LE hosts
+
+  const u32 *digest = (const u32 *) digest_buf;
+
+  u8 tag_raw[16];
+
+  memcpy (tag_raw, digest, 16);
+
   char tag_hex[33] = { 0 };
-  hex_encode ((const u8 *) eternl->tag, 16, (u8 *) tag_hex);
+  hex_encode (tag_raw, 16, (u8 *) tag_hex);
 
   char encrypted_hex[331] = { 0 };
-  hex_encode ((const u8 *) eternl->encrypted, 165, (u8 *) encrypted_hex);
+  hex_encode ((const u8 *) eternl->ct, 165, (u8 *) encrypted_hex);
 
   const int out_len = snprintf (line_buf, line_size, "%s:%s%s%s%s",
     SIGNATURE_ETERNL,
