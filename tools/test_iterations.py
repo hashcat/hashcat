@@ -62,14 +62,23 @@ def load_test_properties(mode):
         raise ValueError("m%05d.py: runtime limit must be a positive uint32" % mode)
       if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt", "copy_hash") if key in section):
         raise ValueError("m%05d.py: runtime flags must be booleans" % mode)
-    if name == "reduced" and section.get("parameters") != {"iterations": 2}:
-      raise ValueError("m%05d.py: reduced testing requires 2 encoded iterations" % mode)
     parameters = section.get("parameters", {})
-    allowed_parameters = {"iterations", "scrypt_n", "user_hash_iterations"} if name == "normal" else {"iterations"}
+    if name == "normal":
+      allowed_parameters = {"iterations", "scrypt_n", "user_hash_iterations"}
+    elif name == "reduced":
+      allowed_parameters = {"iterations", "scrypt_n"}
+    else:
+      allowed_parameters = {"iterations"}
     if not isinstance(parameters, dict) or set(parameters) - allowed_parameters:
       raise ValueError("m%05d.py: invalid iteration parameters" % mode)
     if any(type(value) is not int or value < 1 for value in parameters.values()):
       raise ValueError("m%05d.py: iteration counts must be positive integers" % mode)
+    if name == "reduced":
+      if set(parameters) not in ({"iterations"}, {"scrypt_n"}):
+        raise ValueError("m%05d.py: reduced testing requires an encoded iteration or scrypt N count" % mode)
+      scrypt_n = parameters.get("scrypt_n")
+      if scrypt_n is not None and (scrypt_n < 1024 or scrypt_n & (scrypt_n - 1)):
+        raise ValueError("m%05d.py: reduced scrypt N must be a power of two at least 1024" % mode)
   return settings
 
 

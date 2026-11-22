@@ -6860,7 +6860,7 @@ def main():
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
   iterations = ap.add_mutually_exclusive_group()
   iterations.add_argument("--artificially-low-iteration-count", action="store_true", default=None,
-                          help="generate supported test hashes with 2 iterations (default)")
+                          help="generate supported test hashes with reduced costs (default)")
   iterations.add_argument("--full-iteration-count", dest="artificially_low_iteration_count", action="store_false",
                           help="use original iteration counts instead of reduced counts")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
