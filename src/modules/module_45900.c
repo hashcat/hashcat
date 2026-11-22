@@ -27,7 +27,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_THREAD_MULTI_DISABLE
-                                  | OPTS_TYPE_MP_MULTI_DISABLE;
+                                  | OPTS_TYPE_MP_MULTI_DISABLE
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "KatSparrow777!";
 static const char *ST_HASH        = "$sparrow$1$000102030405060708090a0b0c0d0e0f$6dd10019cd94e71b$6927a10c68444e53ea27012e81376ad9980139af764f9e6156273ed98b153346ecef740804dd6acdbb4367549f615ac276057863204043484521a8901dba2b09";
@@ -124,6 +125,35 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   argon2_options->memory_usage_in_kib = SPARROW_ARGON_MEM;
   argon2_options->iterations          = SPARROW_ARGON_TIME;
   argon2_options->parallelism         = SPARROW_ARGON_PAR;
+
+  const char *test_limit = NULL;
+
+  test_limit = getenv ("HASHCAT_ITER_OVERRIDE");
+
+  if (test_limit != NULL)
+  {
+    u64 limit = 0;
+
+    if (test_limit[0] == 0) return (PARSER_SALT_ITERATION);
+
+    for (u32 i = 0; test_limit[i] != 0; i++)
+    {
+      if ((test_limit[i] < '0') || (test_limit[i] > '9')) return (PARSER_SALT_ITERATION);
+
+      limit = limit * 10 + (test_limit[i] - '0');
+
+      if (limit > 0xffffffffULL) return (PARSER_SALT_ITERATION);
+    }
+
+    if (limit != 0)
+    {
+      // Argon2 loops advance in four slices per pass.
+      if ((limit < ARGON2_SYNC_POINTS) || ((limit % ARGON2_SYNC_POINTS) != 0)) return (PARSER_SALT_ITERATION);
+
+      argon2_options->iterations = MIN (argon2_options->iterations, (u32) (limit / ARGON2_SYNC_POINTS));
+      argon2_options->memory_usage_in_kib = MIN (argon2_options->memory_usage_in_kib, 4096);
+    }
+  }
 
   argon2_options->segment_length     = MAX (2, (argon2_options->memory_usage_in_kib / (ARGON2_SYNC_POINTS * argon2_options->parallelism)));
   argon2_options->lane_length        = argon2_options->segment_length * ARGON2_SYNC_POINTS;
