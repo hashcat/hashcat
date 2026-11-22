@@ -10,6 +10,8 @@ import hashlib
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
 # bcrypt(sha512) $2a$: the word is hashed with SHA-512, and its hex digest is the bcrypt password.
 # Eksblowfish uses only the first 72 key bytes, so the 128 char digest is truncated to match.
 
@@ -27,7 +29,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 4}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

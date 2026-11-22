@@ -8,6 +8,7 @@
 import hashlib
 
 from lib import shacrypt
+from lib.test_helpers import test_iteration_parameters
 
 # sha256crypt $5$, SHA256 (Unix), see lib/shacrypt.py. The perl module used a salt up to 20 bytes and
 # did not truncate it, unlike libc crypt which stops at 16, so this hashes the whole salt.
@@ -30,7 +31,11 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 1000}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

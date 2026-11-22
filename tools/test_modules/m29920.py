@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, test_iteration_parameters
 
 # ENCsecurity Data Vault, PBKDF2-HMAC-SHA256 with a keychain. The derived key first decrypts a 128
 # byte keychain in the same nb_keys parallel AES-ECB counter mode, and the keychain in turn supplies
@@ -59,10 +59,14 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
 
 
-def module_generate_hash(word, salt, algo=None, iv=None, ct=None, iter=None, keychain=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, algo=None, iv=None, ct=None, iter=None, keychain=None, iterations=None):
   if algo is None:
     algo = random_number(1, 4)
 
@@ -70,7 +74,7 @@ def module_generate_hash(word, salt, algo=None, iv=None, ct=None, iter=None, key
     iv = random_hex_string(16)
 
   if iter is None:
-    iter = 100000
+    iter = 100000 if iterations is None else iterations
 
   if keychain is None:
     keychain = random_hex_string(256)

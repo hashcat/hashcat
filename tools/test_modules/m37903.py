@@ -6,6 +6,7 @@
 ##
 
 from lib import bestcrypt
+from lib.test_helpers import test_iteration_parameters
 
 # BestCrypt container (.jbc) key slots whose key generator runs Whirlpool-512. One pass of the
 # derivation covers both cipher modes here, so the cipher stays a field of the hash and generation
@@ -24,7 +25,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, source=None):

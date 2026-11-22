@@ -10,12 +10,8 @@ import hmac
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_hex_string, random_number
+from lib.test_helpers import random_bytes, random_hex_string, random_number, test_iteration_parameters
 
-# The scrypt parameters default to gocryptfs's own, N=65536 r=8 p=1, and they have to stay equal to
-# the ones in the module's self-test hash: hashcat refuses to run when the loaded hash asks for a
-# different scrypt configuration than the self-test vector was built with.
-#
 # gocryptfs: scrypt(word, salt) gives a key that AES-256-GCM unwraps the 32 byte master key with,
 # and the password is right when the GCM tag verifies. With the HKDF feature flag, which every
 # volume since gocryptfs 1.3 sets, that scrypt output goes through HKDF-SHA256 first and the nonce
@@ -51,7 +47,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, hkdf=None, scrypt_n=65536, scrypt_r=8, scrypt_p=1, iv=None, data=None, tag=None):

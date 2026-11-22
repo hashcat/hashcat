@@ -10,7 +10,7 @@ import hmac
 
 from argon2.low_level import Type, hash_secret_raw
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # KeePass 4 with the Argon2 KDF. What hashcat verifies is the HMAC-SHA256 over the database
 # header, and the chain to its key is
@@ -46,7 +46,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"iterations": (1, 3), "memory_kib": 4096, "parallelism": 1}],
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _header_hmac(word, keyfile, userkey, uuid, time_cost, memory_kib, parallelism, master_seed,

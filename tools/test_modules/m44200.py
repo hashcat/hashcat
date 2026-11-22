@@ -10,7 +10,7 @@ import json
 
 from Crypto.Cipher import Salsa20
 
-from lib.test_helpers import random_bytes, random_number, split_hash_word
+from lib.test_helpers import random_bytes, random_number, split_hash_word, test_iteration_parameters
 
 # sollet.io keeps the wallet's mnemonic in a NaCl secretbox under PBKDF2-HMAC-SHA256 of the password,
 # 32 bytes. A secretbox is XSalsa20: HSalsa20 makes a subkey from the key and the first 16 bytes of
@@ -45,7 +45,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _rotl(v, c):

@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # iTunes backup 10.x. Same RFC 3394 AES key wrap as -m 14700, with an extra PBKDF2-HMAC-SHA256 pass
 # over a second salt (DPSL) feeding the SHA1 pass that derives the KEK.
@@ -76,7 +76,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, wpky_param=None, dpic=None, dpsl=None):

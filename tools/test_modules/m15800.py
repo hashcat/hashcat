@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Hash import BLAKE2b
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # xchain-crypto keystore, as thorchain and thorswap wallets write it. The envelope is the Ethereum
 # keystore of mode 15600 and the MAC covers the same bytes, the derived key's second half followed
@@ -29,7 +29,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, ciphertext=None):

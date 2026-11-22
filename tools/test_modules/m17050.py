@@ -10,7 +10,7 @@ import hashlib
 from Crypto.Cipher import AES
 
 from lib import gpg
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # GPG symmetric secret key protection with AES-128 in OCB, which carries no trailing SHA-1: the
 # kernel decides on the first decrypted block instead, which has to read "(((1:" then the name of
@@ -43,7 +43,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"iterations": (65536, 131072)}],
     },
+    'reduced': {'parameters': {'iterations': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

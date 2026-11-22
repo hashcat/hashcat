@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # A Copay backup is an sjcl blob, so the key is PBKDF2-HMAC-SHA256 of the password over the salt and
 # the payload is AES-CCM. CCM encrypts with the counter blocks L - 1 | nonce | counter, where sjcl
@@ -36,7 +36,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _ctr_block(iv, counter):

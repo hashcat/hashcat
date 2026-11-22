@@ -7,12 +7,11 @@
 
 import hashlib
 
+from lib.test_helpers import test_iteration_parameters
+
 # Byron era Daedalus stores a spending password check as log2(N)|r|p|salt|hash in its secret.key.
 # The check is scrypt over the CBOR encoding of BLAKE2b-256 of the password, which for a 32 byte
 # string is 0x58 0x20 and the bytes, compared with the stored hash.
-#
-# The scrypt parameters have to stay equal to the ones in the module's self-test hash: hashcat
-# refuses to run when a loaded hash asks for a different scrypt configuration.
 
 CBOR_BYTES_32 = bytes([0x58, 0x20])
 
@@ -27,7 +26,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _key_material(word):

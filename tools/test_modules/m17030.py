@@ -6,6 +6,7 @@
 ##
 
 from lib import gpg
+from lib.test_helpers import test_iteration_parameters
 
 # GPG symmetric secret key protection, S2K iterated and salted, AES-128 or AES-256 in CFB.
 # Integrity is the trailing SHA-1 over the decrypted data, secret key usage 254, which is what
@@ -29,7 +30,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"cipher_algo": 7, "iterations": (1024, 65536)}, {"cipher_algo": 9, "iterations": (1024, 65536)}],
     },
+    'reduced': {'parameters': {'iterations': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, cipher_algo=None):

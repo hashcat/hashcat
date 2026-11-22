@@ -9,7 +9,7 @@ import hashlib
 import hmac
 
 from lib import aix
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # Juniper/NetBSD sha1crypt: HMAC-SHA1 keyed with the password, iterated over "salt$sha1$iterations",
 # written in the crypt alphabet. The 28th character is a random one the original tool adds; a line
@@ -29,7 +29,11 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 100}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, tail=None):

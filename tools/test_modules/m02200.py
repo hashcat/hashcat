@@ -11,7 +11,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # EncFS 1.x (.encfs6.xml), AES only. PBKDF2-HMAC-SHA1 gives the user key and a 16 byte IV. The volume
 # key is stream encoded in 2 passes of AES-CFB, each pass seeded with the 32 bit checksum that leads
@@ -95,7 +95,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, key_bits=None, data=None):

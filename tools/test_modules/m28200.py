@@ -10,7 +10,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_hex_string
+from lib.test_helpers import random_bytes, random_hex_string, test_iteration_parameters
 
 # Exodus wallet: scrypt(word, salt) gives the AES-256-GCM key that unwraps a 32 byte secret. When a
 # stored ciphertext and tag are present the tag is checked; a mismatch or a fresh generate wraps
@@ -27,7 +27,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, scrypt_n=16384, scrypt_r=8, scrypt_p=1, iv=None, data=None, tag=None):

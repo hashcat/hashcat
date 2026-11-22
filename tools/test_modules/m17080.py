@@ -6,6 +6,7 @@
 ##
 
 from lib import gpg
+from lib.test_helpers import test_iteration_parameters
 
 # A GPG symmetrically encrypted message, the kind "gpg --symmetric" writes: iterated and salted
 # S2K, AES-256 in CFB, and the SHA-1 MDC that RFC 4880 5.13 puts at the end of the plaintext,
@@ -30,7 +31,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"iterations": (1024, 65536)}],
     },
+    'reduced': {'parameters': {'iterations': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

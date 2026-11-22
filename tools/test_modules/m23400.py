@@ -10,7 +10,7 @@ import binascii
 import hashlib
 import re
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # Bitwarden: PBKDF2-HMAC-SHA256 of the password salted with the e-mail, then a second PBKDF2 with the
 # roles swapped, the password as salt.
@@ -26,7 +26,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, iterations2=None):
