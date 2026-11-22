@@ -11,7 +11,7 @@ import os
 
 from argon2.low_level import Type, hash_secret_raw
 
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, test_iteration_parameters
 
 # Google fscrypt login/custom protector (google/fscrypt, crypto/crypto.go). The password is run
 # through Argon2id to a 32-byte wrapping key, HKDF-SHA256 splits that into an encryption key and an
@@ -30,7 +30,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"t": (1, 3), "m": 256, "p": 1}],
     },
+    'reduced': {'parameters': {'argon2_memory_max': 512, 'argon2_passes_max': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _hkdf_keys(wrapping_key):
@@ -41,15 +45,22 @@ def _hkdf_keys(wrapping_key):
   return t1, t2  # enc_key, auth_key
 
 
-def module_generate_hash(word, salt, iv=None, encrypted_key=None, t=None, m=None, p=None):
+def module_generate_hash(word, salt, iv=None, encrypted_key=None, t=None, m=None, p=None,
+                         argon2_memory_max=None, argon2_passes_max=None):
   if t is None:
     t = random_number(1, 4)
+
+    if argon2_passes_max is not None:
+      t = min(t, int(argon2_passes_max))
 
   if p is None:
     p = random_number(1, 4)
 
   if m is None:
     m = (1 << random_number(8, 12)) + 8 * int(p)  # keep m >= 8*p so the segment length is valid
+
+    if argon2_memory_max is not None:
+      m = min(m, int(argon2_memory_max))
 
   if iv is None:
     iv = os.urandom(16)

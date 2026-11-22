@@ -12,7 +12,7 @@ import struct
 from argon2.low_level import Type, hash_secret_raw
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number, split_hash_word
+from lib.test_helpers import random_bytes, random_number, split_hash_word, test_iteration_parameters
 
 
 def module_test_properties():
@@ -26,14 +26,32 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"iterations": (1, 3), "memory": 256, "parallelism": 1}],
     },
+    'reduced': {'parameters': {'argon2_memory_max': 256, 'argon2_passes_max': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, memory=None, parallelism=None,
                          algorithm=b"ssh-rsa", comment=None, public=None, encrypted=None,
-                         argon2_type=None):
-  passes = random_number(1, 3) if iterations is None else int(iterations)
-  memory = (1 << random_number(8, 10)) if memory is None else int(memory)
+                         argon2_type=None, argon2_memory_max=None, argon2_passes_max=None):
+  if iterations is None:
+    passes = random_number(1, 3)
+
+    if argon2_passes_max is not None:
+      passes = min(passes, int(argon2_passes_max))
+  else:
+    passes = int(iterations)
+
+  if memory is None:
+    memory = 1 << random_number(8, 10)
+
+    if argon2_memory_max is not None:
+      memory = min(memory, int(argon2_memory_max))
+  else:
+    memory = int(memory)
+
   parallelism = random_number(1, 4) if parallelism is None else int(parallelism)
   argon2_type = random_number(0, 2) if argon2_type is None else int(argon2_type)
   salt_bin = bytes.fromhex(salt)
