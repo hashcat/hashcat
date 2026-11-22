@@ -25,6 +25,7 @@ static const char *HASH_NAME      = "Android FDE >= 5.0 (scrypt, keymaster RSA)"
 static const u64   KERN_TYPE      = 44100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_HASH_DECODE_EXPENSIVE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_THREAD_MULTI_DISABLE

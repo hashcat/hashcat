@@ -31,17 +31,6 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   if (mask_feed_init (global_ctx, mask_global, hashcat_ctx) == false) return false;
 
-  // The plugin name alone would put "Feed (mask)" on the status line, which says less than the mask
-  // itself does. The first round's mask is the one to name here, because this runs before any round
-  // has started.
-
-  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-  if (mask_ctx->mask != NULL)
-  {
-    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s", mask_ctx->mask);
-  }
-
   return true;
 }
 

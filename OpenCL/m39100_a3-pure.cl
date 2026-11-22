@@ -14,6 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_checksum_crc.cl)
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #include M2S(INCLUDE_PATH/inc_krb5_des.cl)
+#include M2S(INCLUDE_PATH/inc_krb5_des_bs.cl)
 #endif
 
 typedef struct krb5tgs_1
@@ -120,158 +121,41 @@ DECLSPEC bool krb5_des_crc_encpart_check (PRIVATE_AS const u32 *key, GLOBAL_AS c
   return true;
 }
 
-KERNEL_FQ KERNEL_FA void m39100_mxx (KERN_ATTR_VECTOR_ESALT (krb5tgs_1_t))
-{
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
+#define KRB5_DES_BS_KERNEL_TM  m39100_tm
+#define KRB5_DES_BS_KERNEL_MXX m39100_mxx
+#define KRB5_DES_BS_KERNEL_SXX m39100_sxx
 
-  #ifdef REAL_SHM
+// The candidate is tested on the second block of the message, which CBC chains with the first.
+// The ASN.1 header of the ticket opens its second half, behind the four bytes of the CRC.
 
-  LOCAL_VK u32 s_SPtrans[8][64];
-  LOCAL_VK u32 s_skb[8][64];
+#define KRB5_DES_BS_PREPARE                                                                                 \
+  GLOBAL_AS const krb5tgs_1_t *esalt = &((GLOBAL_AS const krb5tgs_1_t *) esalt_bufs)[DIGESTS_OFFSET_HOST];  \
+                                                                                                            \
+  GLOBAL_AS const u32 *salt_buf = esalt->kdc_salt;                                                          \
+                                                                                                            \
+  const u32 salt_len = esalt->kdc_salt_len;                                                                 \
+                                                                                                            \
+  const u32 iv0 = esalt->checksum[0];                                                                       \
+  const u32 iv1 = esalt->checksum[1];                                                                       \
+  const u32 ct0 = esalt->checksum[2];                                                                       \
+  const u32 ct1 = esalt->checksum[3];
 
-  for (u32 i = lid; i < 64; i += lsz)
-  {
-    s_SPtrans[0][i] = c_SPtrans[0][i];
-    s_SPtrans[1][i] = c_SPtrans[1][i];
-    s_SPtrans[2][i] = c_SPtrans[2][i];
-    s_SPtrans[3][i] = c_SPtrans[3][i];
-    s_SPtrans[4][i] = c_SPtrans[4][i];
-    s_SPtrans[5][i] = c_SPtrans[5][i];
-    s_SPtrans[6][i] = c_SPtrans[6][i];
-    s_SPtrans[7][i] = c_SPtrans[7][i];
+#define KRB5_DES_BS_CIPHER
 
-    s_skb[0][i] = c_skb[0][i];
-    s_skb[1][i] = c_skb[1][i];
-    s_skb[2][i] = c_skb[2][i];
-    s_skb[3][i] = c_skb[3][i];
-    s_skb[4][i] = c_skb[4][i];
-    s_skb[5][i] = c_skb[5][i];
-    s_skb[6][i] = c_skb[6][i];
-    s_skb[7][i] = c_skb[7][i];
+// A ticket opens with 0x63 and a length behind 0x81 or 0x82. The six bits those two have in common
+// are tested with the 0x63.
+
+#define KRB5_DES_BS_HITS(B) (KRB5_DES_BS_EQ8 (B, 4, 0x63) & (B)[40] & ~((B)[41] | (B)[42] | (B)[43] | (B)[44] | (B)[45]))
+
+#define KRB5_DES_BS_VERIFY                                                                                                   \
+  if (krb5_des_crc_encpart_check (key, esalt->checksum, esalt->edata2, esalt->edata2_len, false, s_SPtrans, s_skb) == true)  \
+  {                                                                                                                          \
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)                                                             \
+    {                                                                                                                        \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);       \
+    }                                                                                                                        \
   }
 
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
-  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
-
-  #endif
-
-  if (gid >= GID_CNT) return;
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 pw[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    pw[idx] = pws[gid].i[idx];
-  }
-
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
-
-  const u32 w0l = pw[0];
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
-  {
-    pw[0] = w0l | words_buf_r[il_pos];
-
-    u32 w[64];
-
-    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
-
-    u32 key[2];
-
-    krb5_des_string_to_key (w, pw_len + salt_len, key, s_SPtrans, s_skb);
-
-    if (krb5_des_crc_encpart_check (key, esalt_bufs[DIGESTS_OFFSET_HOST].checksum, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, false, s_SPtrans, s_skb) == true)
-    {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
-      {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
-      }
-    }
-  }
-}
-
-KERNEL_FQ KERNEL_FA void m39100_sxx (KERN_ATTR_VECTOR_ESALT (krb5tgs_1_t))
-{
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_SPtrans[8][64];
-  LOCAL_VK u32 s_skb[8][64];
-
-  for (u32 i = lid; i < 64; i += lsz)
-  {
-    s_SPtrans[0][i] = c_SPtrans[0][i];
-    s_SPtrans[1][i] = c_SPtrans[1][i];
-    s_SPtrans[2][i] = c_SPtrans[2][i];
-    s_SPtrans[3][i] = c_SPtrans[3][i];
-    s_SPtrans[4][i] = c_SPtrans[4][i];
-    s_SPtrans[5][i] = c_SPtrans[5][i];
-    s_SPtrans[6][i] = c_SPtrans[6][i];
-    s_SPtrans[7][i] = c_SPtrans[7][i];
-
-    s_skb[0][i] = c_skb[0][i];
-    s_skb[1][i] = c_skb[1][i];
-    s_skb[2][i] = c_skb[2][i];
-    s_skb[3][i] = c_skb[3][i];
-    s_skb[4][i] = c_skb[4][i];
-    s_skb[5][i] = c_skb[5][i];
-    s_skb[6][i] = c_skb[6][i];
-    s_skb[7][i] = c_skb[7][i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
-  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
-
-  #endif
-
-  if (gid >= GID_CNT) return;
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 pw[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    pw[idx] = pws[gid].i[idx];
-  }
-
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt_len;
-
-  const u32 w0l = pw[0];
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
-  {
-    pw[0] = w0l | words_buf_r[il_pos];
-
-    u32 w[64];
-
-    krb5_des_build_buf (pw, pw_len, esalt_bufs[DIGESTS_OFFSET_HOST].kdc_salt, salt_len, w);
-
-    u32 key[2];
-
-    krb5_des_string_to_key (w, pw_len + salt_len, key, s_SPtrans, s_skb);
-
-    if (krb5_des_crc_encpart_check (key, esalt_bufs[DIGESTS_OFFSET_HOST].checksum, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, false, s_SPtrans, s_skb) == true)
-    {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
-      {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
-      }
-    }
-  }
-}
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_krb5_des_bs_kernel.cl)
+#endif

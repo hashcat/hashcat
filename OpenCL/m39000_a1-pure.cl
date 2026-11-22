@@ -37,6 +37,24 @@ DECLSPEC bool krb5_des_pa_timestamp_check (PRIVATE_AS const u32 *key, GLOBAL_AS 
 
   _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
+  // The timestamp opens the fourth block, and CBC needs only the block in front of it to decrypt
+  // that one. So it is tested on its own before the three ahead of it are decrypted for the MD5.
+
+  if (enc_timestamp_len >= 32)
+  {
+    u32 c[2];
+    u32 p[2];
+
+    c[0] = enc_timestamp[6];
+    c[1] = enc_timestamp[7];
+
+    _des_crypt_decrypt (p, c, Kc, Kd, s_SPtrans);
+
+    p[0] ^= enc_timestamp[4];
+
+    if ((p[0] & 0x000000ff) != 0x00000030) return false;
+  }
+
   md5_ctx_t ctx;
 
   md5_init (&ctx);

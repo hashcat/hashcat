@@ -26,6 +26,42 @@
 
 #ifdef WITH_BRAIN
 #include "brain.h"
+
+// A pipeline slot holds a brain connection of its own, see brain_link_t, so closing the run's links
+// walks the slots rather than the device.
+
+static void brain_links_disconnect (hc_device_param_t *device_param)
+{
+  for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+  {
+    brain_client_disconnect (&device_param->brain_link[slot_pos]);
+  }
+}
+
+// Open a slot's link, which the producers do the first time they need it and again whenever one has
+// dropped. Only the first link of the run is opened ahead of that, by calc (), because its reply is
+// where the keyspace this session has already covered comes from.
+//
+// A link carries one batch at a time, so each declares the server a short-term buffer for one batch.
+// That is what makes a batch's commit promote that batch and nothing else.
+
+static void brain_link_open (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, brain_link_t *link)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+
+  const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+
+  // What the server answers with is the keyspace the session has reached, and calc () has already
+  // acted on it. A reply read here is thrown away rather than acted on twice.
+
+  u64 highest = 0;
+
+  if (brain_client_connect (hashcat_ctx, device_param, link, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
+  {
+    brain_client_disconnect (link);
+  }
+}
 #endif
 
 
@@ -301,10 +337,6 @@ typedef struct slow_fill_state
 
   u128 words_cur;
 
-  #ifdef WITH_BRAIN
-  u64 brain_highest;
-  #endif
-
 } slow_fill_state_t;
 
 static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *batch, void *state)
@@ -395,23 +427,15 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       #ifdef WITH_BRAIN
       if (user_options->brain_client == true)
       {
-        if (device_param->brain_link_client_fd == -1)
-        {
-          const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
-
-          if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &sc->brain_highest) == false)
-          {
-            brain_client_disconnect (device_param);
-          }
-        }
+        if (batch->brain_link->client_fd == -1) brain_link_open (hashcat_ctx, device_param, batch->brain_link);
 
         if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
         {
           u64 overlap = 0;
 
-          if (brain_client_reserve (device_param, status_ctx, u128_lo (words_off), work, &overlap) == false)
+          if (brain_client_reserve (device_param, batch->brain_link, status_ctx, u128_lo (words_off), work, &overlap) == false)
           {
-            brain_client_disconnect (device_param);
+            brain_client_disconnect (batch->brain_link);
           }
 
           words_extra        = overlap;
@@ -534,9 +558,15 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     {
       if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
       {
-        if (brain_client_lookup (device_param, status_ctx) == false)
+        if (brain_client_lookup (device_param, batch->brain_link, status_ctx) == false)
         {
-          brain_client_disconnect (device_param);
+          brain_client_disconnect (batch->brain_link);
+
+          // Nothing was looked up for this round, or not all of it, so the verdicts below are what an
+          // earlier round left there. This round runs without dedup instead of dropping candidates
+          // that were never checked.
+
+          memset (device_param->brain_link_in_buf, 0, device_param->pws_pre_cnt);
         }
       }
 
@@ -855,13 +885,19 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     #ifdef WITH_BRAIN
     if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
     {
+      // The second slot's link is opened here, the first time this producer reaches it, and a link
+      // that has dropped is retried the same way. Opening both up front would hold a connection and
+      // a batch worth of server buffers for a slot that an attack with no pipeline never uses.
+
+      if (batch->brain_link->client_fd == -1) brain_link_open (hashcat_ctx, device_param, batch->brain_link);
+
       u64 overlap = 0;
 
       // The brain reserves u64 positions, and inner2_brain_check () stops a run that passes them.
 
-      if (brain_client_reserve (device_param, status_ctx, u128_lo (words_off), work_cnt, &overlap) == false)
+      if (brain_client_reserve (device_param, batch->brain_link, status_ctx, u128_lo (words_off), work_cnt, &overlap) == false)
       {
-        brain_client_disconnect (device_param);
+        brain_client_disconnect (batch->brain_link);
       }
 
       // The overlap is always a leading prefix of what was asked for, so the chunk starts past it and
@@ -1252,6 +1288,10 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       // Not gated on the producer any more. Keyspace reservation runs on the device-side feed path
       // too, and a reservation that is never committed is released when this client disconnects.
+      //
+      // This has to stay ahead of the pw_pipe_release () below. The slot's link is the one thing the
+      // producer and this thread both touch, and the release is what lets the producer have the slot
+      // back: moving the commit after it would put a reserve and this commit on one socket at once.
 
       #ifdef WITH_BRAIN
       if (user_options->brain_client == true)
@@ -1262,9 +1302,9 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
          && (status_ctx->devices_status != STATUS_BYPASS)
          && (status_ctx->devices_status != STATUS_ERROR))
         {
-          if (brain_client_commit (device_param, status_ctx) == false)
+          if (brain_client_commit (device_param, batch->brain_link, status_ctx) == false)
           {
-            brain_client_disconnect (device_param);
+            brain_client_disconnect (batch->brain_link);
           }
         }
       }
@@ -1310,7 +1350,7 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return rc_final;
 }
 
-static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+static int calc_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -1342,20 +1382,20 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   u64 highest = 0;
 
-  brain_client_disconnect (device_param);
+  brain_links_disconnect (device_param);
 
   if (user_options->brain_client == true)
   {
-    const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
-
     // this is the first connect of the run. A brain that is not there now means the whole attack
     // runs with no dedup at all, which is what the user asked for by passing -z, so it is an error
     // rather than a degradation. A link that drops later is different: the work already deduped
     // stays deduped, so that one only warns and keeps going.
 
-    if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
+    const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+
+    if (brain_client_connect (hashcat_ctx, device_param, &device_param->brain_link[0], status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
     {
-      brain_client_disconnect (device_param);
+      brain_links_disconnect (device_param);
 
       return -1;
     }
@@ -1426,17 +1466,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
-      bool pipe_serial = false;
-
-      #ifdef WITH_BRAIN
-      sc.brain_highest = highest;
-
-      pipe_serial = user_options->brain_client;
-      #endif
-
       pw_pipe_t pipe;
 
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc);
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
@@ -1473,17 +1505,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
-      bool pipe_serial = false;
-
-      #ifdef WITH_BRAIN
-      sc.brain_highest = highest;
-
-      pipe_serial = user_options->brain_client;
-      #endif
-
       pw_pipe_t pipe;
 
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc);
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
@@ -1514,17 +1538,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.keep_base  = false;
       sc.words_cur  = 0;
 
-      bool pipe_serial = false;
-
-      #ifdef WITH_BRAIN
-      sc.brain_highest = highest;
-
-      pipe_serial = user_options->brain_client;
-      #endif
-
       pw_pipe_t pipe;
 
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc);
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
@@ -1534,7 +1550,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     #ifdef WITH_BRAIN
     if (user_options->brain_client == true)
     {
-      brain_client_disconnect (device_param);
+      brain_links_disconnect (device_param);
     }
     #endif
   }
@@ -1551,6 +1567,14 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       // as. Only the brain block below reads it, so a build without the brain has no use for it.
 
       MAYBE_UNUSED const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+
+      // when the link was last opened again, see the reserve below
+
+      #ifdef WITH_BRAIN
+      hc_timer_t brain_retry;
+
+      bool brain_retried = false;
+      #endif
 
       while (status_ctx->run_thread_level1 == true)
       {
@@ -1571,11 +1595,29 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         #ifdef WITH_BRAIN
         if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
         {
+          // A link that dropped is opened again for a later chunk, so one outage does not end
+          // dedup for the rest of the attack. This loop is the launch, with nothing to overlap a
+          // connect that has to time out, so after a failed attempt the next one waits for
+          // BRAIN_CLIENT_RECONNECT_INTERVAL seconds. An unreachable server then costs the device
+          // one connect timeout per interval rather than one per chunk.
+
+          if (device_param->brain_link[0].client_fd == -1)
+          {
+            if ((brain_retried == false) || (hc_timer_get (brain_retry) >= (BRAIN_CLIENT_RECONNECT_INTERVAL * 1000.0)))
+            {
+              hc_timer_set (&brain_retry);
+
+              brain_retried = true;
+
+              brain_link_open (hashcat_ctx, device_param, &device_param->brain_link[0]);
+            }
+          }
+
           u64 overlap = 0;
 
-          if (brain_client_reserve (device_param, status_ctx, u128_lo (words_off), work_cur, &overlap) == false)
+          if (brain_client_reserve (device_param, &device_param->brain_link[0], status_ctx, u128_lo (words_off), work_cur, &overlap) == false)
           {
-            brain_client_disconnect (device_param);
+            brain_client_disconnect (&device_param->brain_link[0]);
           }
 
           // The overlap the server answers with is always a leading prefix of what was asked for, and
@@ -1662,9 +1704,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
            && (status_ctx->devices_status != STATUS_BYPASS)
            && (status_ctx->devices_status != STATUS_ERROR))
           {
-            if (brain_client_commit (device_param, status_ctx) == false)
+            if (brain_client_commit (device_param, &device_param->brain_link[0], status_ctx) == false)
             {
-              brain_client_disconnect (device_param);
+              brain_client_disconnect (&device_param->brain_link[0]);
             }
           }
         }
@@ -1708,17 +1750,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       pw_pipe_t pipe;
 
-      // reserve () runs on the producer thread and commit () on the launch thread, both over the one
-      // socket this device holds, so the brain has to take the pipeline out of lock-step exactly as
-      // it does for the slow producers.
-
-      bool pipe_serial = false;
-
-      #ifdef WITH_BRAIN
-      pipe_serial = user_options->brain_client;
-      #endif
-
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_generic, &gf, pipe_serial);
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_generic, &gf);
 
       // One rejected base word stood for a whole amplifier's worth of candidates, and which amplifier
       // depends on the kernel exactly as it does for the wordlist reader.
@@ -1743,14 +1775,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
   }
 
-  // The link was opened for this run and every producer that used it has finished, so it closes
-  // here. Leaving it open would hold this client's uncommitted reservations on the server for as
-  // long as the process lives.
-
-  #ifdef WITH_BRAIN
-  brain_client_disconnect (device_param);
-  #endif
-
   device_param->kernel_accel_prev   = device_param->kernel_accel;
   device_param->kernel_loops_prev   = device_param->kernel_loops;
   device_param->kernel_threads_prev = device_param->kernel_threads;
@@ -1766,6 +1790,21 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   device_param->kernel_threads = 0;
 
   return 0;
+}
+
+// A run closes the links it opened on every way out of it, an error included. Every producer that
+// used them has finished by then, and a link left open would hold this client's uncommitted
+// reservations on the server until the next run or the end of the process.
+
+static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+{
+  const int rc = calc_run (hashcat_ctx, device_param);
+
+  #ifdef WITH_BRAIN
+  brain_links_disconnect (device_param);
+  #endif
+
+  return rc;
 }
 
 HC_THREAD_FUNC thread_calc (void *p)

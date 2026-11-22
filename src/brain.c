@@ -21,6 +21,7 @@
 #include "memory.h"
 #include "interface.h"
 #include "module_options.h"
+#include "mpsp.h"
 #include "brain.h"
 
 static bool keep_running = true;
@@ -213,10 +214,100 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
   return session;
 }
 
+// What a mask attack is besides its work arguments: the mask the round is walking, and every option
+// that changes what that mask produces or in what order. A mask walked through a feed needs the same,
+// because its work arguments only name the queue the masks come from.
+
+static void brain_compute_attack_mask (paw64_ctx_t *state, const hashcat_ctx_t *hashcat_ctx)
+{
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const char *mask = mask_ctx->mask;
+
+  paw64_update (state, mask, strlen (mask));
+
+  const int hex_charset = user_options->hex_charset;
+
+  paw64_update (state, &hex_charset, sizeof (hex_charset));
+
+  const int markov_classic   = user_options->markov_classic;
+  const int markov           = user_options->markov;
+  const int markov_inverse   = user_options->markov_inverse;
+  const int markov_threshold = user_options->markov_threshold;
+
+  paw64_update (state, &markov_classic,   sizeof (markov_classic));
+  paw64_update (state, &markov,           sizeof (markov));
+  paw64_update (state, &markov_inverse,   sizeof (markov_inverse));
+  paw64_update (state, &markov_threshold, sizeof (markov_threshold));
+
+  if (user_options->markov_hcstat2)
+  {
+    const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
+
+    paw64_update (state, markov_hcstat2, strlen (markov_hcstat2));
+  }
+
+  if (user_options->custom_charset_1)
+  {
+    const char *custom_charset_1 = user_options->custom_charset_1;
+
+    paw64_update (state, custom_charset_1, strlen (custom_charset_1));
+  }
+
+  if (user_options->custom_charset_2)
+  {
+    const char *custom_charset_2 = user_options->custom_charset_2;
+
+    paw64_update (state, custom_charset_2, strlen (custom_charset_2));
+  }
+
+  if (user_options->custom_charset_3)
+  {
+    const char *custom_charset_3 = user_options->custom_charset_3;
+
+    paw64_update (state, custom_charset_3, strlen (custom_charset_3));
+  }
+
+  if (user_options->custom_charset_4)
+  {
+    const char *custom_charset_4 = user_options->custom_charset_4;
+
+    paw64_update (state, custom_charset_4, strlen (custom_charset_4));
+  }
+
+  if (user_options->custom_charset_5)
+  {
+    const char *custom_charset_5 = user_options->custom_charset_5;
+
+    paw64_update (state, custom_charset_5, strlen (custom_charset_5));
+  }
+
+  if (user_options->custom_charset_6)
+  {
+    const char *custom_charset_6 = user_options->custom_charset_6;
+
+    paw64_update (state, custom_charset_6, strlen (custom_charset_6));
+  }
+
+  if (user_options->custom_charset_7)
+  {
+    const char *custom_charset_7 = user_options->custom_charset_7;
+
+    paw64_update (state, custom_charset_7, strlen (custom_charset_7));
+  }
+
+  if (user_options->custom_charset_8)
+  {
+    const char *custom_charset_8 = user_options->custom_charset_8;
+
+    paw64_update (state, custom_charset_8, strlen (custom_charset_8));
+  }
+}
+
 u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -246,15 +337,26 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   // --skip used to be left out here, but by accident: it was cleared as soon as the first round had
   // taken it, which was long before this ran.
 
-  // Both are truncated to 32 bits here, so two attacks whose --skip differs only above 2^32 get the
-  // same identity, and a --skip past 2^31 is hashed as a negative number. Widening these two would
-  // give every attack that has ever run a new identity, so they stay at 32 bits.
+  // The low 32 bits of each go in as an int, which is how every identity so far was built, so an
+  // attack whose --skip and --limit fit in 32 bits keeps the identity it always had. What lies above
+  // them goes in only when there is any, as four u64 halves whatever width a u128 has, so two attacks
+  // whose --skip or --limit differ only above 2^32 are no longer one.
 
   const int skip  = (int) u128_lo (user_options->skip);
   const int limit = (int) u128_lo (user_options->limit);
 
   paw64_update (&state, &skip,  sizeof (skip));
   paw64_update (&state, &limit, sizeof (limit));
+
+  const u128 skip_hi  = user_options->skip  >> 32;
+  const u128 limit_hi = user_options->limit >> 32;
+
+  if ((skip_hi != 0) || (limit_hi != 0))
+  {
+    const u64 hi[4] = { u128_lo (skip_hi), u128_hi (skip_hi), u128_lo (limit_hi), u128_hi (limit_hi) };
+
+    paw64_update (&state, hi, sizeof (hi));
+  }
 
   // A range is a pair of positions, and what a position counts is not the same on both producers. The
   // slow path walks candidates, so one position is one candidate. The device-side path walks base
@@ -387,6 +489,12 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
     // the same attack and refuse the second one as already done.
 
     paw64_update (&state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+
+    // -a 3 and the hybrid modes given rules walk their masks through a feed, one mask per round, and
+    // the work arguments above name only the queue. Without the round's own mask every round is the
+    // same attack, and the brain refuses the start of each later mask as covered by the first.
+
+    if (mask_is_feed (user_options) == true) brain_compute_attack_mask (&state, hashcat_ctx);
   }
   else if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -441,86 +549,7 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    const char *mask = mask_ctx->mask;
-
-    paw64_update (&state, mask, strlen (mask));
-
-    const int hex_charset = user_options->hex_charset;
-
-    paw64_update (&state, &hex_charset, sizeof (hex_charset));
-
-    const int markov_classic   = user_options->markov_classic;
-    const int markov           = user_options->markov;
-    const int markov_inverse   = user_options->markov_inverse;
-    const int markov_threshold = user_options->markov_threshold;
-
-    paw64_update (&state, &markov_classic,   sizeof (markov_classic));
-    paw64_update (&state, &markov,           sizeof (markov));
-    paw64_update (&state, &markov_inverse,   sizeof (markov_inverse));
-    paw64_update (&state, &markov_threshold, sizeof (markov_threshold));
-
-    if (user_options->markov_hcstat2)
-    {
-      const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
-
-      paw64_update (&state, markov_hcstat2, strlen (markov_hcstat2));
-    }
-
-    if (user_options->custom_charset_1)
-    {
-      const char *custom_charset_1 = user_options->custom_charset_1;
-
-      paw64_update (&state, custom_charset_1, strlen (custom_charset_1));
-    }
-
-    if (user_options->custom_charset_2)
-    {
-      const char *custom_charset_2 = user_options->custom_charset_2;
-
-      paw64_update (&state, custom_charset_2, strlen (custom_charset_2));
-    }
-
-    if (user_options->custom_charset_3)
-    {
-      const char *custom_charset_3 = user_options->custom_charset_3;
-
-      paw64_update (&state, custom_charset_3, strlen (custom_charset_3));
-    }
-
-    if (user_options->custom_charset_4)
-    {
-      const char *custom_charset_4 = user_options->custom_charset_4;
-
-      paw64_update (&state, custom_charset_4, strlen (custom_charset_4));
-    }
-
-    if (user_options->custom_charset_5)
-    {
-      const char *custom_charset_5 = user_options->custom_charset_5;
-
-      paw64_update (&state, custom_charset_5, strlen (custom_charset_5));
-    }
-
-    if (user_options->custom_charset_6)
-    {
-      const char *custom_charset_6 = user_options->custom_charset_6;
-
-      paw64_update (&state, custom_charset_6, strlen (custom_charset_6));
-    }
-
-    if (user_options->custom_charset_7)
-    {
-      const char *custom_charset_7 = user_options->custom_charset_7;
-
-      paw64_update (&state, custom_charset_7, strlen (custom_charset_7));
-    }
-
-    if (user_options->custom_charset_8)
-    {
-      const char *custom_charset_8 = user_options->custom_charset_8;
-
-      paw64_update (&state, custom_charset_8, strlen (custom_charset_8));
-    }
+    brain_compute_attack_mask (&state, hashcat_ctx);
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
@@ -826,14 +855,32 @@ bool brain_recv (int sockfd, void *buf, size_t len, int flags, hc_device_param_t
   return true;
 }
 
-bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+// One transfer into the device's speed ring for its direction, which returns what it moved for
+// the device's total. A transfer that failed moved nothing, so it adds nothing. The position wraps
+// before it reaches LINK_SPEED_COUNT, the size of the ring.
+
+static u64 brain_link_speed_add (link_speed_t *link_speed, const ssize_t nbytes)
 {
-  link_speed_t *link_speed = &device_param->brain_link_send_speed;
+  const u64 moved = (nbytes > 0) ? (u64) nbytes : 0;
+
+  link_speed->bytes[link_speed->pos] = (ssize_t) moved;
+
+  link_speed->pos++;
+
+  if (link_speed->pos >= LINK_SPEED_COUNT) link_speed->pos = 0;
+
+  return moved;
+}
+
+static bool brain_send_all_chunks (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+{
+  // A caller that wants no accounting passes no device, and every use below is already guarded on it.
+  // Reaching through the null pointer for the address alone was still undefined.
+
+  link_speed_t *link_speed = (device_param) ? &device_param->brain_link_send_speed : NULL;
 
   if (device_param)
   {
-    device_param->brain_link_send_active = true;
-
     hc_timer_set (&link_speed->timer[link_speed->pos]);
   }
 
@@ -841,11 +888,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (device_param)
   {
-    link_speed->bytes[link_speed->pos] = nsend;
-
-    if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-    device_param->brain_link_send_bytes += nsend;
+    device_param->brain_link_send_bytes += brain_link_speed_add (link_speed, nsend);
   }
 
   if (nsend <= 0) return false;
@@ -865,11 +908,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
     if (device_param)
     {
-      link_speed->bytes[link_speed->pos] = nsend_new;
-
-      if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-      device_param->brain_link_send_bytes += nsend_new;
+      device_param->brain_link_send_bytes += brain_link_speed_add (link_speed, nsend_new);
     }
 
     if (nsend_new <= 0) return false;
@@ -879,22 +918,30 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
     nsend += nsend_new;
   }
 
-  if (device_param)
-  {
-    device_param->brain_link_send_active = false;
-  }
-
   return true;
 }
 
-bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+// A device counts as sending or receiving while a transfer runs and not after it, however the
+// transfer ends, so the status screen does not go on reporting a device as sending to a brain it
+// has lost.
+
+bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
 {
-  link_speed_t *link_speed = &device_param->brain_link_recv_speed;
+  if (device_param) device_param->brain_link_send_active = true;
+
+  const bool sent = brain_send_all_chunks (sockfd, buf, len, flags, device_param, status_ctx);
+
+  if (device_param) device_param->brain_link_send_active = false;
+
+  return sent;
+}
+
+static bool brain_recv_all_chunks (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+{
+  link_speed_t *link_speed = (device_param) ? &device_param->brain_link_recv_speed : NULL;
 
   if (device_param)
   {
-    device_param->brain_link_recv_active = true;
-
     hc_timer_set (&link_speed->timer[link_speed->pos]);
   }
 
@@ -902,11 +949,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (device_param)
   {
-    link_speed->bytes[link_speed->pos] = nrecv;
-
-    if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-    device_param->brain_link_recv_bytes += nrecv;
+    device_param->brain_link_recv_bytes += brain_link_speed_add (link_speed, nrecv);
   }
 
   if (nrecv <= 0) return false;
@@ -926,11 +969,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
     if (device_param)
     {
-      link_speed->bytes[link_speed->pos] = nrecv_new;
-
-      if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-      device_param->brain_link_recv_bytes += nrecv_new;
+      device_param->brain_link_recv_bytes += brain_link_speed_add (link_speed, nrecv_new);
     }
 
     if (nrecv_new <= 0) return false;
@@ -940,12 +979,18 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
     nrecv += nrecv_new;
   }
 
-  if (device_param)
-  {
-    device_param->brain_link_recv_active = false;
-  }
-
   return true;
+}
+
+bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+{
+  if (device_param) device_param->brain_link_recv_active = true;
+
+  const bool received = brain_recv_all_chunks (sockfd, buf, len, flags, device_param, status_ctx);
+
+  if (device_param) device_param->brain_link_recv_active = false;
+
+  return received;
 }
 
 // A failed brain link is retried on every batch, so reporting every attempt buries the terminal in
@@ -1002,16 +1047,17 @@ static void brain_client_report (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   event_log_error (hashcat_ctx, "%s", buf);
 }
 
-bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
+bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, brain_link_t *link, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
 {
-  device_param->brain_link_client_fd   = 0;
-  device_param->brain_link_recv_bytes  = 0;
-  device_param->brain_link_send_bytes  = 0;
-  device_param->brain_link_recv_active = false;
-  device_param->brain_link_send_active = false;
+  // The link holds no descriptor until the handshake is through, and every failure below closes the
+  // socket and leaves it that way. So a caller that carries on after a refusal cannot send over a
+  // closed descriptor, and one that disconnects does not close it a second time.
 
-  memset (&device_param->brain_link_recv_speed, 0, sizeof (link_speed_t));
-  memset (&device_param->brain_link_send_speed, 0, sizeof (link_speed_t));
+  link->client_fd = -1;
+
+  // The byte totals and the speed rings are not cleared: a device holds one link per pipeline slot,
+  // the second opens once a batch needs it, and clearing there would throw away what the run had
+  // already transferred over the first.
 
   const int brain_link_client_fd = socket (AF_INET, SOCK_STREAM, 0);
 
@@ -1100,8 +1146,6 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     return false;
   }
-
-  device_param->brain_link_client_fd = brain_link_client_fd;
 
   u32 brain_link_version = BRAIN_LINK_VERSION_CUR;
 
@@ -1212,6 +1256,8 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     return false;
   }
 
+  link->client_fd = brain_link_client_fd;
+
   // the link is up, so a later outage is a new one and deserves its own message
 
   device_param->brain_link_reported = false;
@@ -1219,24 +1265,24 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return true;
 }
 
-void brain_client_disconnect (hc_device_param_t *device_param)
+void brain_client_disconnect (brain_link_t *link)
 {
-  if (device_param->brain_link_client_fd > 2)
+  if (link->client_fd > 2)
   {
-    close (device_param->brain_link_client_fd);
+    close (link->client_fd);
   }
 
-  device_param->brain_link_client_fd = -1;
+  link->client_fd = -1;
 }
 
-bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap)
+bool brain_client_reserve (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap)
 {
   // Nothing is reserved until the reply has been read and checked, so a caller that carries on after
   // a failure skips nothing. A partial read would otherwise leave whatever arrived in there.
 
   *overlap = 0;
 
-  const int brain_link_client_fd = device_param->brain_link_client_fd;
+  const int brain_link_client_fd = link->client_fd;
 
   if (brain_link_client_fd == -1) return false;
 
@@ -1263,26 +1309,30 @@ bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *
   return true;
 }
 
-bool brain_client_commit (hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+bool brain_client_commit (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx)
 {
   if (device_param->pws_cnt == 0) return true;
 
-  const int brain_link_client_fd = device_param->brain_link_client_fd;
+  const int brain_link_client_fd = link->client_fd;
 
   if (brain_link_client_fd == -1) return false;
 
   u8 operation = BRAIN_OPERATION_COMMIT;
 
-  if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, device_param, status_ctx) == false) return false;
+  // No device, so the one byte below is not counted and the link accounting is left to the thread
+  // that does the rest of the talking. This is the only client call the launch thread makes, and
+  // everything else on this link goes over it from the producer thread, see brain_link_t.
+
+  if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, NULL, status_ctx) == false) return false;
 
   return true;
 }
 
-bool brain_client_lookup (hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+bool brain_client_lookup (hc_device_param_t *device_param, const brain_link_t *link, const status_ctx_t *status_ctx)
 {
   if (device_param->pws_pre_cnt == 0) return true;
 
-  const int brain_link_client_fd = device_param->brain_link_client_fd;
+  const int brain_link_client_fd = link->client_fd;
 
   if (brain_link_client_fd == -1) return false;
 
@@ -1305,6 +1355,10 @@ bool brain_client_lookup (hc_device_param_t *device_param, const status_ctx_t *s
   if (in_size <= 0) return false;
 
   if (in_size > (int) device_param->size_brain_link_in) return false;
+
+  // one verdict for each candidate sent, because the caller reads one for each
+
+  if (in_size != (int) device_param->pws_pre_cnt) return false;
 
   if (brain_recv (brain_link_client_fd, recvbuf,      (size_t) in_size,          0, device_param, status_ctx) == false) return false;
 
@@ -3524,7 +3578,11 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
 
   memset (&device_param, 0, sizeof (device_param));
 
-  device_param.brain_link_client_fd = -1;
+  // The feed is not a pipeline, so it holds the one link it needs on its own stack.
+
+  brain_link_t link;
+
+  link.client_fd = -1;
 
   device_param.size_brain_link_in  = BRAIN_FEED_CHUNK * sizeof (u8);
   device_param.size_brain_link_out = BRAIN_FEED_CHUNK * BRAIN_HASH_SIZE;
@@ -3539,9 +3597,9 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
   // passwords_max is what the server checks a lookup against, and it counts what has accumulated
   // since the last commit. A whole chunk is committed at a time, so one chunk is the true maximum.
 
-  if (brain_client_connect (hashcat_ctx, &device_param, NULL, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, 0, BRAIN_FEED_CHUNK, &highest) == false)
+  if (brain_client_connect (hashcat_ctx, &device_param, &link, NULL, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, 0, BRAIN_FEED_CHUNK, &highest) == false)
   {
-    brain_client_disconnect (&device_param);
+    brain_client_disconnect (&link);
 
     hcfree (device_param.brain_link_in_buf);
     hcfree (device_param.brain_link_out_buf);
@@ -3619,7 +3677,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
 
       device_param.pws_cnt = cnt;
 
-      if (brain_client_lookup (&device_param, NULL) == false)
+      if (brain_client_lookup (&device_param, &link, NULL) == false)
       {
         event_log_error (hashcat_ctx, "Brain server stopped answering after %" PRIu64 " candidates. Nothing since the last commit was stored.", fed_cnt);
 
@@ -3636,7 +3694,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
         if (device_param.brain_link_in_buf[i] == 1) known_cnt++;
       }
 
-      if (brain_client_commit (&device_param, NULL) == false)
+      if (brain_client_commit (&device_param, &link, NULL) == false)
       {
         event_log_error (hashcat_ctx, "Brain server refused the commit after %" PRIu64 " candidates.", fed_cnt);
 
@@ -3653,7 +3711,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
     if (eof == true) break;
   }
 
-  brain_client_disconnect (&device_param);
+  brain_client_disconnect (&link);
 
   hcfree (line_buf);
   hcfree (device_param.brain_link_in_buf);

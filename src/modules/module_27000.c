@@ -13,6 +13,9 @@
 #include "emu_inc_cipher_des.h"
 #include "emu_inc_hash_md5.h"
 
+// The candidate is an NT hash in hex, not a password. Users feed extracted hashes in a
+// raw wordlist, so the mode stays outside-kernel: amplified attacks have no use here.
+
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
@@ -24,6 +27,7 @@ static const char *HASH_NAME      = "NetNTLMv1 / NetNTLMv1+ESS (NT)";
 static const u64   KERN_TYPE      = 27000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_HASH_DECODE_EXPENSIVE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_PT_ADD80
@@ -428,14 +432,20 @@ static u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNU
 
 static const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
- const char *mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxx";
+ const char *mask = "?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1";
  return mask;
+}
+static const char *module_benchmark_charset (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+ const char *charset = "0123456789abcdef";
+ return charset;
 }
 
 void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
 
+  module_ctx->module_benchmark_charset        = module_benchmark_charset;
   module_ctx->module_benchmark_mask           = module_benchmark_mask;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_hash_decode              = module_hash_decode;

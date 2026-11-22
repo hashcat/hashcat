@@ -182,6 +182,12 @@ typedef struct
 {
   u32 nslot;
 
+  // Whether suf and usuf hold u128 entries rather than u64 ones. They sit here because this is padding
+  // on a 64-bit host, so the two cost the record nothing.
+
+  bool suf_wide;
+  bool usuf_wide;
+
   // Sized to the slots the structure has rather than to PCFG_MAXSLOT, out of one arena.
 
   u8  *kind;
@@ -210,12 +216,18 @@ typedef struct
   u32 cmin;
   u32 cmax;
 
-  u128 *suf;
+  // The counts by cost, read through suf_at () and usuf_at (). A row keeps only the costs from its
+  // first nonzero count to its last, cmin to cmax for suf and ucmin to ucmax for usuf, and is as wide
+  // as its largest count, see row_trim ().
 
-  u128 *usuf;
+  void *suf;
 
-  u128 *udev;
-  u32   cut;
+  void *usuf;
+
+  u32 ucmin;
+  u32 ucmax;
+
+  u32 cut;
 
   u32 total_len;
 
@@ -3444,6 +3456,128 @@ static inline bool bucket_out (const pcfg_struct_t *s, const u32 j, const pcfg_t
   return false;
 }
 
+static inline u128 row_at (const void *row, const bool wide, const u32 r)
+{
+  if (wide == true)
+  {
+    const u128 *w = (const u128 *) row;
+
+    const u128 v = w[r];
+
+    return v;
+  }
+
+  const u64 *n = (const u64 *) row;
+
+  const u128 v = n[r];
+
+  return v;
+}
+
+// The count at cost s->cost + r, which is 0 outside the range the row keeps.
+
+static inline u128 suf_at (const pcfg_struct_t *s, const u32 r)
+{
+  const u32 c = s->cost + r;
+
+  if (c < s->cmin) return 0;
+  if (c > s->cmax) return 0;
+
+  const u128 v = row_at (s->suf, s->suf_wide, c - s->cmin);
+
+  return v;
+}
+
+static inline u128 usuf_at (const pcfg_struct_t *s, const u32 r)
+{
+  const u32 c = s->cost + r;
+
+  if (c < s->ucmin) return 0;
+  if (c > s->ucmax) return 0;
+
+  const u128 v = row_at (s->usuf, s->usuf_wide, c - s->ucmin);
+
+  return v;
+}
+
+// A copy of the cnt entries of full, in u64 unless one of them needs more than 64 bits. The counts of
+// a trained grammar stay far below 2^64, so its rows take half the memory u128 rows would. NULL when
+// the host has none to give.
+
+static void *row_keep (const u128 *full, const u32 cnt, bool *wide)
+{
+  bool w = false;
+
+  for (u32 r = 0; r < cnt; r++)
+  {
+    if (u128_fits_u64 (full[r]) == true) continue;
+
+    w = true;
+
+    break;
+  }
+
+  wide[0] = w;
+
+  if (w == true)
+  {
+    u128 *row = (u128 *) hcmalloc ((size_t) cnt * sizeof (u128));
+
+    if (row == NULL) return NULL;
+
+    memcpy (row, full, (size_t) cnt * sizeof (u128));
+
+    return row;
+  }
+
+  u64 *row = (u64 *) hcmalloc ((size_t) cnt * sizeof (u64));
+
+  if (row == NULL) return NULL;
+
+  for (u32 r = 0; r < cnt; r++) row[r] = u128_lo (full[r]);
+
+  return row;
+}
+
+// Keeps row zero of a table, the span entries of full, as suf or as usuf. Only the costs from the
+// first nonzero count to the last are kept, and those two costs become cmin and cmax, or ucmin and
+// ucmax. A row that reaches no cost keeps a single zero, with both costs at 0.
+
+static void row_trim (pcfg_struct_t *s, const bool unit, const u128 *full, const u32 span)
+{
+  u32 first = 0;
+  u32 last  = 0;
+
+  bool seen = false;
+
+  for (u32 r = 0; r < span; r++)
+  {
+    if (full[r] == 0) continue;
+
+    if (seen == false) { first = r; seen = true; }
+
+    last = r;
+  }
+
+  const u32 lo = (seen == true) ? s->cost + first : 0;
+  const u32 hi = (seen == true) ? s->cost + last  : 0;
+
+  const u32 cnt = (last - first) + 1;
+
+  if (unit == true)
+  {
+    s->ucmin = lo;
+    s->ucmax = hi;
+    s->usuf  = row_keep (&full[first], cnt, &s->usuf_wide);
+  }
+  else
+  {
+    s->cmin = lo;
+    s->cmax = hi;
+    s->suf  = row_keep (&full[first], cnt, &s->suf_wide);
+  }
+}
+
 static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *sc)
 {
   const u32 span = pg->costmax - s->cost + 1;
@@ -3493,25 +3627,7 @@ static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *s
     }
   }
 
-  s->suf = (u128 *) hcmalloc ((size_t) span * sizeof (u128));
-
-  if (s->suf == NULL) return;
-
-  memcpy (s->suf, full, (size_t) span * sizeof (u128));
-
-  s->cmin = 0;
-  s->cmax = 0;
-
-  bool seen = false;
-
-  for (u32 r = 0; r < span; r++)
-  {
-    if (s->suf[r] == 0) continue;
-
-    if (seen == false) { s->cmin = s->cost + r; seen = true; }
-
-    s->cmax = s->cost + r;
-  }
+  row_trim (s, false, full, span);
 }
 
 // A row the sweep could not allocate is left NULL. A reader of the suffix rows takes every row to be
@@ -3524,7 +3640,7 @@ static bool rows_complete (generic_global_ctx_t *global_ctx, const pcfg_global_t
 {
   for (u32 i = 0; i < pg->structs_cnt; i++)
   {
-    const u128 *row = (unit == true) ? pg->structs[i].usuf : pg->structs[i].suf;
+    const void *row = (unit == true) ? pg->structs[i].usuf : pg->structs[i].suf;
 
     if (row != NULL) continue;
 
@@ -6660,9 +6776,9 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   if (bound_pin (global_ctx, pg) == false) return -1;
 
-  // Before the suffix sweep below, and that matters: the sweep is what fills a structure's suf, usuf and
-  // udev, and the filter copies a structure into one variant per case group. Run the other way round,
-  // every variant of a structure would carry the same three pointers and global_term () would free each
+  // Before the suffix sweep below, and that matters: the sweep is what fills a structure's suf and
+  // usuf, and the filter copies a structure into one variant per case group. Run the other way round,
+  // every variant of a structure would carry the same two pointers and global_term () would free each
   // of them once per variant.
 
   if (mask_filter (global_ctx, pg) == false) return -1;
@@ -8002,8 +8118,8 @@ static void idx_one (pcfg_global_t *pg, const u32 li)
   {
     const pcfg_struct_t *s = &pg->structs[i];
 
-    if (c < s->cost || c > s->cmax) continue;
-    if (s->suf[c - s->cost] == 0)   continue;
+    if ((c < s->cost) || (c > s->cmax)) continue;
+    if (suf_at (s, c - s->cost) == 0)   continue;
 
     n++;
   }
@@ -8029,7 +8145,7 @@ static void idx_one (pcfg_global_t *pg, const u32 li)
 
     if (c < s->cost || c > s->cmax) continue;
 
-    const u128 w = s->suf[c - s->cost];
+    const u128 w = suf_at (s, c - s->cost);
 
     if (w == 0) continue;
 
@@ -8098,9 +8214,11 @@ static void build_index (pcfg_global_t *pg)
 
     for (u32 r = 0; r < span; r++)
     {
-      if (s->suf[r] == 0) continue;
+      const u128 v = suf_at (s, r);
 
-      tot[s->cost + r] = sat_add_u128 (tot[s->cost + r], s->suf[r]);
+      if (v == 0) continue;
+
+      tot[s->cost + r] = sat_add_u128 (tot[s->cost + r], v);
     }
   }
 
@@ -9704,13 +9822,7 @@ static void build_unit_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch
 
   // Row zero is what everything outside the unranking asks for.
 
-  s->usuf = (u128 *) hcmalloc ((size_t) span * sizeof (u128));
-
-  if (s->usuf == NULL) return;
-
-  memcpy (s->usuf, sc->unit_up, (size_t) span * sizeof (u128));
-
-  s->udev = NULL;
+  row_trim (s, true, sc->unit_up, span);
 }
 
 static u128 count_units (const pcfg_global_t *pg)
@@ -9732,7 +9844,7 @@ static u128 count_units (const pcfg_global_t *pg)
 
       if (s->usuf == NULL) continue;
 
-      run = sat_add_u128 (run, s->usuf[c - s->cost]);
+      run = sat_add_u128 (run, usuf_at (s, c - s->cost));
     }
   }
 
@@ -9759,8 +9871,8 @@ static u64 front_rect (const pcfg_global_t *pg, const u64 want)
 
       if (s->usuf == NULL) continue;
 
-      units = sat_add_u128 (units, s->usuf[c - s->cost]);
-      cands = sat_add_u128 (cands, s->suf[c - s->cost]);
+      units = sat_add_u128 (units, usuf_at (s, c - s->cost));
+      cands = sat_add_u128 (cands, suf_at  (s, c - s->cost));
     }
 
     if (units >= want) break;
@@ -9780,10 +9892,8 @@ static void unit_suffix_free (pcfg_global_t *pg)
   for (u32 i = 0; i < pg->structs_cnt; i++)
   {
     hcfree (pg->structs[i].usuf);
-    hcfree (pg->structs[i].udev);
 
     pg->structs[i].usuf = NULL;
-    pg->structs[i].udev = NULL;
   }
 
   pg->built = false;
@@ -10011,6 +10121,13 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
   if (buf == NULL) { hc_fclose (&fp); return false; }
 
+  // A row is read whole before it is kept, because the width it is kept at depends on its largest
+  // count. A span is at most PCFG_SPANCAP.
+
+  u128 *full = (u128 *) hcmalloc (PCFG_SPANCAP * sizeof (u128));
+
+  if (full == NULL) { hcfree (buf); hc_fclose (&fp); return false; }
+
   u32 at  = 0;
   u32 len = 0;
 
@@ -10024,17 +10141,13 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
     const u32 span = pg->costmax - s->cost + 1;
 
-    u128 **dst = (unit == true) ? &s->usuf : &s->suf;
+    memset (full, 0, (size_t) span * sizeof (u128));
 
-    *dst = (u128 *) hccalloc (span, sizeof (u128));
-
-    // What was read is given back before saying no, or the sweep would allocate over it.
-
-    bool row = (*dst != NULL);
+    bool row = true;
 
     // Topped up whenever less than one row's reserve is left, rather than at every byte.
 
-    if ((row == true) && ((len - at) < PCFG_CACHE_ROW))
+    if ((len - at) < PCFG_CACHE_ROW)
     {
       memmove (buf, buf + at, len - at);
 
@@ -10051,7 +10164,7 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
       }
     }
 
-    if ((row == true) && (at < len))
+    if (at < len)
     {
       // A span reaches PCFG_SPANCAP, so neither the count nor a position fits in a byte. Both are
       // varints, and a truncated one is what cache_varint () refuses.
@@ -10075,7 +10188,7 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
         if (cache_varint (buf, &at, len, &v) == false) { row = false; break; }
 
-        (*dst)[u128_lo (r)] = v;
+        full[u128_lo (r)] = v;
       }
     }
     else
@@ -10083,8 +10196,24 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
       row = false;
     }
 
+    // The row and the lowest and highest cost anything finishes at are kept by row_trim (), the same
+    // call build_suffix () and build_unit_suffix () end with. The two costs are a reading of the row,
+    // so they are taken again here rather than written to the file. Without them the level index
+    // finds nothing and the run stops with zero levels, which is what a cache that restored only the
+    // array did.
+
+    if (row == true)
+    {
+      row_trim (s, unit, full, span);
+
+      row = (((unit == true) ? s->usuf : s->suf) != NULL);
+    }
+
+    // What was read is given back before saying no, or the sweep would allocate over it.
+
     if (row == false)
     {
+      hcfree (full);
       hcfree (buf);
 
       hc_fclose (&fp);
@@ -10093,40 +10222,9 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
       return false;
     }
-
-    if (unit == true)
-    {
-      s->udev = NULL;
-    }
-    else
-    {
-      // build_suffix () leaves three things behind, not one: the row, and the lowest and highest
-      // cost anything finishes at. Those two are a reading of the row, so they are taken again here
-      // rather than written to the file. Without them the level index finds nothing and the run
-      // stops with zero levels, which is what a cache that restored only the array did.
-      //
-      // It is a second pass over the whole row, which the loop above could have done while it wrote
-      // the entries. That is deliberate: this is the same loop build_suffix () ends with, character
-      // for character, which is what makes it obvious that the two paths agree. The pass costs about
-      // 0.3s of the 2.4 a read takes, against the 9.4 a build takes, and being able to see that it
-      // is the same loop is worth more than that.
-
-      s->cmin = 0;
-      s->cmax = 0;
-
-      bool seen = false;
-
-      for (u32 r = 0; r < span; r++)
-      {
-        if (s->suf[r] == 0) continue;
-
-        if (seen == false) { s->cmin = s->cost + r; seen = true; }
-
-        s->cmax = s->cost + r;
-      }
-    }
   }
 
+  hcfree (full);
   hcfree (buf);
 
   hc_fclose (&fp);
@@ -10190,13 +10288,16 @@ static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_
 
     const u32 span = pg->costmax - s->cost + 1;
 
-    const u128 *src = (unit == true) ? s->usuf : s->suf;
+    const void *src = (unit == true) ? s->usuf : s->suf;
 
     if (src == NULL) { ok = false; break; }
 
+    // Positions stay relative to the structure's cost, whatever part of the row is kept, so the file
+    // reads the same either way.
+
     u32 cnt = 0;
 
-    for (u32 r = 0; r < span; r++) if (src[r] != 0) cnt++;
+    for (u32 r = 0; r < span; r++) if (((unit == true) ? usuf_at (s, r) : suf_at (s, r)) != 0) cnt++;
 
     // A row cannot reach the reserve kept here: PCFG_CACHE_ROW is a whole span of positions and
     // values at their widest.
@@ -10214,7 +10315,7 @@ static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_
 
     for (u32 r = 0; r < span; r++)
     {
-      const u128 v = src[r];
+      const u128 v = (unit == true) ? usuf_at (s, r) : suf_at (s, r);
 
       if (v == 0) continue;
 
@@ -10387,9 +10488,9 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u128 *acc_out)
   {
     const pcfg_struct_t *s = &pg->structs[i];
 
-    if (c < s->cost || c > s->cmax) continue;
-    if (s->usuf == NULL)            continue;
-    if (s->usuf[c - s->cost] == 0)  continue;
+    if ((c < s->cost) || (c > s->cmax)) continue;
+    if (s->usuf == NULL)                continue;
+    if (usuf_at (s, c - s->cost) == 0)  continue;
 
     n++;
   }
@@ -10424,7 +10525,7 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u128 *acc_out)
 
     if (s->usuf == NULL) continue;
 
-    const u128 w = s->usuf[c - s->cost];
+    const u128 w = usuf_at (s, c - s->cost);
 
     if (w == 0) continue;
 
@@ -13620,7 +13721,6 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   for (u32 i = 0; i < pg->structs_cnt; i++) hcfree (pg->structs[i].suf);
   for (u32 i = 0; i < pg->structs_cnt; i++) hcfree (pg->structs[i].usuf);
-  for (u32 i = 0; i < pg->structs_cnt; i++) hcfree (pg->structs[i].udev);
 
   for (u32 i = 0; i < pg->ulvl_cnt; i++)
   {

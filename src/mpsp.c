@@ -23,6 +23,11 @@ static const char *const DEF_MASK = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 #define MAX_MFS 9 // 8*charset, 1*mask
 
+// Most frequent first, and equal counts by character, lowest first. qsort () is not stable everywhere:
+// glibc's keeps tied entries in the order they came, which is that one, but the C libraries of
+// Windows and macOS do not. Without the second key the same mask and --skip gave different candidates
+// on those two.
+
 static int sp_comp_val (const void *p1, const void *p2)
 {
   const hcstat_table_t *b1 = (const hcstat_table_t *) p1;
@@ -33,6 +38,12 @@ static int sp_comp_val (const void *p1, const void *p2)
 
   if (v1 < v2) return  1;
   if (v1 > v2) return -1;
+
+  const u32 k1 = b1->key;
+  const u32 k2 = b2->key;
+
+  if (k1 > k2) return  1;
+  if (k1 < k2) return -1;
 
   return 0;
 }

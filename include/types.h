@@ -814,6 +814,9 @@ typedef enum opts_type
   // The module supports the separate test-only scrypt N override.
   OPTS_TYPE_SCRYPT_OVERRIDE          = (1ULL << 34),
 
+  // Use a lower hash list size threshold for decoders that do substantial work per record.
+  OPTS_TYPE_HASH_DECODE_EXPENSIVE    = (1ULL << 35),
+
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
@@ -831,7 +834,7 @@ typedef enum opts_type
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
   OPTS_TYPE_COMBI_PURE_SWAP          = (1ULL << 33), // the _a1-pure.cl kernel assembles the candidate honoring combs_mode (handles BASE_RIGHT), so -a 1 may pick the larger wordlist as the base word source
 
-  // Bits 35 to 43 are free. They held flags that said which kernels a session
+  // Bits 36 to 43 are free. They held flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.
@@ -1364,6 +1367,20 @@ typedef enum brain_link_status
   BRAIN_LINK_STATUS_SENDING     = 1 << 2,
 
 } brain_link_status_t;
+
+// One connection to the brain server, held by one pipeline slot. The talking about the next batch
+// happens while the current one is still being launched, and the two cannot share a socket: the
+// protocol is a bare sequence of requests and replies with nothing to tell two of them apart.
+//
+// A commit is also client wide on the server. It promotes everything that connection has reserved
+// and looked up, so two slots on one connection would have the batch that has not run yet recorded
+// as tried by the batch that has.
+
+typedef struct brain_link
+{
+  int client_fd;
+
+} brain_link_t;
 #endif
 
 #ifdef _WIN
@@ -1668,6 +1685,14 @@ typedef struct pw_batch
   pw_idx_t *pws_idx;
   u32      *pws_comp;
   u64       pws_cnt;
+
+  // The brain connection this slot talks over, see brain_link_t. The lookup buffers did not follow
+  // it in: there is one producer thread, so only one lookup is ever in flight and the one set the
+  // device holds is enough. A second producer would need them per slot as well.
+
+  #ifdef WITH_BRAIN
+  brain_link_t *brain_link;
+  #endif
 
   // The device engine's cells, one per candidate in this batch. They belong to the batch for the same
   // reason the candidates do: the next batch is built while this one runs.
@@ -2088,7 +2113,11 @@ typedef struct hc_device_param
   u64  size_brain_link_in;
   u64  size_brain_link_out;
 
-  int           brain_link_client_fd;
+  // One per pipeline slot, each pointed to by that slot. What follows stays per device: the status
+  // screen reports a device and not a slot, and one brain outage is one message however many links
+  // it took down.
+
+  brain_link_t  brain_link[PW_PIPE_SLOTS];
   bool          brain_link_reported;    // a failed link is retried per batch, so report an outage once
   link_speed_t  brain_link_recv_speed;
   link_speed_t  brain_link_send_speed;

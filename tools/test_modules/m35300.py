@@ -7,6 +7,8 @@
 
 import random
 
+from Crypto.Hash import MD4
+
 from lib.kerberos_rc4 import hmac_md5, rc4
 from lib.test_helpers import pack_hex, random_bytes
 
@@ -25,6 +27,31 @@ CLEARTEXT_TICKET = (
     "134343735305aa711180f32303136303231363030343735305aa811180f32303136303232"
     "323134343735305a"
 )
+# SEQUENCE content = 126: outer APPLICATION 3 uses 0x81 length, inner SEQUENCE uses short form (0x7e)
+CLEARTEXT_TICKET_126 = (
+    "638180307ea00703050050a00000a11b3019a003020117a112041058e0d77776e8b8e03991"
+    "f2966939222aa2131b114141414141414141414141414141414141a30e300ca003020102a1"
+    "0530031b0175a40b3009a003020101a1020400a511180f323031363032313531343437353"
+    "05aa711180f32303136303231363030343735305a"
+)
+
+# SEQUENCE content = 253: outer APPLICATION 3 uses 0x82 length, inner SEQUENCE uses 0x81
+CLEARTEXT_TICKET_253 = (
+    "638201003081fda00703050050a00000a11b3019a003020117a112041058e0d77776e8b8e0"
+    "3991f2966939222aa281911b818e4141414141414141414141414141414141414141414141"
+    "4141414141414141414141414141414141414141414141414141414141414141414141414141"
+    "4141414141414141414141414141414141414141414141414141414141414141414141414141"
+    "41414141414141414141414141414141414141414141414141414141414141414141a30e300c"
+    "a003020102a10530031b0175a40b3009a003020101a1020400a511180f3230313630323135"
+    "3134343735305aa711180f32303136303231363030343735305a"
+)
+
+CLEARTEXT_TICKETS = [CLEARTEXT_TICKET, CLEARTEXT_TICKET_126, CLEARTEXT_TICKET_253]
+
+
+
+def module_get_random_password(word):
+  return MD4.new(word.decode("latin-1").encode("utf-16-le")).hexdigest().encode()
 
 
 def module_test_properties():
@@ -55,7 +82,7 @@ def module_generate_hash(
     k = pack_hex(word)
     k1 = hmac_md5(k, MSG_TYPE)
 
-    cleartext = CLEARTEXT_TICKET
+    cleartext = random.choice(CLEARTEXT_TICKETS)
 
     if checksum is not None:
         checksum = bytes.fromhex(checksum)
@@ -72,7 +99,8 @@ def module_generate_hash(
         correct = (
             (ticket[16:20] == "6381" and ticket[22:24] == "30")
             or ticket[16:20] == "6382"
-        ) and (ticket[32:38] == "030500" or ticket[32:40] == "050307A0")
+        ) and (ticket[32:38] == "030500" or ticket[32:40] == "a0070305"
+            or ticket[32:36] == "0500" or ticket[32:40] == "07030500")
 
         cleartext = ticket if correct else "0" * (len(cleartext) + 16)
 

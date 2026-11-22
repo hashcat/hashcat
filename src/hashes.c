@@ -2555,11 +2555,8 @@ static void hashes_init_entry (const hashconfig_t *hashconfig, hashes_t *hashes,
   }
 }
 
-// parse the hash list on every core
-//
-// only for a plain hashcat format file of unsalted digests carrying no per hash side data, which is
-// the shape every list big enough to care about has. everything else keeps the loop in
-// hashes_init_stage1, which is still the only implementation of every case this one turns away.
+// Parse eligible plain hashcat-format files in parallel. The parser supports both unsalted
+// hashes and salted hashes with per-record esalt and hook-salt data.
 
 #define HASHLIST_BLOCK_SIZE (64 * 1024 * 1024)
 #define HASHLIST_PARSE_MIN  (256 * 1024)
@@ -3030,8 +3027,6 @@ static bool hashlist_parse_threaded_ok (hashcat_ctx_t *hashcat_ctx, const u32 ha
   const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (hashes_avail < HASHLIST_PARSE_MIN) return false;
-
   if (hashlist_format != HLFMT_HASHCAT) return false;
 
   if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)  return false;
@@ -3043,6 +3038,10 @@ static bool hashlist_parse_threaded_ok (hashcat_ctx_t *hashcat_ctx, const u32 ha
   if (user_options->dynamic_x   == true) return false;
   if (user_options->hash_copy   == true) return false;
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
+
+  const u64 min_hashes = ((hashconfig->opts_type & OPTS_TYPE_HASH_DECODE_EXPENSIVE) != 0) ? 2 : HASHLIST_PARSE_MIN;
+
+  if (hashes_avail < min_hashes) return false;
 
   return true;
 }
@@ -3057,6 +3056,7 @@ static bool hashlist_parse_threaded (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32
   int chunks_cnt = hc_get_processor_count ();
 
   if (chunks_cnt < 1) chunks_cnt = 1;
+  if ((u64) chunks_cnt > hashes_avail) chunks_cnt = (int) hashes_avail;
 
   char             *block   = (char *)             hcmalloc (HASHLIST_BLOCK_SIZE + 2);
   hashlist_chunk_t *chunks  = (hashlist_chunk_t *) hcmalloc ((size_t) chunks_cnt * sizeof (hashlist_chunk_t));

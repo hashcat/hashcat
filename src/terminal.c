@@ -4324,7 +4324,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     // A feed scoped to one source per round has a queue of rounds and says which one it is on. -a 9 over
     // several wordlists is one round per wordlist, and -a 9 splitting its own hash file is one round per
     // word of the account name. A feed handed every source at once answers 1 of 1 here and says where it
-    // has reached inside Guess.Base instead.
+    // has reached inside Guess.Base instead. The mask feed is the exception: it runs one round per mask,
+    // as -a 3 does, and counts the queue of masks.
 
     case GUESS_MODE_GENERIC:
 

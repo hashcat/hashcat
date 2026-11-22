@@ -29,6 +29,26 @@ CLEARTEXT_TICKET = (
     "134343735305aa711180f32303136303231363030343735305aa811180f32303136303232"
     "323134343735305a"
 )
+# SEQUENCE content = 126: outer APPLICATION 3 uses 0x81 length, inner SEQUENCE uses short form (0x7e)
+CLEARTEXT_TICKET_126 = (
+    "638180307ea00703050050a00000a11b3019a003020117a112041058e0d77776e8b8e03991"
+    "f2966939222aa2131b114141414141414141414141414141414141a30e300ca003020102a1"
+    "0530031b0175a40b3009a003020101a1020400a511180f323031363032313531343437353"
+    "05aa711180f32303136303231363030343735305a"
+)
+
+# SEQUENCE content = 253: outer APPLICATION 3 uses 0x82 length, inner SEQUENCE uses 0x81
+CLEARTEXT_TICKET_253 = (
+    "638201003081fda00703050050a00000a11b3019a003020117a112041058e0d77776e8b8e0"
+    "3991f2966939222aa281911b818e4141414141414141414141414141414141414141414141"
+    "4141414141414141414141414141414141414141414141414141414141414141414141414141"
+    "4141414141414141414141414141414141414141414141414141414141414141414141414141"
+    "41414141414141414141414141414141414141414141414141414141414141414141a30e300c"
+    "a003020102a10530031b0175a40b3009a003020101a1020400a511180f3230313630323135"
+    "3134343735305aa711180f32303136303231363030343735305a"
+)
+
+CLEARTEXT_TICKETS = [CLEARTEXT_TICKET, CLEARTEXT_TICKET_126, CLEARTEXT_TICKET_253]
 
 
 def _encrypt(key, data):
@@ -58,7 +78,8 @@ def _unwraps(key, cipher):
     if not ((plain[25] == 0x81 and plain[27] == 0x30) or plain[25] == 0x82):
         return False
 
-    if plain[32:35] != b"\x03\x05\x00" and plain[32:36] != b"\xa0\x07\x03\x05":
+    if (plain[32:35] != b"\x03\x05\x00" and plain[32:36] != b"\xa0\x07\x03\x05"
+            and plain[32:34] != b"\x05\x00" and plain[32:36] != b"\x07\x03\x05\x00"):
         return False
 
     return MD5.new(plain[:8] + b"\x00" * 16 + plain[24:]).digest() == plain[8:24]
@@ -91,7 +112,8 @@ def module_generate_hash(
     key = string_to_key(word, (realm.upper() + user).encode())
 
     if edata2 is None:
-        cipher = _wrap(key, bytes.fromhex(CLEARTEXT_TICKET))
+        ticket = random.choice(CLEARTEXT_TICKETS)
+        cipher = _wrap(key, bytes.fromhex(ticket))
     else:
         cipher = bytes.fromhex(checksum + edata2)
 

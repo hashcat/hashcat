@@ -5,11 +5,17 @@
 ## License.....: MIT
 ##
 
+from Crypto.Hash import MD4
 from lib import netntlmv2
 from lib.test_helpers import pack_hex
 
 # NetNTLMv2 (NT): the password is the NT hash itself, in hex, see lib/netntlmv2.py. The perl verify
 # packed the hex twice, once itself and once in generate; the python one packs it once.
+
+
+
+def module_get_random_password(word):
+  return MD4.new(word.decode("latin-1").encode("utf-16-le")).hexdigest().encode()
 
 
 def module_test_properties():
