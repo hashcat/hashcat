@@ -3584,6 +3584,12 @@ def container_veracrypt(args, mode, width, tmp):
   # options. Invalid hash+cipher pairs have no file and are skipped, as test.sh does.
   opts = base_opts(args)
 
+  mask = CONTAINER_MASK_MID
+
+  if args.generate:
+    _, password = veracrypt_generation_parameters()
+    mask = container_mask_from_password(password, "first")
+
   s = "%05d" % mode
   hfun = VC_HASH_DIGIT.get(int(s[3]))
 
@@ -3629,7 +3635,7 @@ def container_veracrypt(args, mode, width, tmp):
         continue
 
     container_crack(args, opts + pim_opts, mode, 3, hash_arg, width, "Cipher %s" % cascade,
-                    [CONTAINER_MASK_MID], report_attack=0)
+                    [mask], report_attack=0)
 
 
 # test.sh cryptoloop_test (test.sh): 145HC, H the hash digit and C the cipher digit; every mode is
@@ -3902,6 +3908,17 @@ def vc_encryption_name(cascade):
   return "-".join(parts)
 
 
+def veracrypt_generation_parameters():
+  password = CONTAINER_PASSWORD.decode("utf-8")
+  pim = 1 if test_iterations.iteration_reduction_requested() else 0
+
+  if pim == 1:
+    # VeraCrypt permits PIM 1 only with passwords of at least 20 characters.
+    password = password.ljust(20, "0")
+
+  return pim, password.encode("utf-8")
+
+
 def veracrypt_generate(mode, vc_hash, cascade, out_file):
   # test.sh veracrypt_generate: build the volume with the veracrypt console binary, as the user. 1.26
   # dropped RIPEMD-160 for new volumes, so those need VERACRYPT_BIN pointed at a 1.25.9 or older build.
@@ -3920,11 +3937,16 @@ def veracrypt_generate(mode, vc_hash, cascade, out_file):
   if os.path.exists(out_file):
     os.remove(out_file)
 
+  pim, password = veracrypt_generation_parameters()
+
+  if pim > 0:
+    print("[ test.py ] [ Type %d ] > Generated VeraCrypt cost: PIM=%d" % (mode, pim))
+
   # 1 MiB is over VeraCrypt's minimum and keeps generation to a moment; hashcat only reads the header.
   gen_run([vbin, "--text", "--create", out_file, "--size=1M",
-           "--password=%s" % CONTAINER_PASSWORD.decode("utf-8"), "--volume-type=normal",
+           "--password=%s" % password.decode("utf-8"), "--volume-type=normal",
            "--encryption=%s" % encryption, "--hash=%s" % vc_hash, "--filesystem=none",
-           "--pim=0", "--keyfiles=", "--random-source=/dev/urandom", "--non-interactive"])
+           "--pim=%d" % pim, "--keyfiles=", "--random-source=/dev/urandom", "--non-interactive"])
 
   if not os.path.exists(out_file) or os.path.getsize(out_file) == 0:
     if os.path.exists(out_file):
@@ -4075,9 +4097,12 @@ def luks1_generate(mode, luks_hash, luks_cipher, lmode, ksize, out_file):
   return True
 
 
+def luks2_generation_memory():
+  return 32 if test_iterations.iteration_reduction_requested() else 16384
+
+
 def luks2_generate(mode, lmode, ksize, out_file):
-  # test.sh luks2_generate: the smallest argon2id 34100 is still itself at (t=4, m=16 MiB, p=1), the
-  # shape of the container hashcat.net ships. Opening and formatting the payload needs root, as LUKS1.
+  # Opening and formatting the payload needs root, as LUKS1.
   cryptsetup = _tool("CRYPTSETUP_BIN", "cryptsetup")
 
   if not _have(cryptsetup):
@@ -4094,10 +4119,14 @@ def luks2_generate(mode, lmode, ksize, out_file):
   with open(out_file, "wb") as fh:
     fh.truncate(48 * 1024 * 1024)
 
+  memory = luks2_generation_memory()
+
+  print("[ test.py ] [ Type %d ] > Generated LUKS2 cost: t=4, m=%d KiB, p=1" % (mode, memory))
+
   rc, _ = gen_run([cryptsetup, "luksFormat", "--batch-mode", "--type", "luks2",
                    "--cipher", "aes-%s" % chain, "--key-size", ksize, "--hash", "sha256",
                    "--pbkdf", "argon2id", "--pbkdf-force-iterations", "4",
-                   "--pbkdf-memory", "16384", "--pbkdf-parallel", "1", out_file],
+                   "--pbkdf-memory", str(memory), "--pbkdf-parallel", "1", out_file],
                   stdin=CONTAINER_PASSWORD + b"\n", sudo=True)
 
   if rc != 0:
@@ -4130,7 +4159,8 @@ def generate_containers(args, mode, tmp):
     os.makedirs(LUKS2_TESTS_DIR, exist_ok=True)
 
     for lmode, ksize in luks_variants():
-      out = os.path.join(LUKS2_TESTS_DIR, "luks2-aes-argon2id-t4-m16-p1-%s-%s.img" % (lmode, ksize))
+      memory = "32KiB" if test_iterations.iteration_reduction_requested() else "16"
+      out = os.path.join(LUKS2_TESTS_DIR, "luks2-aes-argon2id-t4-m%s-p1-%s-%s.img" % (memory, lmode, ksize))
 
       if not os.path.exists(out):
         luks2_generate(mode, lmode, ksize, out)
@@ -4192,7 +4222,9 @@ def generate_containers(args, mode, tmp):
       return
 
     for cascade in VC_CASCADES.get(int(s[4]), {}).values():
-      out = os.path.join(VC_TESTS_DIR, "hashcat_%s_%s.vc" % (hfun, cascade))
+      pim, _ = veracrypt_generation_parameters()
+      suffix = "_pim%d" % pim if pim > 0 else ""
+      out = os.path.join(VC_TESTS_DIR, "hashcat_%s_%s%s.vc" % (hfun, cascade, suffix))
 
       if not os.path.exists(out):
         veracrypt_generate(mode, hfun, cascade, out)
