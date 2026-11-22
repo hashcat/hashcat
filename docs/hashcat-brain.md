@@ -260,6 +260,20 @@ Every candidate hash sent to the server costs network bandwidth, a lookup and pe
 
 The first development alpha used an unsharded database and measured about 50,000 candidate hashes per second. That is a historical result, not a limit of the current implementation. The attack-level feature described below was added to avoid candidate transfers and lookups for keyspace ranges that are already covered.
 
+What the brain costs a client is not charged against the device. A device prepares the next batch of candidates while it runs the current one, and the reserve, the candidate hashing and the lookup for that next batch all happen in the preparation. To make that possible, a client opens one connection per batch it keeps in flight rather than one per device. A batch's reserve, lookup and commit all go over its own connection, so the commit that records a batch as tried cannot reach the batch that has not run yet.
+
+A device keeps two batches in flight, so an attack that prepares its candidates on the host opens two connections per device. An attack with no pipeline, such as a mask the device generates from, opens one, because the second connection is only opened the first time a second batch needs it.
+
+The server has 255 client slots, which is therefore 127 devices rather than 255 for an attack that opens two. It also sizes a connection's buffers from the batch size that connection declares, so it holds those buffers twice per device for such an attack.
+
+The other consequence is that the two batches a device has in flight no longer deduplicate against each other. The server keeps a connection's uncommitted candidates in short-term memory of its own, so a candidate staged for one batch is not rejected for the other until the first batch commits. From then on long-term memory catches it as it always did, and a later run over the same candidates still rejects all of them. What this costs is a few duplicates tested per launch:
+
+```
+$ ./hashcat -z --brain-password <password> -m 10 -a 0 hashes.txt example.dict -r rules/best66.rule
+```
+
+Over 1,100 salts, that run rejected 18.51 percent of the keyspace where the same binary under `HASHCAT_PIPE_SYNC=1`, which puts the preparation back on the launch thread, rejected 19.26 percent. It ran 13 percent faster for it.
+
 Option `--brain-client-features` selects two independent features:
 
 * The **hashes** feature deduplicates individual candidates across different attacks.

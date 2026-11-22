@@ -1367,6 +1367,20 @@ typedef enum brain_link_status
   BRAIN_LINK_STATUS_SENDING     = 1 << 2,
 
 } brain_link_status_t;
+
+// One connection to the brain server, held by one pipeline slot. The talking about the next batch
+// happens while the current one is still being launched, and the two cannot share a socket: the
+// protocol is a bare sequence of requests and replies with nothing to tell two of them apart.
+//
+// A commit is also client wide on the server. It promotes everything that connection has reserved
+// and looked up, so two slots on one connection would have the batch that has not run yet recorded
+// as tried by the batch that has.
+
+typedef struct brain_link
+{
+  int client_fd;
+
+} brain_link_t;
 #endif
 
 #ifdef _WIN
@@ -1671,6 +1685,14 @@ typedef struct pw_batch
   pw_idx_t *pws_idx;
   u32      *pws_comp;
   u64       pws_cnt;
+
+  // The brain connection this slot talks over, see brain_link_t. The lookup buffers did not follow
+  // it in: there is one producer thread, so only one lookup is ever in flight and the one set the
+  // device holds is enough. A second producer would need them per slot as well.
+
+  #ifdef WITH_BRAIN
+  brain_link_t *brain_link;
+  #endif
 
   // The device engine's cells, one per candidate in this batch. They belong to the batch for the same
   // reason the candidates do: the next batch is built while this one runs.
@@ -2091,7 +2113,11 @@ typedef struct hc_device_param
   u64  size_brain_link_in;
   u64  size_brain_link_out;
 
-  int           brain_link_client_fd;
+  // One per pipeline slot, each pointed to by that slot. What follows stays per device: the status
+  // screen reports a device and not a slot, and one brain outage is one message however many links
+  // it took down.
+
+  brain_link_t  brain_link[PW_PIPE_SLOTS];
   bool          brain_link_reported;    // a failed link is retried per batch, so report an outage once
   link_speed_t  brain_link_recv_speed;
   link_speed_t  brain_link_send_speed;
