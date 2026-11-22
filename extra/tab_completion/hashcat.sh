@@ -460,7 +460,7 @@ _hashcat ()
 {
   local VERSION=8.0.0
 
-  local ATTACK_MODES="0 1 3 4 5 6 7 8 9 12"
+  local ATTACK_MODES="0 1 3 4 5 6 7 8 9 10 12"
   local EAPOL_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6"
   local OPENCL_DEVICE_TYPES="1 2"
@@ -883,6 +883,18 @@ _hashcat ()
         5)
           # a hash file, a wordlist, then as many tables as the user cares to name, so this one never
           # stops offering files
+
+          _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+          COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
+          return 0
+          ;;
+
+        10)
+          # a hash file and the wordlist; only settings follow, so the file offers stop there
+
+          if [ "${no_opts}" -gt 2 ]; then
+            return 0
+          fi
 
           _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
           COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))

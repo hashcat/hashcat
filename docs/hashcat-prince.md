@@ -4,9 +4,10 @@ This document explains how to run PRINCE attacks in hashcat and how the feed rel
 
 ## 1. Running it
 
-PRINCE is feed `prince` of the generic attack mode:
+PRINCE is feed `prince` of the generic attack mode, and it has an attack-mode number of its own: `-a 10`. hashcat-legacy ran PRINCE as `-a 8`, which is the generic mode here, and no hashcat has used `-a 10` before. The two spellings are the same attack:
 
 ```
+$ ./hashcat -m 0 hashes.txt -a 10 wordlist.txt
 $ ./hashcat -m 0 hashes.txt -a 8 prince wordlist.txt
 ```
 
@@ -56,7 +57,7 @@ prince: 3168 chains have more than 8 elements and were skipped, 568688 candidate
 
 **Lengths with a quota of zero.** pp's round schedule assigns every password length a share of each round. With `wl-dist-len=1` a length whose words are absent from the wordlist gets a quota of zero, and pp would never finish such a length. The feed runs those lengths once, after the round schedule ends, so their candidates are not lost.
 
-**Two engines.** The run goes to the device engine unless one of these forces the host engine: `--stdout`, a rules pass, `--slow-candidates`, a slow hash-mode, or a pool too large for the weakest device. The feed prints which one took the run. The candidate set and order are the same on both. What differs is what positions count:
+**Two engines.** The run goes to the device engine unless one of these forces the host engine: `--stdout`, a rules pass, `--slow-candidates`, a slow hash-mode, a hash-mode without the `mNNNNN_a4-pure.cl` kernel the device engine needs (5100, 20510, 37400, 37800 and 44800 are such modes), or a pool too large for the weakest device. The feed prints which one took the run. The candidate set and order are the same on both. What differs is what positions count:
 
 - On the device engine, one position is one unit (a base word plus its cell), so `--keyspace`, `--skip`, `--limit` and the restore point count units. The progress line counts candidates on either engine, and `--total-candidates` reports the exact candidate count either way.
 - On the host engine, one position is one candidate, and `--keyspace` and `--skip` count and land on candidates exactly, `--skip` matching pp's own `--skip`.
