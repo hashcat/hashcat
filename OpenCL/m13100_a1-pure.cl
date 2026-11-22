@@ -147,7 +147,7 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS
 
   j = rc4_next_12_global (S, i, j, edata2 + 3, out1, lid); i += 12;
 
-  if (((out1[1] & 0x00ffffff) != 0x00000503) && (out1[1] != 0x050307A0)) return 0;
+  if (((out1[1] & 0x00ffffff) != 0x00000503) && (out1[1] != 0x050307A0) && ((out1[1] & 0x0000ffff) != 0x00000005) && (out1[1] != 0x00050307)) return 0;
 
   rc4_init_128 (S, data, lid);
 

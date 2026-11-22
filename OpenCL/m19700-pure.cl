@@ -544,7 +544,7 @@ KERNEL_FQ KERNEL_FA void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, kr
 
   if (((decrypted_block[0] & 0xff00ffff) == 0x30008163) || ((decrypted_block[0] & 0x0000ffff) == 0x00008263))
   {
-    if (((decrypted_block[2] & 0x00ffffff) == 0x00000503) || (decrypted_block[2] == 0x050307A0))
+    if (((decrypted_block[2] & 0x00ffffff) == 0x00000503) || (decrypted_block[2] == 0x050307A0) || ((decrypted_block[2] & 0x0000ffff) == 0x00000005) || (decrypted_block[2] == 0x00050307))
     {
 
       // now we decrypt all the ticket to verify checksum

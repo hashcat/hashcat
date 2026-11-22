@@ -171,7 +171,7 @@ KERNEL_FQ KERNEL_FA void m35300_comp (KERN_ATTR_TMPS_ESALT (tgs_tmp_t, krb5tgs_t
     {
       return;
     }
-    if (((out1[0] & 0x00ffffff) != 0x00000503) && (out1[0] != 0x050307A0))
+    if (((out1[0] & 0x00ffffff) != 0x00000503) && (out1[0] != 0x050307A0) && ((out1[0] & 0x0000ffff) != 0x00000005) && (out1[0] != 0x00050307))
     {
       return;
     }

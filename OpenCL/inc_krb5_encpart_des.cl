@@ -87,7 +87,7 @@ DECLSPEC bool krb5_des_encpart_check (PRIVATE_AS const u32 *key, GLOBAL_AS const
 
     p[0] ^= edata2[2];
 
-    if (((p[0] & 0x00ffffff) != 0x00000503) && (p[0] != 0x050307a0)) return false;
+    if (((p[0] & 0x00ffffff) != 0x00000503) && (p[0] != 0x050307a0) && ((p[0] & 0x0000ffff) != 0x00000005) && (p[0] != 0x00050307)) return false;
   }
 
   // the markers hold, so the whole plaintext is worth taking the MD5 of
