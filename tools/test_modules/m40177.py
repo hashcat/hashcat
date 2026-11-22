@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+from Crypto.Hash import MD4
+
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le
+
+CHARSET = kernel_charset()
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
+
+
+def module_generate_hash(word, salt, iterations=None):
+  inner = MD4.new(utf16le(word, CHARSET)).hexdigest()
+
+  return MD4.new(inner.encode("utf-16-le")).hexdigest()
+
+
+def module_verify_hash(line):
+  parts = split_hash_word(line)
+
+  if parts is None:
+    return None
+
+  _, word = parts
+
+  return (module_generate_hash(word, None), word)
