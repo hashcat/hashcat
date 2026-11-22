@@ -104,8 +104,6 @@ KERNEL_FQ KERNEL_FA void m47000_m04 (KERN_ATTR_RULES ())
     u32 w0[4] = { 0 };
     u32 w1[4] = { 0 };
 
-    // A rule can change the length of the 16 byte key.
-
     const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     if (out_len != 16) continue;
@@ -249,8 +247,6 @@ KERNEL_FQ KERNEL_FA void m47000_s04 (KERN_ATTR_RULES ())
   {
     u32 w0[4] = { 0 };
     u32 w1[4] = { 0 };
-
-    // A rule can change the length of the 16 byte key.
 
     const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 

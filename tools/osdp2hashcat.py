@@ -15,9 +15,17 @@
 #
 # Hash format: $osdp$rnd_a*rnd_b*client_cryptogram
 #
+# Every hash goes to stdout. A hash whose cryptogram checks against SCBK-D, the published default
+# key 0x30..0x3f, is also written to stderr, already paired with that key in hashcat's hash:plain
+# form and marked as the default key, for example:
+#
+#   $osdp$9acc78e0e206fd87*d66d5a91e600806a*53fa00e5e6e152abd57a7e10000b4a5f:$HEX[303132333435363738393a3b3c3d3e3f] (SCBK-D, the default key)
+#
 
 import json
 import sys
+
+from Crypto.Cipher import AES
 
 SOM = 0x53
 
@@ -26,6 +34,16 @@ SCS_12 = 0x12
 
 CMD_CHLNG    = 0x76
 REPLY_CCRYPT = 0x76
+
+SCBK_D = bytes(range(0x30, 0x40))
+
+
+# True if the client cryptogram was made with this SCBK, computed as in test_modules/m47000.py.
+
+def check_key(scbk, rnd_a, rnd_b, cryptogram):
+  s_enc = AES.new(scbk, AES.MODE_ECB).encrypt(b"\x01\x82" + rnd_a[0:6] + b"\x00" * 8)
+
+  return AES.new(s_enc, AES.MODE_ECB).encrypt(rnd_a + rnd_b) == cryptogram
 
 
 def crc16(data):
@@ -84,30 +102,32 @@ def frames(data):
     pos += 1
 
 
-# (address, SCB type, command or reply code, data), or None for a frame without a security block.
+# (address, SQN, SCB type or None, command or reply code, data), or None if malformed.
 # Only SCB types 0x11 and 0x12 are read, they carry neither MAC nor encryption.
 
 def parse(frame):
   ctrl = frame[4]
 
-  if (ctrl & 0x08) == 0:
-    return None
+  scb_type = None
 
-  scb_len = frame[5]
+  code_pos = 5
 
-  if scb_len < 2:
-    return None
+  if ctrl & 0x08:
+    scb_len = frame[5]
 
-  scb_type = frame[6]
+    if scb_len < 2:
+      return None
 
-  code_pos = 5 + scb_len
+    scb_type = frame[6]
+
+    code_pos = 5 + scb_len
 
   check_len = 2 if (ctrl & 0x04) else 1
 
   if code_pos >= len(frame) - check_len:
     return None
 
-  return frame[1], scb_type, frame[code_pos], frame[code_pos + 1:len(frame) - check_len]
+  return frame[1], ctrl & 0x03, scb_type, frame[code_pos], frame[code_pos + 1:len(frame) - check_len]
 
 
 def extract(path):
@@ -119,7 +139,8 @@ def extract(path):
 
   hashes = []
 
-  # RND.A of the last osdp_CHLNG sent to each PD address
+  # (RND.A, SQN) of the osdp_CHLNG awaiting its osdp_CCRYPT, per PD address. Any other command to
+  # or reply from that PD drops it, so a late reply cannot pair with a later challenge.
 
   challenges = {}
 
@@ -154,26 +175,47 @@ def extract(path):
         if p is None:
           continue
 
-        addr, scb_type, code, data = p
+        addr, sqn, scb_type, code, data = p
 
         pd = addr & 0x7f
 
-        if (scb_type == SCS_11) and (code == CMD_CHLNG) and ((addr & 0x80) == 0) and (len(data) == 8):
-          challenges[pd] = data
+        if (addr & 0x80) == 0:
+          if (scb_type == SCS_11) and (code == CMD_CHLNG) and (len(data) == 8):
+            challenges[pd] = (data, sqn)
+          else:
+            challenges.pop(pd, None)
 
-        elif (scb_type == SCS_12) and (code == REPLY_CCRYPT) and ((addr & 0x80) != 0) and (len(data) == 32):
-          if pd not in challenges:
-            continue
+          continue
 
-          rnd_a = challenges.pop(pd)
+        if (scb_type != SCS_12) or (code != REPLY_CCRYPT) or (len(data) != 32):
+          challenges.pop(pd, None)
 
-          rnd_b      = data[ 8:16]
-          cryptogram = data[16:32]
+          continue
 
-          h = "$osdp$%s*%s*%s" % (rnd_a.hex(), rnd_b.hex(), cryptogram.hex())
+        if pd not in challenges:
+          continue
 
-          if h not in hashes:
-            hashes.append(h)
+        rnd_a, chlng_sqn = challenges.pop(pd)
+
+        # a reply carries the SQN of the command it answers
+
+        if sqn != chlng_sqn:
+          continue
+
+        rnd_b      = data[ 8:16]
+        cryptogram = data[16:32]
+
+        h = "$osdp$%s*%s*%s" % (rnd_a.hex(), rnd_b.hex(), cryptogram.hex())
+
+        if h in hashes:
+          continue
+
+        hashes.append(h)
+
+        # SCBK-D holds ':', so hashcat prints it as $HEX[]
+
+        if check_key(SCBK_D, rnd_a, rnd_b, cryptogram):
+          sys.stderr.write("%s:$HEX[%s] (SCBK-D, the default key)\n" % (h, SCBK_D.hex()))
 
   if len(hashes) == 0:
     sys.stderr.write("%s: no osdp_CHLNG and osdp_CCRYPT pair found\n" % path)
