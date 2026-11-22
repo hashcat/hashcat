@@ -10,7 +10,7 @@ import hashlib
 from Crypto.Cipher import ARC4
 
 from lib import pdf
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, runtime_iterations
 
 # PDF 1.4-1.6 (Acrobat 5-8), RC4 128 bit: the key encrypts md5(padding.id), then 19 more RC4 passes
 # under the key XORed with the pass number.
@@ -26,10 +26,17 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 52},
   }
 
 
 def module_generate_hash(word, salt, iterations=None, u=None, o=None, p=None, v=None, r=None, enc=None):
+  # The first 50 host loop positions harden MD5. Later positions perform RC4.
+  rounds = runtime_iterations(70)
+
+  if rounds <= 50:
+    raise ValueError("PDF user-password tests require at least one RC4 pass")
+
   doc_id = salt
   u_save = u or "0" * 64
   o = o or "0" * 64
@@ -44,7 +51,7 @@ def module_generate_hash(word, salt, iterations=None, u=None, o=None, p=None, v=
 
   u = ARC4.new(res).encrypt(digest)
 
-  for x in range(1, 20):
+  for x in range(1, rounds - 50):
     s = bytes(b ^ x for b in res[:16])
     u = ARC4.new(s).encrypt(u)
 

@@ -11,7 +11,7 @@ import hashlib
 
 from Crypto.Cipher import ARC4
 
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, runtime_iterations
 
 # PDF 1.3 - 1.6 (Acrobat 4 - 8) with a 40-bit RC4 key: the standard security handler of m10500 with
 # the key shortened from 16 bytes to 5. KEY_LEN is that one number, and it drives the truncation in
@@ -38,6 +38,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 52},
   }
 
 
@@ -62,6 +63,12 @@ def pdf_compute_encryption_key(word_buf, padding, id_hex, o, P):
 
 
 def module_generate_hash(word, salt=None, iterations=None, u=None, o=None, P=None, V=None):
+  # The first 50 host loop positions harden MD5. Later positions perform RC4.
+  rounds = runtime_iterations(70)
+
+  if rounds <= 50:
+    raise ValueError("PDF user-password tests require at least one RC4 pass")
+
   id_hex = salt
 
   if u is None:
@@ -86,7 +93,7 @@ def module_generate_hash(word, salt=None, iterations=None, u=None, o=None, P=Non
 
   u = ARC4.new(key).encrypt(digest)
 
-  for x in range(1, 20):
+  for x in range(1, rounds - 50):
     s = bytes(key[i] ^ x for i in range(KEY_LEN))
 
     u = ARC4.new(s).encrypt(u)

@@ -7,7 +7,7 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
 
 # SunMD5. 4096 base rounds (plus an optional rounds= count) of md5, where each round optionally mixes
 # in a fixed passage of Hamlet before the round number. The passage and the coin-flip bit selection
@@ -114,13 +114,14 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 
 def module_generate_hash(word, salt, iterations=None):
   extra_rounds = 0 if iterations is None else int(iterations)
 
-  total_rounds = 4096 + extra_rounds
+  total_rounds = runtime_iterations(4096 + extra_rounds)
 
   if extra_rounds > 0:
     puresalt = "$md5,rounds=%d$%s$" % (extra_rounds, salt)

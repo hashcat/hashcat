@@ -7,6 +7,8 @@
 
 import struct
 
+from lib.test_helpers import runtime_iterations
+
 # Kremlin Encrypt 3.0 with NewDES. The stored string is $kgb$<8-byte salt>$<20 byte hash>, and the
 # derivation is
 #
@@ -48,6 +50,7 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 
@@ -133,7 +136,7 @@ def module_generate_hash(word, salt, iterations=None):
 
   block = list(salt_raw)
 
-  for _ in range(ROUNDS):
+  for _ in range(runtime_iterations(ROUNDS)):
     _new_des(block, key)
 
   digest = "".join("%08x" % x for x in _sha1_kremlin(bytes(block) + word))

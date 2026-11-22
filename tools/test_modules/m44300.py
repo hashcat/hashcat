@@ -10,14 +10,14 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Hash import RIPEMD160
 
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, runtime_scrypt_n
 
 # BIP38 without EC multiply. The key is scrypt (pass, addresshash, N = 16384, r = 8, p = 8) of 64
 # bytes, and AES-256 under its second half encrypts the private key xor its first half, 16 bytes at a
 # time. The addresshash is the first 4 bytes of sha256 (sha256 (address)) of the key's P2PKH address,
 # so a password is verified by decrypting, deriving the address and hashing it again.
 
-SCRYPT_N = 16384
+SCRYPT_N = runtime_scrypt_n(16384)
 SCRYPT_R = 8
 SCRYPT_P = 8
 
@@ -39,6 +39,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 1024, 'scrypt': True},
   }
 
 

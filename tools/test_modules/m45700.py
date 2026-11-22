@@ -11,14 +11,14 @@ import os
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, runtime_iterations
 
 
 # Jaxx Liberty wallet record: key = PBKDF2-HMAC-SHA256(password, sb, 5000, 32),
 # et = AES-256-GCM(key, iv) over the BIP39 entropy hex. A crack is the GCM tag
 # matching, which is exact. Hash line: $jaxx$<sb_b64>$<iv_b64>$<ct+tag_b64>
 
-ROUNDS = 5000
+ROUNDS = runtime_iterations(5000, initial=1)
 
 
 def _make_hash(word, salt):
@@ -51,6 +51,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 

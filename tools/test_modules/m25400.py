@@ -11,7 +11,7 @@ import hashlib
 
 from Crypto.Cipher import ARC4
 
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, runtime_iterations
 
 # PDF 1.4 - 1.6 with the owner (edit) password. Based on m10500 but recovering the O value too, so
 # the O side is computed from the owner password and, when the user password is known, folded into
@@ -34,6 +34,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 
@@ -73,7 +74,7 @@ def pdf_compute_encryption_key_owner(word, R):
   o_digest = _md5(word + PDF_PADDING[0:32 - len(word)])
 
   if R >= 3:
-    for _ in range(50):
+    for _ in range(runtime_iterations(50)):
       o_digest = _md5(o_digest)
 
   if R == 2:

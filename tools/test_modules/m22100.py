@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import kernel_charset, random_bytes, random_number, utf16le
+from lib.test_helpers import kernel_charset, random_bytes, random_number, utf16le, runtime_iterations
 
 # BitLocker. The optimized kernels widen each password byte instead of decoding the UTF-8, and
 # module_01000.c documents that as deliberate, so the two kernel families disagree on a multi byte
@@ -34,6 +34,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 1024},
   }
 
 
@@ -45,7 +46,7 @@ def bitlocker_kdf(initial_hash, salt):
   buf[32:64] = initial_hash
   buf[64:80] = salt
 
-  for i in range(0x100000):
+  for i in range(runtime_iterations(ITER)):
     buf[80:88] = i.to_bytes(8, "little")
 
     buf[0:32] = hashlib.sha256(buf).digest()
