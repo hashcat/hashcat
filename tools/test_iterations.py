@@ -140,7 +140,8 @@ def iteration_parameters(mode):
 
 
 def iteration_disable_selftest(mode):
-  return iteration_reduction_enabled(mode) and runtime_iteration_policy(mode).get("compiled_cost", False)
+  # A full-cost startup check would undo the reduction for each generated-vector test.
+  return iteration_reduction_enabled(mode)
 
 
 def iteration_environment(mode, source=None, generated=True):
