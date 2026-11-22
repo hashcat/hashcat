@@ -7,7 +7,7 @@
 
 import hashlib
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 # Windows Hello PIN (NGC): the PIN is widened to its uppercase hex spelling, run through
 # PBKDF2-HMAC-SHA256, widened and hashed again, then folded into a two stage HMAC-SHA512 over the
@@ -26,16 +26,20 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}, 'copy_hash': True},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _xor(a, b):
   return bytes(x ^ y for x, y in zip(a, b))
 
 
-def module_generate_hash(word, salt, iter=None, mk=None, hmac=None, blob=None, magicv=None):
+def module_generate_hash(word, salt, iter=None, mk=None, hmac=None, blob=None, magicv=None, iterations=None):
   if iter is None:
-    iter = 10000
+    iter = 10000 if iterations is None else iterations
 
   if mk is None:
     mk = random_hex_string(128)
@@ -75,7 +79,7 @@ def module_generate_hash(word, salt, iter=None, mk=None, hmac=None, blob=None, m
 
   main_digest = hashlib.sha512(main_digest_seed + sub_digest).digest()
 
-  return "$WINHELLO$*SHA512*%i*%s*%s*%s*%s*%s*%s" % (
+  return "$WINHELLO$*SHA512*%05i*%s*%s*%s*%s*%s*%s" % (
     iter, salt_bin.hex(), main_digest.hex(), mk_bin.hex(),
     hmac_bin.hex(), blob_bin.hex(), magicv_bin.hex())
 

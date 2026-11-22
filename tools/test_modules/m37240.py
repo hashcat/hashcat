@@ -10,7 +10,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 # MetaMask with a 32 byte vault. PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then
 # AES-GCM with no tag. The line carries only the first 32 bytes of the ciphertext, which is the
@@ -33,17 +33,23 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
 
 
-def module_generate_hash(word, salt, iv=None, ct=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, iv=None, ct=None, iterations=None):
+  iterations = 10000 if iterations is None else int(iterations)
+
   if iv is None:
     iv = random_hex_string(32)
 
   salt_bin = bytes.fromhex(salt)
   iv_bin   = bytes.fromhex(iv)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, 10000, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, iterations, 32)
 
   if ct is None:
     pt = FIXED_PT
@@ -59,7 +65,10 @@ def module_generate_hash(word, salt, iv=None, ct=None):
 
   ct_bin = AES.new(key, AES.MODE_GCM, nonce=iv_bin).encrypt(pt)
 
-  return "$metamask-short$%s$%s$%s" % (
+  count = "" if iterations == 10000 else "rounds=%d$" % iterations
+
+  return "$metamask-short$%s%s$%s$%s" % (
+    count,
     base64.b64encode(salt_bin).decode("ascii"),
     base64.b64encode(iv_bin).decode("ascii"),
     base64.b64encode(ct_bin).decode("ascii"))
@@ -82,6 +91,20 @@ def module_verify_hash(line):
   if len(parts) < 5:
     return None
 
+  iterations = 10000
+
+  if parts[2].startswith("rounds="):
+    if len(parts) != 6:
+      return None
+
+    try:
+      iterations = int(parts.pop(2)[7:])
+    except ValueError:
+      return None
+
+    if iterations < 1:
+      return None
+
   salt, iv, ct = parts[2], parts[3], parts[4]
 
   try:
@@ -94,4 +117,4 @@ def module_verify_hash(line):
   if len(salt_bin) != 32 or len(iv_bin) != 16 or len(ct_bin) != CT_LEN:
     return None
 
-  return (module_generate_hash(word, salt_bin.hex(), iv_bin.hex(), ct_bin.hex()), word)
+  return (module_generate_hash(word, salt_bin.hex(), iv_bin.hex(), ct_bin.hex(), iterations), word)

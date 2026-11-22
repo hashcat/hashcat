@@ -11,7 +11,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
 
 # Brave Wallet vault: key = PBKDF2-HMAC-SHA256(password, salt32, iter, 32),
 # blob = AES-256-GCM-SIV(key, nonce12).Seal(pt) = ct || tag (RFC 8452).
@@ -118,19 +118,19 @@ def _gcm_siv_open(key, nonce, ct, tag, aad=b""):
   return _gcm_siv_tag(key, nonce, bytes(pt), aad) == tag
 
 
-def _make_hash(word, salt):
+def _make_hash(word, salt, iterations):
   if isinstance(word, str):
     word = word.encode()
 
   nonce = os.urandom(12)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt, ROUNDS, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt, iterations, 32)
 
   pt = os.urandom(random_number(1, 128))
 
   blob = _gcm_siv_seal(key, nonce, pt)
 
-  return "$brave$*%d*%s*%s*%s" % (ROUNDS, salt.hex(), nonce.hex(), blob.hex())
+  return "$brave$*%d*%s*%s*%s" % (iterations, salt.hex(), nonce.hex(), blob.hex())
 
 
 def module_test_properties():
@@ -143,10 +143,16 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
 
 
-def module_generate_hash(word, salt=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt=None, iterations=None):
+  iterations = ROUNDS if iterations is None else int(iterations)
+
   if salt is None:
     salt = os.urandom(32)
 
@@ -158,7 +164,7 @@ def module_generate_hash(word, salt=None):
   elif len(salt) > 32:
     salt = salt[:32]
 
-  return _make_hash(word, salt)
+  return _make_hash(word, salt, iterations)
 
 
 def module_verify_hash(line):
