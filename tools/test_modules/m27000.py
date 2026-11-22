@@ -7,6 +7,8 @@
 
 import hashlib
 
+from Crypto.Hash import MD4
+
 from Crypto.Cipher import DES
 
 from lib.des_key import setup_des_key
@@ -42,6 +44,11 @@ def random_netntlmv1_salt(len_user, len_domain):
   s_challenge = random_bytes(8)
 
   return user + "::" + domain + ":" + c_challenge.hex() + s_challenge.hex()
+
+
+
+def module_get_random_password(word):
+  return MD4.new(word.decode("latin-1").encode("utf-16-le")).hexdigest().encode()
 
 
 def module_test_properties():

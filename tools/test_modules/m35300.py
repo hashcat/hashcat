@@ -7,6 +7,8 @@
 
 import random
 
+from Crypto.Hash import MD4
+
 from lib.kerberos_rc4 import hmac_md5, rc4
 from lib.test_helpers import pack_hex, random_bytes
 
@@ -45,6 +47,11 @@ CLEARTEXT_TICKET_253 = (
 )
 
 CLEARTEXT_TICKETS = [CLEARTEXT_TICKET, CLEARTEXT_TICKET_126, CLEARTEXT_TICKET_253]
+
+
+
+def module_get_random_password(word):
+  return MD4.new(word.decode("latin-1").encode("utf-16-le")).hexdigest().encode()
 
 
 def module_test_properties():
