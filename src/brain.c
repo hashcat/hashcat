@@ -826,7 +826,24 @@ bool brain_recv (int sockfd, void *buf, size_t len, int flags, hc_device_param_t
   return true;
 }
 
-bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+// One transfer into the device's speed ring for its direction, which returns what it moved for
+// the device's total. A transfer that failed moved nothing, so it adds nothing. The position wraps
+// before it reaches LINK_SPEED_COUNT, the size of the ring.
+
+static u64 brain_link_speed_add (link_speed_t *link_speed, const ssize_t nbytes)
+{
+  const u64 moved = (nbytes > 0) ? (u64) nbytes : 0;
+
+  link_speed->bytes[link_speed->pos] = (ssize_t) moved;
+
+  link_speed->pos++;
+
+  if (link_speed->pos >= LINK_SPEED_COUNT) link_speed->pos = 0;
+
+  return moved;
+}
+
+static bool brain_send_all_chunks (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
 {
   // A caller that wants no accounting passes no device, and every use below is already guarded on it.
   // Reaching through the null pointer for the address alone was still undefined.
@@ -835,8 +852,6 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (device_param)
   {
-    device_param->brain_link_send_active = true;
-
     hc_timer_set (&link_speed->timer[link_speed->pos]);
   }
 
@@ -844,11 +859,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (device_param)
   {
-    link_speed->bytes[link_speed->pos] = nsend;
-
-    if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-    device_param->brain_link_send_bytes += nsend;
+    device_param->brain_link_send_bytes += brain_link_speed_add (link_speed, nsend);
   }
 
   if (nsend <= 0) return false;
@@ -868,11 +879,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
     if (device_param)
     {
-      link_speed->bytes[link_speed->pos] = nsend_new;
-
-      if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-      device_param->brain_link_send_bytes += nsend_new;
+      device_param->brain_link_send_bytes += brain_link_speed_add (link_speed, nsend_new);
     }
 
     if (nsend_new <= 0) return false;
@@ -882,22 +889,30 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
     nsend += nsend_new;
   }
 
-  if (device_param)
-  {
-    device_param->brain_link_send_active = false;
-  }
-
   return true;
 }
 
-bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+// A device counts as sending or receiving while a transfer runs and not after it, however the
+// transfer ends, so the status screen does not go on reporting a device as sending to a brain it
+// has lost.
+
+bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+{
+  if (device_param) device_param->brain_link_send_active = true;
+
+  const bool sent = brain_send_all_chunks (sockfd, buf, len, flags, device_param, status_ctx);
+
+  if (device_param) device_param->brain_link_send_active = false;
+
+  return sent;
+}
+
+static bool brain_recv_all_chunks (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
 {
   link_speed_t *link_speed = (device_param) ? &device_param->brain_link_recv_speed : NULL;
 
   if (device_param)
   {
-    device_param->brain_link_recv_active = true;
-
     hc_timer_set (&link_speed->timer[link_speed->pos]);
   }
 
@@ -905,11 +920,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (device_param)
   {
-    link_speed->bytes[link_speed->pos] = nrecv;
-
-    if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-    device_param->brain_link_recv_bytes += nrecv;
+    device_param->brain_link_recv_bytes += brain_link_speed_add (link_speed, nrecv);
   }
 
   if (nrecv <= 0) return false;
@@ -929,11 +940,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
     if (device_param)
     {
-      link_speed->bytes[link_speed->pos] = nrecv_new;
-
-      if (link_speed->pos++ == LINK_SPEED_COUNT) link_speed->pos = 0;
-
-      device_param->brain_link_recv_bytes += nrecv_new;
+      device_param->brain_link_recv_bytes += brain_link_speed_add (link_speed, nrecv_new);
     }
 
     if (nrecv_new <= 0) return false;
@@ -943,12 +950,18 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
     nrecv += nrecv_new;
   }
 
-  if (device_param)
-  {
-    device_param->brain_link_recv_active = false;
-  }
-
   return true;
+}
+
+bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx)
+{
+  if (device_param) device_param->brain_link_recv_active = true;
+
+  const bool received = brain_recv_all_chunks (sockfd, buf, len, flags, device_param, status_ctx);
+
+  if (device_param) device_param->brain_link_recv_active = false;
+
+  return received;
 }
 
 // A failed brain link is retried on every batch, so reporting every attempt buries the terminal in
@@ -1013,13 +1026,9 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   link->client_fd = -1;
 
-  // Cleared because a transfer that fails leaves its flag set, and the status screen would go on
-  // reporting a device as sending to a brain it has lost. The byte totals and the speed rings are
-  // not: a device holds one link per pipeline slot, the second opens once a batch needs it, and
-  // clearing there would throw away what the run had already transferred over the first.
-
-  device_param->brain_link_recv_active = false;
-  device_param->brain_link_send_active = false;
+  // The byte totals and the speed rings are not cleared: a device holds one link per pipeline slot,
+  // the second opens once a batch needs it, and clearing there would throw away what the run had
+  // already transferred over the first.
 
   const int brain_link_client_fd = socket (AF_INET, SOCK_STREAM, 0);
 
@@ -1317,6 +1326,10 @@ bool brain_client_lookup (hc_device_param_t *device_param, const brain_link_t *l
   if (in_size <= 0) return false;
 
   if (in_size > (int) device_param->size_brain_link_in) return false;
+
+  // one verdict for each candidate sent, because the caller reads one for each
+
+  if (in_size != (int) device_param->pws_pre_cnt) return false;
 
   if (brain_recv (brain_link_client_fd, recvbuf,      (size_t) in_size,          0, device_param, status_ctx) == false) return false;
 

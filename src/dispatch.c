@@ -561,6 +561,12 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         if (brain_client_lookup (device_param, batch->brain_link, status_ctx) == false)
         {
           brain_client_disconnect (batch->brain_link);
+
+          // Nothing was looked up for this round, or not all of it, so the verdicts below are what an
+          // earlier round left there. This round runs without dedup instead of dropping candidates
+          // that were never checked.
+
+          memset (device_param->brain_link_in_buf, 0, device_param->pws_pre_cnt);
         }
       }
 
@@ -1344,7 +1350,7 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return rc_final;
 }
 
-static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+static int calc_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -1562,6 +1568,14 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       MAYBE_UNUSED const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
 
+      // when the link was last opened again, see the reserve below
+
+      #ifdef WITH_BRAIN
+      hc_timer_t brain_retry;
+
+      bool brain_retried = false;
+      #endif
+
       while (status_ctx->run_thread_level1 == true)
       {
         const u64 work = get_work (hashcat_ctx, device_param, -1);
@@ -1581,6 +1595,24 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         #ifdef WITH_BRAIN
         if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
         {
+          // A link that dropped is opened again for a later chunk, so one outage does not end
+          // dedup for the rest of the attack. This loop is the launch, with nothing to overlap a
+          // connect that has to time out, so after a failed attempt the next one waits for
+          // BRAIN_CLIENT_RECONNECT_INTERVAL seconds. An unreachable server then costs the device
+          // one connect timeout per interval rather than one per chunk.
+
+          if (device_param->brain_link[0].client_fd == -1)
+          {
+            if ((brain_retried == false) || (hc_timer_get (brain_retry) >= (BRAIN_CLIENT_RECONNECT_INTERVAL * 1000.0)))
+            {
+              hc_timer_set (&brain_retry);
+
+              brain_retried = true;
+
+              brain_link_open (hashcat_ctx, device_param, &device_param->brain_link[0]);
+            }
+          }
+
           u64 overlap = 0;
 
           if (brain_client_reserve (device_param, &device_param->brain_link[0], status_ctx, u128_lo (words_off), work_cur, &overlap) == false)
@@ -1743,14 +1775,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
   }
 
-  // The link was opened for this run and every producer that used it has finished, so it closes
-  // here. Leaving it open would hold this client's uncommitted reservations on the server for as
-  // long as the process lives.
-
-  #ifdef WITH_BRAIN
-  brain_links_disconnect (device_param);
-  #endif
-
   device_param->kernel_accel_prev   = device_param->kernel_accel;
   device_param->kernel_loops_prev   = device_param->kernel_loops;
   device_param->kernel_threads_prev = device_param->kernel_threads;
@@ -1766,6 +1790,21 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   device_param->kernel_threads = 0;
 
   return 0;
+}
+
+// A run closes the links it opened on every way out of it, an error included. Every producer that
+// used them has finished by then, and a link left open would hold this client's uncommitted
+// reservations on the server until the next run or the end of the process.
+
+static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+{
+  const int rc = calc_run (hashcat_ctx, device_param);
+
+  #ifdef WITH_BRAIN
+  brain_links_disconnect (device_param);
+  #endif
+
+  return rc;
 }
 
 HC_THREAD_FUNC thread_calc (void *p)
