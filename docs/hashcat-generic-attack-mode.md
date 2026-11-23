@@ -21,7 +21,7 @@ Examples of advanced generators include:
 
 An attack mode 8 command names the feed as its first positional argument. Individual generators do not need their own attack-mode numbers, so hashcat can load any number of bundled or third-party feeds.
 
-A feed that ships with hashcat can also be given an attack-mode number of its own. The PCFG feed has one: `-a 4 hashes.txt ruleset` is rewritten into `-a 8 hashes.txt pcfg ruleset` before anything downstream reads it, so the two spellings are the same attack. The table feed has `-a 5`, which was the number hashcat-legacy used for the same attack. See `hashcat-pcfg.md` and `hashcat-table.md` for those attacks, and the section on aliases in `hashcat-generic-attack-mode-development-guide.md` for how a feed gets a number.
+A feed that ships with hashcat can also be given an attack-mode number of its own. The PCFG feed has one: `-a 4 hashes.txt ruleset` is rewritten into `-a 8 hashes.txt pcfg ruleset` before anything downstream reads it, so the two spellings are the same attack. The table feed has `-a 5`, which was the number hashcat-legacy used for the same attack. The PRINCE feed has `-a 10`, which no hashcat has used before. See `hashcat-pcfg.md`, `hashcat-table.md` and `hashcat-prince.md` for those attacks, and the section on aliases in `hashcat-generic-attack-mode-development-guide.md` for how a feed gets a number.
 
 hashcat uses the term *feed* to distinguish candidate-generator plugins from its other plugin types. Bundled feeds are in the `feeds` directory.
 

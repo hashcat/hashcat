@@ -709,6 +709,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
         show_error = false;
       }
     }
+    else if (user_options->attack_mode == ATTACK_MODE_PRINCE)
+    {
+      // at least the wordlist, and settings after it
+
+      if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
       // at least one wordlist, and the mask
@@ -787,6 +796,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       // at least one wordlist and the table, and settings after them
 
       if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_PRINCE)
+    {
+      // at least the wordlist, and settings after it
+
+      if (user_options->hc_argc >= 1)
       {
         show_error = false;
       }
@@ -872,6 +890,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       // the hash file, at least one wordlist, and the table
 
       if (user_options->hc_argc >= 3)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_PRINCE)
+    {
+      // the hash file and the wordlist
+
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -1051,7 +1078,7 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   const bool hybrid_takes_rules = (hybrid_is_typed == true) && (rules_given == true);
 
-  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG) && (attack_mode != ATTACK_MODE_TABLE) && (mask_takes_rules == false) && (hybrid_takes_rules == false)) return;
+  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG) && (attack_mode != ATTACK_MODE_TABLE) && (attack_mode != ATTACK_MODE_PRINCE) && (mask_takes_rules == false) && (hybrid_takes_rules == false)) return;
 
   // The argument count was checked against the mode the user typed, so anything that did not pass
   // that check is left alone for the error to be reported the way it always was.
@@ -1185,7 +1212,18 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
     // name in front of the work arguments. What follows it is what that feed reads either way: for
     // pcfg a ruleset and settings, for table the wordlists, the table and settings.
 
-    hc_argv[hc_argc_new] = (attack_mode == ATTACK_MODE_PCFG) ? "pcfg" : "table";
+    if (attack_mode == ATTACK_MODE_PCFG)
+    {
+      hc_argv[hc_argc_new] = "pcfg";
+    }
+    else if (attack_mode == ATTACK_MODE_PRINCE)
+    {
+      hc_argv[hc_argc_new] = "prince";
+    }
+    else
+    {
+      hc_argv[hc_argc_new] = "table";
+    }
 
     hc_argc_new++;
 

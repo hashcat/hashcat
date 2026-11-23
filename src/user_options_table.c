@@ -112,7 +112,7 @@ typedef enum option_action
 
 #define AM(n) (1u << (n))
 
-#define AM_ALL (AM (0) | AM (1) | AM (3) | AM (4) | AM (5) | AM (6) | AM (7) | AM (8) | AM (9) | AM (12))
+#define AM_ALL (AM (0) | AM (1) | AM (3) | AM (4) | AM (5) | AM (6) | AM (7) | AM (8) | AM (9) | AM (10) | AM (12))
 
 typedef enum option_type
 {
@@ -746,7 +746,7 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   {
     .type         = OPTION_TYPE_FLAG,
     .actions      = ACT_CRACK | ACT_STDOUT,
-    .attack_modes = AM (0) | AM (1) | AM (5) | AM (6) | AM (7) | AM (8) | AM (9) | AM (12),
+    .attack_modes = AM (0) | AM (1) | AM (5) | AM (6) | AM (7) | AM (8) | AM (9) | AM (10) | AM (12),
   },
   [OPT_HOOK_THREADS] =
   {
@@ -797,14 +797,14 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .max            = 2,
     .actions        = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE,
     .attack_modes   = AM (1) | AM (3) | AM (6) | AM (7),
-    .conflict_modes = AM (4) | AM (5) | AM (8) | AM (12),
+    .conflict_modes = AM (4) | AM (5) | AM (8) | AM (10) | AM (12),
   },
   [OPT_INCREMENT_INVERSE] =
   {
     .type           = OPTION_TYPE_FLAG,
     .actions        = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE,
     .attack_modes   = AM (1) | AM (3) | AM (6) | AM (7),
-    .conflict_modes = AM (4) | AM (5) | AM (8) | AM (12),
+    .conflict_modes = AM (4) | AM (5) | AM (8) | AM (10) | AM (12),
   },
 
   // An association attack reads the induction folder as well, from a loop that was not written for it.
@@ -1148,7 +1148,7 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .type         = OPTION_TYPE_STR,
     .value_fn     = vf_rule,
     .actions      = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE | ACT_SPEED_ONLY,
-    .attack_modes = AM (0) | AM (1) | AM (4) | AM (5) | AM (6) | AM (7) | AM (8) | AM (9) | AM (12),
+    .attack_modes = AM (0) | AM (1) | AM (4) | AM (5) | AM (6) | AM (7) | AM (8) | AM (9) | AM (10) | AM (12),
     .late         = LATE_FEED_ENGINE,
   },
   [OPT_RULE_BUF_R] =
@@ -1975,7 +1975,7 @@ static bool sf_debug_mode (const option_table_t *table, const option_id_t id, op
 
   const bool rules_given = (option_given (table, OPT_RP_FILE) == true) || (option_given (table, OPT_RP_GEN) == true);
 
-  const bool has_feed = (attack_mode == ATTACK_MODE_PCFG) || (attack_mode == ATTACK_MODE_TABLE) || (attack_mode == ATTACK_MODE_GENERIC) || (attack_mode == ATTACK_MODE_ASSOCIATION);
+  const bool has_feed = (attack_mode == ATTACK_MODE_PCFG) || (attack_mode == ATTACK_MODE_TABLE) || (attack_mode == ATTACK_MODE_GENERIC) || (attack_mode == ATTACK_MODE_ASSOCIATION) || (attack_mode == ATTACK_MODE_PRINCE);
 
   const bool mask_is_typed = (attack_mode == ATTACK_MODE_COMBI) || (attack_mode == ATTACK_MODE_BF) || (attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2) || (attack_mode == ATTACK_MODE_HYBRID);
 
