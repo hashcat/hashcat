@@ -118,7 +118,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (version != 1) return (PARSER_HASH_VALUE);
 
-  // Argon2id parameters are FIXED by the SPRW1 format (not carried in the line)
+  // The SPRW1 format does not carry Argon2id parameters.
 
   argon2_options->type    = 2;  // Argon2id
   argon2_options->version = 19; // 0x13

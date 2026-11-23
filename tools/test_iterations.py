@@ -54,7 +54,7 @@ def load_test_properties(mode):
     raise ValueError("m%05d.py: choose encoded or runtime reduction, not both" % mode)
   for name, section in settings.items():
     if name == "runtime":
-      allowed = {"limit", "compiled_cost", "scrypt", "copy_hash", "parameters", "kernel_accel"}
+      allowed = {"limit", "scrypt", "copy_hash", "parameters", "kernel_accel"}
     elif name == "reduced":
       allowed = {"parameters", "copy_hash", "kernel_accel"}
     else:
@@ -69,8 +69,8 @@ def load_test_properties(mode):
       limit = section.get("limit")
       if type(limit) is not int or not 1 <= limit <= 4294967295:
         raise ValueError("m%05d.py: runtime limit must be a positive uint32" % mode)
-      if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt") if key in section):
-        raise ValueError("m%05d.py: runtime flags must be booleans" % mode)
+      if "scrypt" in section and type(section["scrypt"]) is not bool:
+        raise ValueError("m%05d.py: scrypt must be a boolean" % mode)
     parameters = section.get("parameters", {})
     if name == "normal":
       allowed_parameters = {"iterations", "scrypt_n", "user_hash_iterations"}

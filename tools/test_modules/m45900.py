@@ -99,7 +99,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
-    'runtime': {'limit': 8, 'compiled_cost': True},
+    'runtime': {'limit': 8},
   }
 
 

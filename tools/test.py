@@ -779,10 +779,10 @@ def apply_run_options(args):
 
   KEEP_TMP = args.keep_tmp
 
-  for name, seconds in (("--runtime", args.runtime),
-                        ("--kernel-accel", args.kernel_accel),
-                        ("--metal-compiler-runtime", args.metal_compiler_runtime)):
-    if seconds is not None and seconds <= 0:
+  for name, value in (("--runtime", args.runtime),
+                      ("--kernel-accel", args.kernel_accel),
+                      ("--metal-compiler-runtime", args.metal_compiler_runtime)):
+    if value is not None and value <= 0:
       die("! %s must be greater than 0" % name)
 
   # One invocation runs one path, so --runtime sets whichever of the three caps that path reads.
@@ -5391,7 +5391,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   env = test_iterations.iteration_environment(mode)
   LAST_ENV = env
 
-  # Preserve the input hash because runtime overrides can change its encoded iteration count.
+  # Preserve generated hash forms that the mode encoder cannot reproduce.
   if test_iterations.iteration_copy_hash(mode) and b"--hash-copy" not in argv:
     argv.append(b"--hash-copy")
 
@@ -6886,7 +6886,7 @@ def main():
                   help="hashcat --runtime in seconds for whichever path runs "
                        "(defaults: %d self-test, %d full, %d edge)" % (SELFTEST_RUNTIME, RUNTIME, EDGE_RUNTIME))
   ap.add_argument("--kernel-accel", dest="kernel_accel", type=int, default=None,
-                  help="hashcat --kernel-accel, to bound concurrent candidates and memory use (requires -f)")
+                  help="hashcat kernel acceleration factor (requires -f)")
   ap.add_argument("-d", dest="backend_devices", default=None,
                   help="hashcat --backend-devices: 1 | 1,2 | ... (default: every device of the -D type)")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is
