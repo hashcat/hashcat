@@ -177,6 +177,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->self_test                  = SELF_TEST;
   user_options->separator                  = SEPARATOR;
   user_options->session                    = PROGNAME;
+  user_options->session_alloc              = NULL;
   user_options->show                       = SHOW;
   user_options->skip                       = SKIP;
   user_options->slow_candidates            = SLOW_CANDIDATES;
@@ -212,6 +213,7 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (user_options->hc_argv_alias);
 
   hcfree (user_options->lookup_alias);
+  hcfree (user_options->session_alloc);
 
   option_table_destroy (hashcat_ctx);
 
@@ -962,74 +964,97 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
 void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
 {
+  const char *mode = NULL;
   user_options_t *user_options = hashcat_ctx->user_options;
+
+  // Use dedicated session names for these operations
+  // when --session is not explicitly specified
 
   if (strcmp (user_options->session, PROGNAME) == 0)
   {
     if (user_options->benchmark == true)
     {
       user_options->session = "benchmark";
-    }
-
-    if (user_options->hash_info > 0)
-    {
-      user_options->session = "hash_info";
-    }
-
-    if (user_options->usage > 0)
-    {
-      user_options->session = "usage";
+      return;
     }
 
     if (user_options->speed_only == true)
     {
       user_options->session = "speed_only";
+      return;
     }
 
     if (user_options->progress_only == true)
     {
       user_options->session = "progress_only";
-    }
-
-    if (user_options->total_candidates == true)
-    {
-      user_options->session = "candidates";
-    }
-
-    if (user_options->keyspace == true)
-    {
-      user_options->session = "keyspace";
-    }
-
-    if (user_options->lookup != NULL)
-    {
-      user_options->session = "lookup";
+      return;
     }
 
     if (user_options->stdout_flag == true)
     {
       user_options->session = "stdout";
+      return;
     }
 
     if (user_options->backend_info > 0)
     {
       user_options->session = "backend_info";
+      return;
     }
+  }
 
-    if (user_options->show == true)
-    {
-      user_options->session = "show";
-    }
+  if (user_options->hash_info > 0)
+  {
+    mode = "hash_info";
+  }
 
-    if (user_options->left == true)
-    {
-      user_options->session = "left";
-    }
+  if (user_options->usage > 0)
+  {
+    mode = "usage";
+  }
 
-    if (user_options->identify == true)
-    {
-      user_options->session = "identify";
-    }
+  if (user_options->total_candidates == true)
+  {
+    mode = "candidates";
+  }
+
+  if (user_options->keyspace == true)
+  {
+    mode = "keyspace";
+  }
+
+  if (user_options->lookup != NULL)
+  {
+    mode = "lookup";
+  }
+
+  if (user_options->show == true)
+  {
+    mode = "show";
+  }
+
+  if (user_options->left == true)
+  {
+    mode = "left";
+  }
+
+  if (user_options->identify == true)
+  {
+    mode = "identify";
+  }
+
+  if (mode != NULL)
+  {
+    // Operations such as --show and --left should work without requiring
+    // users to manually specify a different session name when hashcat is
+    // already running.
+    //
+    // Append the operation name to avoid session conflicts, whether
+    // --session is explicitly specified or the default name is used.
+
+    hc_asprintf (&user_options->session_alloc, "%s.%s", user_options->session, mode);
+
+    user_options->session = user_options->session_alloc;
   }
 }
 
