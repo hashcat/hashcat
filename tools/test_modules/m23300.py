@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_bytes
+from lib.test_helpers import random_number, random_bytes, test_iteration_parameters
 
 # Apple iWork. PBKDF2-HMAC-SHA1 makes a 16 byte AES-128 key, and the blob is AES-CBC with no padding.
 # The plaintext is 32 bytes of data followed by its SHA-256, so verify decrypts, checks that pair and
@@ -29,7 +29,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"hash_ver": 1}, {"hash_ver": 2}],
     },
+    'reduced': {'parameters': {'iterations': 1000}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, hash_ver=None, file_ver=None, iterations=None, iv=None, data=None):
@@ -41,12 +45,12 @@ def module_generate_hash(word, salt, hash_ver=None, file_ver=None, iterations=No
     if kind == 1:
       hash_ver = 1
       file_ver = 2
-      iterations = 100000
+      iterations = 100000 if iterations is None else int(iterations)
       salt = salt[:32]
     else:
       hash_ver = 2
       file_ver = 1
-      iterations = 4000
+      iterations = 4000 if iterations is None else int(iterations)
       salt = salt[:16]
 
     salt = bytes.fromhex(salt)

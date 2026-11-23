@@ -11,7 +11,7 @@ import binascii
 from Crypto.Cipher import AES
 
 from lib import md5crypt
-from lib.test_helpers import random_hex_string, split_hash_word
+from lib.test_helpers import random_hex_string, split_hash_word, runtime_iterations
 
 # Juniper IVE: an ordinary md5crypt with the salt danastre, zero padded to 64 bytes and encrypted with
 # AES-128-CBC under the key module_00501.c carries. The stored string is base64 of a 12 byte IV and
@@ -34,6 +34,7 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 
@@ -42,7 +43,8 @@ def module_generate_hash(word, salt, iterations=None):
 
   iv = bytes.fromhex(iv_hex)
 
-  plain = md5crypt.md5_crypt(b"$1$", 1000, word, b"danastre").encode()
+  digest = md5crypt.md5_crypt(b"$1$", runtime_iterations(1000), word, b"danastre").rsplit("$", 1)[1]
+  plain = ("$1$danastre$" + digest).encode()
 
   data = AES.new(KEY, AES.MODE_CBC, iv + b"\x00" * 4).encrypt(plain + b"\x00" * (64 - len(plain)))
 

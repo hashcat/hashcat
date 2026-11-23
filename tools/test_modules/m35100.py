@@ -8,6 +8,7 @@
 import hashlib
 
 from lib import shacrypt
+from lib.test_helpers import test_iteration_parameters
 
 # sm3crypt: the sha256crypt construction over ShangMi 3, which OpenSSL provides to hashlib by name.
 # The optimized kernel takes a password of at most 15 bytes, see module_pw_max ().
@@ -30,7 +31,11 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

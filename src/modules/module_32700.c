@@ -22,7 +22,8 @@ static const char *HASH_NAME      = "Kremlin Encrypt 3.0 w/NewDES";
 static const u64   KERN_TYPE      = 32700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$kgb$0ab30cf7a52dad93$82a7c454246fc7570224e9f24279791aa2a63bf4";

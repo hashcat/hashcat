@@ -10,7 +10,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # Android FDE from 4.4 on, the footers whose kdf_type is KDF_SCRYPT. The stored string is
 #
@@ -61,7 +61,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _ikey(word, salt_raw, n, r, p):
@@ -74,7 +78,12 @@ def _build(n, r, p, salt, encrypted, data):
                                                encrypted.hex(), data.hex())
 
 
-def module_generate_hash(word, salt, iterations=None, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P):
+def module_generate_hash(word, salt, iterations=None, n=None, r=SCRYPT_R, p=SCRYPT_P, scrypt_n=None):
+  if n is None:
+    n = SCRYPT_N if scrypt_n is None else scrypt_n
+
+  n = int(n)
+
   salt_raw = bytes.fromhex(salt)
 
   ikey = _ikey(word, salt_raw, n, r, p)

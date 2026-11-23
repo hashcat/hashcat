@@ -11,6 +11,8 @@ import hmac
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
 # bcrypt-sha256 v2 (passlib): the bcrypt password is the standard base64 of
 # HMAC-SHA256(key=bcrypt_base64(salt), msg=word). pycryptodome emits a full $2a crypt string; its
 # last 31 chars are the bcrypt-base64 of the 23 byte hash, which is what the format wants.
@@ -41,7 +43,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 4}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

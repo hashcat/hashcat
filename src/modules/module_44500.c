@@ -28,7 +28,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_MULTIHASH_DESPITE_ESALT;
+                                  | OPTS_TYPE_MULTIHASH_DESPITE_ESALT
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat-1625!";
 static const char *ST_HASH        = "$tezos$1*2048*legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank*hashcat.research@example.com*tz1fSt5Pn9KpiBk9KBagBhHETDXNgtU5Y2wT*a19fd946bf736f513f29013aa183775634dcf3002285";

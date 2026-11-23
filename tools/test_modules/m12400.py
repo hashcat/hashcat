@@ -6,7 +6,7 @@
 ##
 
 from lib import libcrypt
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
 
 # BSDi Crypt / extended DES ("_" scheme). libcrypt builds the whole "_<iter><salt><hash>" string; the
 # iteration count is 4 crypt64 characters, the salt 4.
@@ -29,7 +29,11 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"iterations": (1, 5000)}],
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

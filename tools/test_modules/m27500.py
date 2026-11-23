@@ -6,6 +6,7 @@
 ##
 
 from lib import virtualbox
+from lib.test_helpers import test_iteration_parameters
 
 # VirtualBox, PBKDF2-HMAC-SHA256 and AES-128-XTS, see lib/virtualbox.py.
 
@@ -24,7 +25,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

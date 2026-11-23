@@ -15,7 +15,7 @@
 
 import base64
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
 from lib.blake import blake256
 from lib.groestl import groestl256
 from lib.jh import jh256
@@ -195,7 +195,7 @@ def cn_slow_hash(data: bytes) -> bytes:
     a = [st32[i] ^ st32[i + 8] for i in range(4)]
     b = [st32[i + 4] ^ st32[i + 12] for i in range(4)]
 
-    for _ in range(ITER // 2):
+    for _ in range(runtime_iterations(ITER // 2)):
         # iteration 1
 
         a64_0 = a[0] | (a[1] << 32)
@@ -328,6 +328,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 def module_generate_hash(word, salt, sign=None):

@@ -13,6 +13,7 @@ import struct
 from Crypto.Cipher import AES
 
 from lib.bcrypt_pbkdf import bcrypt_pbkdf
+from lib.test_helpers import test_iteration_parameters
 
 
 # AES through ECB blocks, so CTR and CBC share one shape and neither depends on a padding convention.
@@ -126,7 +127,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, cid=6, blob=None, ct_off=None):

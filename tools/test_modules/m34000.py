@@ -9,7 +9,7 @@ import base64
 
 from argon2.low_level import Type, hash_secret_raw
 
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, test_iteration_parameters
 
 # Argon2 (argon2d, argon2i, argon2id). The hash keeps the variant, the m/t/p cost parameters and
 # the salt, all of which the verify path reads back so the same raw digest is recomputed.
@@ -28,22 +28,33 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"m": 4096, "t": (1, 3), "p": 1}],
     },
+    'reduced': {'parameters': {'argon2_memory_max': 4096, 'argon2_passes_max': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _b64(data):
   return base64.b64encode(data).decode("ascii").rstrip("=")
 
 
-def module_generate_hash(word, salt, sign=None, m=None, t=None, p=None, length=None):
+def module_generate_hash(word, salt, sign=None, m=None, t=None, p=None, length=None,
+                         argon2_memory_max=None, argon2_passes_max=None):
   if sign is None:
     sign = ("argon2d", "argon2i", "argon2id")[random_number(0, 2)]
 
   if m is None:
     m = 1 << random_number(12, 18)
 
+    if argon2_memory_max is not None:
+      m = min(m, int(argon2_memory_max))
+
   if t is None:
     t = random_number(1, 8)
+
+    if argon2_passes_max is not None:
+      t = min(t, int(argon2_passes_max))
 
   if p is None:
     p = random_number(1, 8)

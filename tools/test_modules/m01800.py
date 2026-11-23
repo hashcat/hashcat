@@ -8,6 +8,7 @@
 import hashlib
 
 from lib import shacrypt
+from lib.test_helpers import test_iteration_parameters
 
 # sha512crypt $6$, SHA512 (Unix), see lib/shacrypt.py. A rounds field is clamped to what the format
 # allows, 1000 to 999999999, and printed; without one the count is the default 5000.
@@ -30,7 +31,11 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 1000}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -10,7 +10,7 @@ import re
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
 
 # AxCrypt 2 AES-256. PBKDF2-HMAC-SHA512 gives a 64 byte key that is folded to 32 bytes and xored
 # with the wrap salt, then an AxCrypt variant of RFC 3394 key wrap (idx xored into bytes 4:8 after
@@ -35,13 +35,22 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
 
 
-def module_generate_hash(word, salt_wrap, iter_wrap=None, data=None, salt_kdf=None, iter_kdf=None):
-  # the runner hands iterations through as None, so the perl "shift // default" is reproduced here
-  iter_wrap = 10000 if iter_wrap is None else int(iter_wrap)
-  iter_kdf = 1000 if iter_kdf is None else int(iter_kdf)
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt_wrap, iter_wrap=None, data=None, salt_kdf=None, iter_kdf=None, iterations=None):
+  if iter_wrap is None:
+    iter_wrap = 10000 if iterations is None else iterations
+
+  if iter_kdf is None:
+    iter_kdf = 1000 if iterations is None else iterations
+
+  iter_wrap = int(iter_wrap)
+  iter_kdf = int(iter_kdf)
 
   if isinstance(salt_wrap, str):
     salt_wrap = salt_wrap.encode("latin-1")

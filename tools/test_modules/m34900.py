@@ -10,7 +10,7 @@ import zlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, runtime_iterations
 
 # Dashlane 4 local files. PBKDF2-HMAC-SHA1 of the password over the 32 byte salt with 10204
 # iterations gives both the AES-256 key and, through EVP_BytesToKey with SHA-1 over that output and
@@ -18,7 +18,7 @@ from lib.test_helpers import random_bytes
 # length, a 2 byte zlib header and raw deflate, and the password is right when inflating from byte 6
 # yields the start of the XML.
 
-ITER = 10204
+ITER = runtime_iterations(10204, initial=1)
 
 MARKER = b"<?xml version"
 
@@ -43,6 +43,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 

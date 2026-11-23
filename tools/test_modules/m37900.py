@@ -6,6 +6,7 @@
 ##
 
 from lib import bestcrypt
+from lib.test_helpers import test_iteration_parameters
 
 # BestCrypt container (.jbc) key slots whose key generator runs SHA-256 with AES-CBC. The cipher is
 # part of the mode here rather than a field of the hash, because the XTS key takes a second pass
@@ -25,7 +26,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, source=None):

@@ -7,7 +7,7 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # phpass, WordPress (MD5), Joomla (MD5), phpBB3 (MD5): 2^cost rounds of md5 over the last digest and
 # the password, starting from md5 of the salt and the password. A line being verified keeps its own
@@ -65,7 +65,11 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -8,6 +8,7 @@
 import gostcrypto
 
 from lib import shacrypt
+from lib.test_helpers import test_iteration_parameters
 
 # gost12512crypt: the SHA-crypt shape over Streebog-512, with its own round schedule and output
 # transposition. The digests are used in gostcrypto's byte order, not reversed.
@@ -115,7 +116,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

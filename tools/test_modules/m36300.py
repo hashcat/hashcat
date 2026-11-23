@@ -7,7 +7,7 @@
 
 from lib import libcrypt
 from lib import yescrypt
-from lib.test_helpers import random_string, split_hash_word
+from lib.test_helpers import random_string, split_hash_word, test_iteration_parameters
 
 # scrypt through libc crypt (), the $7$ form: $7$<N><r><p><salt>$hash, N as one crypt64 digit and r
 # and p as five each. The self-test parameters are fixed at N=2^14, r=8, p=1.
@@ -23,10 +23,17 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
 
 
-def module_generate_hash(word, salt, iterations=None, n_log2=14, r=8, p=1):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, iterations=None, n_log2=None, r=8, p=1, scrypt_n=None):
+  if n_log2 is None:
+    n_log2 = 14 if scrypt_n is None else int(scrypt_n).bit_length() - 1
+
   if salt is None:
     salt = random_string(12)
 

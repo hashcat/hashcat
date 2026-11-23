@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Hash import keccak
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # Ethereum wallet, scrypt variant. Same MAC as mode 15600, the derived key just comes from scrypt.
 #
@@ -28,11 +28,15 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'scrypt_n': 1024}},
   }
 
 
-def module_generate_hash(word, salt, scrypt_N=None, scrypt_r=8, scrypt_p=1, ciphertext=None):
-  scrypt_N = 262144 if scrypt_N is None else int(scrypt_N)
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, scrypt_n=None, scrypt_r=8, scrypt_p=1, ciphertext=None):
+  scrypt_N = 262144 if scrypt_n is None else int(scrypt_n)
   scrypt_r = int(scrypt_r)
   scrypt_p = int(scrypt_p)
 

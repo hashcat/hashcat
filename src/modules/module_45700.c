@@ -26,7 +26,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_REGISTER_LIMIT
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 // produced with the wallet's own WebCrypto path: PBKDF2-HMAC-SHA256(pass, sb,
 // 5000, 32) -> AES-256-GCM seal of the BIP39 entropy hex

@@ -24,7 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_HASH_COPY;
+                                  | OPTS_TYPE_HASH_COPY
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "Openwall123";
 static const char *ST_HASH        = "$dashlane$1*523f57cffb40609f4a3b00288a1223cf8ec4b8c1610fe4afdea345a21563eae9*220*5e906e7dce3d12999bf7d627756e2267f3f5061e457a47736d1174959ed4f9e316a30fdee0a60493de83dd6f8b669ed420172ad9e2f1c1269aa9716d664cf2a005b44834f696c0473a8858647adc07d9b02ec3ece33eae250289bb1d2efbe9c4c181ae326dccabb552939f5fca72dc4b83c846e95a67eb3fbd04ca5fc216f4de16893bb434ba878e34e1870fb1814355e192488bb6bdab8e18f3c983e599800c458711a27ebeb595f6757a1393035b92bbc46bc9ccea75b77ea47b413e08b3aa9818ebf3369eb954d1fa44a202c2cd9e28d48b3dd5a185caa4674caf";

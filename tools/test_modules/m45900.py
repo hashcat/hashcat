@@ -13,6 +13,8 @@ from Crypto.Cipher import AES
 from argon2.low_level import Type, hash_secret_raw
 from cryptography.hazmat.primitives.asymmetric import ec
 
+from lib.test_helpers import runtime_iteration_limit
+
 
 # Sparrow Wallet SPRW1 container (H2 2.x MVStore, XTS-AES-128 file encryption):
 #   priv = Argon2id(utf8(pw), argonSalt16, t=10, m=256MiB, p=4, 32B, v=0x13)
@@ -25,6 +27,15 @@ from cryptography.hazmat.primitives.asymmetric import ec
 ARGON_TIME = 10
 ARGON_MEM  = 262144  # 256 MiB in KiB
 ARGON_PAR  = 4
+
+TEST_LIMIT = runtime_iteration_limit()
+
+if TEST_LIMIT is not None:
+  if TEST_LIMIT < 4 or TEST_LIMIT % 4 != 0:
+    raise ValueError("Sparrow runtime limits must be multiples of four")
+
+  ARGON_TIME = min(ARGON_TIME, TEST_LIMIT // 4)
+  ARGON_MEM = min(ARGON_MEM, 4096)
 
 
 def _xts_encrypt_unit0(key, pt):
@@ -88,6 +99,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 8},
   }
 
 

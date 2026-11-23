@@ -10,6 +10,8 @@ import hashlib
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
+from lib.test_helpers import runtime_iterations
+
 # Tezos presale (ICO) wallet. The PBKDF2-HMAC-SHA512 key is the mnemonic and the salt is
 # "mnemonic" || email || password, so the candidate sits inside the HMAC message. The first 32
 # bytes of the 64 byte derived key seed an ed25519 key pair and the tz1 address payload is
@@ -17,7 +19,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 # is handed becomes the mnemonic, the email is drawn at random and is recovered from the hash
 # line on verification.
 
-ITERATIONS = 2048
+ITERATIONS = runtime_iterations(2048, initial=1)
 
 B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
@@ -75,6 +77,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 

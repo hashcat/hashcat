@@ -27,7 +27,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_THREAD_MULTI_DISABLE
-                                  | OPTS_TYPE_MP_MULTI_DISABLE;
+                                  | OPTS_TYPE_MP_MULTI_DISABLE
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "KatSparrow777!";
 static const char *ST_HASH        = "$sparrow$1$000102030405060708090a0b0c0d0e0f$6dd10019cd94e71b$6927a10c68444e53ea27012e81376ad9980139af764f9e6156273ed98b153346ecef740804dd6acdbb4367549f615ac276057863204043484521a8901dba2b09";
@@ -80,6 +81,36 @@ static void pack_le (u32 *dst, const u8 *src, const int nbytes, const int max_wo
   for (int i = 0; i < nbytes; i++) dst[i / 4] |= ((u32) src[i]) << ((i % 4) * 8);
 }
 
+// Read the optional limit in Argon2 slices. Zero keeps the original cost.
+static int module_test_iteration_limit (u32 *iterations)
+{
+  const char *iteration_override = getenv ("HASHCAT_ITER_OVERRIDE");
+
+  *iterations = 0;
+
+  if (iteration_override == NULL) return (PARSER_OK);
+
+  if (iteration_override[0] == 0) return (PARSER_SALT_ITERATION);
+
+  u64 limit = 0;
+
+  for (u32 i = 0; iteration_override[i] != 0; i++)
+  {
+    if ((iteration_override[i] < '0') || (iteration_override[i] > '9')) return (PARSER_SALT_ITERATION);
+
+    limit = limit * 10 + (iteration_override[i] - '0');
+
+    if (limit > 0xffffffffULL) return (PARSER_SALT_ITERATION);
+  }
+
+  // Argon2 loops advance in four slices per pass.
+  if ((limit != 0) && ((limit < ARGON2_SYNC_POINTS) || ((limit % ARGON2_SYNC_POINTS) != 0))) return (PARSER_SALT_ITERATION);
+
+  *iterations = (u32) limit;
+
+  return (PARSER_OK);
+}
+
 static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -117,13 +148,19 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (version != 1) return (PARSER_HASH_VALUE);
 
-  // Argon2id parameters are FIXED by the SPRW1 format (not carried in the line)
+  // The SPRW1 format does not carry Argon2id parameters.
 
   argon2_options->type    = 2;  // Argon2id
   argon2_options->version = 19; // 0x13
   argon2_options->memory_usage_in_kib = SPARROW_ARGON_MEM;
   argon2_options->iterations          = SPARROW_ARGON_TIME;
   argon2_options->parallelism         = SPARROW_ARGON_PAR;
+
+  u32 test_limit = 0;
+
+  const int rc_limit = module_test_iteration_limit (&test_limit);
+
+  if (rc_limit != PARSER_OK) return (rc_limit);
 
   argon2_options->segment_length     = MAX (2, (argon2_options->memory_usage_in_kib / (ARGON2_SYNC_POINTS * argon2_options->parallelism)));
   argon2_options->lane_length        = argon2_options->segment_length * ARGON2_SYNC_POINTS;
@@ -179,6 +216,33 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   return (PARSER_OK);
 }
 
+// Cap loaded test hashes here so the startup self-test keeps its full cost.
+static int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, salt_t *salt, void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  u32 limit = 0;
+
+  const int rc_limit = module_test_iteration_limit (&limit);
+
+  if (rc_limit != PARSER_OK) return (rc_limit);
+
+  if (limit == 0) return (PARSER_OK);
+
+  merged_options_t *merged_options = (merged_options_t *) esalt_buf;
+
+  argon2_options_t *argon2_options = &merged_options->argon2_options;
+
+  argon2_options->iterations = MIN (argon2_options->iterations, limit / ARGON2_SYNC_POINTS);
+  argon2_options->memory_usage_in_kib = MIN (argon2_options->memory_usage_in_kib, 4096);
+  argon2_options->segment_length = MAX (2, (argon2_options->memory_usage_in_kib / (ARGON2_SYNC_POINTS * argon2_options->parallelism)));
+  argon2_options->lane_length = argon2_options->segment_length * ARGON2_SYNC_POINTS;
+  argon2_options->memory_block_count = argon2_options->lane_length * argon2_options->parallelism;
+
+  salt->salt_iter = argon2_options->iterations * ARGON2_SYNC_POINTS;
+  salt->salt_buf_pc[0] = argon2_options->memory_usage_in_kib;
+
+  return (PARSER_OK);
+}
+
 static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   const merged_options_t *merged_options = (const merged_options_t *) esalt_buf;
@@ -213,12 +277,13 @@ void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
 
-  module_ctx->module_benchmark_cost       = argon2_module_benchmark_cost;
-  module_ctx->module_esalt_size           = module_esalt_size;
-  module_ctx->module_extra_buffer_size    = argon2_module_extra_buffer_size;
-  module_ctx->module_extra_tuningdb_block = argon2_module_extra_tuningdb_block;
-  module_ctx->module_hash_decode          = module_hash_decode;
-  module_ctx->module_hash_encode          = module_hash_encode;
-  module_ctx->module_jit_build_options    = argon2_module_jit_build_options;
-  module_ctx->module_tmp_size             = module_tmp_size;
+  module_ctx->module_benchmark_cost          = argon2_module_benchmark_cost;
+  module_ctx->module_esalt_size              = module_esalt_size;
+  module_ctx->module_extra_buffer_size       = argon2_module_extra_buffer_size;
+  module_ctx->module_extra_tuningdb_block    = argon2_module_extra_tuningdb_block;
+  module_ctx->module_hash_decode             = module_hash_decode;
+  module_ctx->module_hash_decode_postprocess = module_hash_decode_postprocess;
+  module_ctx->module_hash_encode             = module_hash_encode;
+  module_ctx->module_jit_build_options       = argon2_module_jit_build_options;
+  module_ctx->module_tmp_size                = module_tmp_size;
 }

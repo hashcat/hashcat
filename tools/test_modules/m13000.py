@@ -7,7 +7,7 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # RAR5: PBKDF2-HMAC-SHA256 with 2^n + 32 rounds, the 32 byte key folded to 8 by XOR.
 
@@ -22,7 +22,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 10}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, iv="0" * 32):

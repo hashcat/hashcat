@@ -10,7 +10,7 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_number
+from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
 
 # Bitcoin/Litecoin wallet.dat: SHA512 of the password plus salt, iterated, then AES-256-CBC over the
 # master key. key is digest[0:32], iv is digest[32:48].
@@ -26,10 +26,14 @@ def module_test_properties():
       'combined_length': None,
       'association_parameters': [{"salt_iter": (150000, 250000)}],
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
 
 
-def module_generate_hash(word, salt, ckey=None, public_key=None, salt_iter=None, cry_master=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, ckey=None, public_key=None, salt_iter=None, cry_master=None, iterations=None):
   if ckey is None:
     ckey = random_hex_string(96)
 
@@ -37,7 +41,7 @@ def module_generate_hash(word, salt, ckey=None, public_key=None, salt_iter=None,
     public_key = random_hex_string(66)
 
   if salt_iter is None:
-    salt_iter = random_number(150000, 250000)
+    salt_iter = random_number(150000, 250000) if iterations is None else iterations
 
   salt_iter = int(salt_iter)
 

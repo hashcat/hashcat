@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, test_iteration_parameters
 
 # ENCsecurity Data Vault, PBKDF2-HMAC-SHA256. The derived key drives a counter mode built from
 # nb_keys parallel AES-ECB streams, whose nonces are the file IV xored with slices of the key
@@ -35,10 +35,14 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 2}},
   }
 
 
-def module_generate_hash(word, salt, algo=None, iv=None, ct=None, iter=None):
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def module_generate_hash(word, salt, algo=None, iv=None, ct=None, iter=None, iterations=None):
   if algo is None:
     algo = random_number(1, 4)
 
@@ -46,7 +50,7 @@ def module_generate_hash(word, salt, algo=None, iv=None, ct=None, iter=None):
     iv = random_hex_string(16)
 
   if iter is None:
-    iter = 100000
+    iter = 100000 if iterations is None else iterations
 
   algo = int(algo)
   iter = int(iter)

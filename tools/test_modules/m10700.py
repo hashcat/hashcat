@@ -9,6 +9,8 @@ import hashlib
 
 from Crypto.Cipher import AES
 
+from lib.test_helpers import runtime_iteration_limit
+
 # PDF 1.7 Level 8 (Acrobat 10 and 11). The key comes from a hash chain whose digest length is
 # chosen each round by the AES-CBC ciphertext of the repeated password and block: the sum of the
 # first 16 cipher bytes mod 3 selects SHA-256, SHA-384 or SHA-512. The loop runs at least 64 rounds
@@ -30,6 +32,7 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
   }
 
 
@@ -50,8 +53,12 @@ def module_generate_hash(word, id=None, rest=None):
   data63   = 0
 
   i = 0
+  limit = runtime_iteration_limit()
 
-  while i < 64 or i < data63 + 32:
+  if limit is not None and limit >= 64:
+    raise ValueError("PDF runtime test limits must stay below the 64-round extension")
+
+  while i < (max(64, data63 + 32) if limit is None else limit):
     plain = (word + block) * 64
 
     data_len = len(word) + len(block)

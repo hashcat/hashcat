@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "MD5(Sun), SunMD5";
 static const u64   KERN_TYPE      = 3300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$md5,rounds=904$4ol8A9yh$$DrANxVf9omze48HtDkwHQ0";

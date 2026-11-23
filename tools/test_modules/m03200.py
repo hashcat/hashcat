@@ -9,6 +9,8 @@ import base64
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
 # bcrypt $2a$, Blowfish (Unix): pycryptodome's bcrypt writes the $2a$ string itself, from a 16 byte
 # salt and a cost of 5 unless the line says otherwise.
 
@@ -26,7 +28,11 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {'parameters': {'iterations': 4}},
   }
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):
