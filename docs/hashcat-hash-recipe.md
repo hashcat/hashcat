@@ -522,7 +522,6 @@ new number.
 | 34500 | 40077 | `sha224(sha1($pass))` |
 | 35000 | 40078 | `SAP CODVN H (PWDSALTEDHASH) isSHA512` |
 | 35700 | 40079 | `phpass(md5($pass))` |
-| 36500 | 40080 | `NTLM(NTLM_bin($pass))` |
 | 37300 | 40081 | `SAP CODVN H (PWDSALTEDHASH) iSSHA-256` |
 | 37301 | 40082 | `SAP CODVN H (PWDSALTEDHASH) iSSHA-384` |
 
