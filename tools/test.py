@@ -2343,11 +2343,11 @@ def multi_len_params(mode, attack=None):
 
   if mode == 2500:
     min_len = 7
-  elif mode in (14000, 14100, 14300, 14900, 15400):
+  elif mode in (14000, 14100, 14300, 14900, 15400, 47000):
     # The oracle makes one password length only, so every slot is pinned to it, or the hybrid multi
     # runs feed hashcat an empty hash file. The split keeps the masked part to a few bytes: the tail
     # for -a 6 and the head for -a 7.
-    fixed_len = {14000: 8, 14100: 24, 14300: 16, 14900: 10, 15400: 32}[mode]
+    fixed_len = {14000: 8, 14100: 24, 14300: 16, 14900: 10, 15400: 32, 47000: 16}[mode]
     min_len   = 3 if attack == 7 else fixed_len - 5
   elif mode == 16800:
     min_len = 7
