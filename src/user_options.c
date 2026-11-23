@@ -939,11 +939,6 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
 
   if (strcmp (user_options->session, PROGNAME) == 0)
   {
-    if (user_options->benchmark == true)
-    {
-      user_options->session = "benchmark";
-    }
-
     if (user_options->hash_info > 0)
     {
       user_options->session = "hash_info";
@@ -952,16 +947,6 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
     if (user_options->usage > 0)
     {
       user_options->session = "usage";
-    }
-
-    if (user_options->speed_only == true)
-    {
-      user_options->session = "speed_only";
-    }
-
-    if (user_options->progress_only == true)
-    {
-      user_options->session = "progress_only";
     }
 
     if (user_options->total_candidates == true)
@@ -977,16 +962,6 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
     if (user_options->lookup != NULL)
     {
       user_options->session = "lookup";
-    }
-
-    if (user_options->stdout_flag == true)
-    {
-      user_options->session = "stdout";
-    }
-
-    if (user_options->backend_info > 0)
-    {
-      user_options->session = "backend_info";
     }
 
     if (user_options->show == true)
