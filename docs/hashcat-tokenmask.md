@@ -135,7 +135,7 @@ Rules apply to the candidates a token mask makes, the same as they do to a wordl
 ./hashcat -a 13 -m 0 hashes.txt ?1?1 -1 tokens.txt -r rules/best64.rule
 ```
 
-## Performance
+## The two engines
 
 On a fast hash the feed amplifies on the card through the PCFG device engine, the same infrastructure
 the PCFG and table attacks use, so no candidate crosses the PCIe bus and the card is not starved. The
@@ -143,16 +143,29 @@ mask's trailing positions are walked in the kernel and only the leading ones are
 which runs within a small factor of a brute-force mask of the same size, orders of magnitude faster
 than generating every candidate on the host.
 
-The device engine is used only where it can be: a slow hash, `--stdout`, `--slow-candidates` and a hash
-mode with no device-engine kernel all run on the host engine instead, and so does a mask whose
-candidates are longer than the device's candidate buffer (around 127 bytes) or could be shorter than
-the hash mode's minimum. The startup line says which engine the run got.
+The host engine runs instead for `--stdout`, a rules pass, `--slow-candidates`, a slow hash mode, a
+hash mode with no device-engine kernel, or a mask whose candidates are longer than the device's
+candidate buffer (around 127 bytes) or could be shorter than the hash mode's minimum. The startup line
+says which engine the run got.
+
+The candidate set and the candidate order are the same on both engines. What differs is what a position
+counts:
+
+- On the host engine one position is one candidate, so `--keyspace`, `--skip`, `--limit` and the
+  restore point count candidates.
+- On the device engine one position is one base word, the leading tokens the card expands into many
+  candidates, so those four count base words instead. For `x?1?d` over six tokens, `--keyspace` reports
+  1, the single base word its 60 candidates share.
+
+The progress line counts candidates on either engine, and `--total-candidates` reports the exact
+candidate count either way.
 
 ## Notes
 
 - Candidate order is a plain odometer: the rightmost position runs fastest, each position a digit
   over its own token count, exactly as a byte mask counts. Candidate number N is a function of N, so
   a seek is exact and a restore is reliable.
-- The keyspace is the product of the per-position token counts, counted in 128 bits, so a mask over
-  several large token files is counted exactly.
+- The candidate count is the product of the per-position token counts, counted in 128 bits, so a mask
+  over several large token files is counted exactly; a count past 2^128 is reported as unknown rather
+  than miscounted.
 - A charset is read once and shared by every position that names it.
