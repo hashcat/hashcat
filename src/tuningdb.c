@@ -108,7 +108,11 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, hc_fopen_strerror ());
 
-      for (int j = 0; tuning_db_files[j] != NULL; j++) hcfree (tuning_db_files[j]);
+      // the loop has already freed the names before this one
+
+      for (int j = i; tuning_db_files[j] != NULL; j++) hcfree (tuning_db_files[j]);
+
+      hcfree (tuning_db_files);
 
       return -1;
     }

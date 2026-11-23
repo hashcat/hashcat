@@ -319,48 +319,27 @@ void pw_batch_reset (pw_batch_t *batch)
   batch->words_extra     = 0;
   batch->words_extra_amp = 0;
 
-  batch->runs_cnt = 0;
+  batch->runs.cnt = 0;
 
   batch->pws_idx[0].off = 0;
   batch->pws_idx[0].cnt = 0;
   batch->pws_idx[0].len = 0;
 }
 
-// The candidates added from here on come from words_off onwards. For an empty batch that is where it
-// starts. Otherwise it is a run of its own, see pw_run_t, and a run that has not had a candidate yet
-// is moved rather than kept, because nothing in the batch came from where it pointed.
-//
-// Both producers stop refilling once the table is full, so the bound below is only a backstop.
+// Room for twice as many runs, see pw_runs_t. A table that cannot grow keeps the runs it has.
 
-void pw_batch_from (pw_batch_t *batch, const u128 words_off)
+bool pw_runs_grow (pw_runs_t *runs)
 {
-  if (batch->pws_cnt == 0)
-  {
-    batch->words_off = words_off;
+  const u32 max = (runs->max == 0) ? 16 : runs->max * 2;
 
-    return;
-  }
+  pw_run_t *buf = (pw_run_t *) hcrealloc (runs->buf, (size_t) runs->max * sizeof (pw_run_t), (size_t) (max - runs->max) * sizeof (pw_run_t));
 
-  if (batch->runs_cnt > 0)
-  {
-    pw_run_t *last = &batch->runs_buf[batch->runs_cnt - 1];
+  if (buf == NULL) return false;
 
-    if (last->pws_idx == batch->pws_cnt)
-    {
-      last->words_off = words_off;
+  runs->buf = buf;
+  runs->max = max;
 
-      return;
-    }
-  }
-
-  if (batch->runs_cnt >= PW_RUNS_MAX) return;
-
-  pw_run_t *run = &batch->runs_buf[batch->runs_cnt];
-
-  run->pws_idx   = batch->pws_cnt;
-  run->words_off = words_off;
-
-  batch->runs_cnt++;
+  return true;
 }
 
 void pw_add_zerocopy (pw_batch_t *batch, const u64 pws_max, u8 *out_buf, const int pw_len)

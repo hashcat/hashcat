@@ -343,7 +343,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else if (krb5pa->format == 3)
   {
-    char salt_str[512 + 1] = { 0 };
+    char salt_str[MAX_KDC_SALT_LEN + 1] = { 0 };
 
     memcpy (salt_str, (const char *) krb5pa->kdc_salt, krb5pa->kdc_salt_len);
 

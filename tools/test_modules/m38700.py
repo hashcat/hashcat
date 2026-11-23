@@ -29,6 +29,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": 0}, {"iterations": 1}, {"iterations": (2, 1000)}],
     },
     'reduced': {
       'parameters': {'iterations': 2},

@@ -339,9 +339,14 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
         u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
 
-        memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+        // the mask and the word can together be longer than the buffer, and the candidate is cut
+        // to pw_max below anyway
 
-        plain_len += comb_len;
+        const u32 copy_len = MIN (comb_len, PW_MAX - plain_len);
+
+        memcpy (plain_ptr + plain_len, comb_buf, copy_len);
+
+        plain_len += copy_len;
 
         if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 

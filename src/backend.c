@@ -168,19 +168,39 @@ u64 gidvid_to_feed_pos (const hc_device_param_t *device_param, const u64 gidvid)
 // Where in the keyspace the word behind a work item came from. A batch counts on from
 // words_off_launch until a run of its own begins, and from there the last run that begins at or
 // before the word gives its position. See pw_run_t.
+//
+// A batch can hold a run after every reject, so the run is found by bisection rather than by a walk.
+// The runs begin at ascending candidates, because pw_runs_from () moves a run that has none yet.
 
 u128 gidvid_to_word_pos (const hc_device_param_t *device_param, const u64 gidvid)
 {
   const u64 feed_pos = gidvid_to_feed_pos (device_param, gidvid);
 
+  u32 lo = 0;
+  u32 hi = device_param->runs_launch_cnt;
+
+  while (lo < hi)
+  {
+    const u32 mid = lo + ((hi - lo) / 2);
+
+    if (device_param->runs_launch_buf[mid].pws_idx > feed_pos)
+    {
+      hi = mid;
+    }
+    else
+    {
+      lo = mid + 1;
+    }
+  }
+
+  // lo is the number of runs that begin at or before the word
+
   u64  run_idx = 0;
   u128 run_off = device_param->words_off_launch;
 
-  for (u32 i = 0; i < device_param->runs_launch_cnt; i++)
+  if (lo > 0)
   {
-    const pw_run_t *run = &device_param->runs_launch_buf[i];
-
-    if (run->pws_idx > feed_pos) break;
+    const pw_run_t *run = &device_param->runs_launch_buf[lo - 1];
 
     run_idx = run->pws_idx;
     run_off = run->words_off;
@@ -3075,7 +3095,14 @@ static int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
             if (hashconfig->kern_bits & KERN_BIT_HOOK23)
             {
-              if (run_hook23_host (hashcat_ctx, device_param, salt_pos, pws_cnt) == -1) return -1;
+              const int rc_hook = run_hook23_host (hashcat_ctx, device_param, salt_pos, pws_cnt);
+
+              if (rc_hook == -1) return -1;
+
+              // the host buffer still holds the verdicts of the previous digest, so a pass the hook
+              // did not finish must not reach the comp kernel
+
+              if (rc_hook == 1) break;
 
               if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_HOOKS], 0, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
             }
@@ -18909,6 +18936,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hcfree (slot->pws_idx);
       hcfree (slot->pws_base);
       hcfree (slot->pcfg_wmap);
+      hcfree (slot->runs.buf);
 
       // A page locked one goes back further down, where its context is current.
 
@@ -19108,6 +19136,9 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       slot->pcfg_cells_clmem  = NULL;
       slot->pcfg_cells_size   = 0;
       slot->pcfg_wmap         = NULL;
+      slot->runs.buf          = NULL;
+      slot->runs.cnt          = 0;
+      slot->runs.max          = 0;
     }
 
     device_param->h_tmps              = NULL;
@@ -19384,12 +19415,13 @@ HC_THREAD_FUNC hook12_thread (void *p)
   {
     wait_while_paused (status_ctx);
 
-    if (status_ctx->devices_status == STATUS_RUNNING)
-    {
-      const u32 salt_pos = (hook_thread_param->salt_per_pw == true) ? (u32) (hook_thread_param->pws_pos + pw_pos) : hook_thread_param->salt_pos;
+    // as in hook23_thread (): only a stop passes a candidate over, never a pause
 
-      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
-    }
+    if (status_ctx->run_thread_level2 == false) continue;
+
+    const u32 salt_pos = (hook_thread_param->salt_per_pw == true) ? (u32) (hook_thread_param->pws_pos + pw_pos) : hook_thread_param->salt_pos;
+
+    module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
   }
 
   return 0;
@@ -19410,19 +19442,27 @@ HC_THREAD_FUNC hook23_thread (void *p)
   {
     wait_while_paused (status_ctx);
 
-    if (status_ctx->devices_status == STATUS_RUNNING)
-    {
-      const u32 salt_pos = (hook_thread_param->salt_per_pw == true) ? (u32) (hook_thread_param->pws_pos + pw_pos) : hook_thread_param->salt_pos;
+    // Every stop clears run_thread_level2, and a launch it cleared is not counted as progress. A pause
+    // does not clear it, so a pause that lands after the wait above still gets the hook run.
 
-      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
+    if (status_ctx->run_thread_level2 == false)
+    {
+      hook_thread_param->skipped++;
+
+      continue;
     }
+
+    const u32 salt_pos = (hook_thread_param->salt_per_pw == true) ? (u32) (hook_thread_param->pws_pos + pw_pos) : hook_thread_param->salt_pos;
+
+    module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
   }
 
   return 0;
 }
 
 // runs the host part of hook23 for one batch of candidates, fanned out over the
-// configured hook threads
+// configured hook threads. It returns 1 when a stop made it pass over candidates, which then keep
+// whatever their hook entries held before.
 
 static int run_hook23_host (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt)
 {
@@ -19474,8 +19514,14 @@ static int run_hook23_host (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
   hc_thread_wait (hook_threads_live, c_threads);
 
+  u64 skipped = 0;
+
+  for (int i = 0; i < hook_threads; i++) skipped += hook_threads_param[i].skipped;
+
   hcfree (c_threads);
   hcfree (hook_threads_param);
 
-  return 0;
+  const int rc = (skipped > 0) ? 1 : 0;
+
+  return rc;
 }

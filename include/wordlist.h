@@ -63,8 +63,55 @@ int  pw_transform_apply   (const pw_transform_t *transform, u8 *buf, const int l
 void pw_pre_add       (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len, const u8 *base_buf, const int base_len, const int rule_idx);
 void pw_base_add      (pw_batch_t *batch, const u64 pws_max, const u8 *base_buf, const int base_len, const int rule_idx);
 void pw_batch_reset   (pw_batch_t *batch);
-void pw_batch_from    (pw_batch_t *batch, const u128 words_off);
+bool pw_runs_grow     (pw_runs_t *runs);
 void pw_add_zerocopy  (pw_batch_t *batch, const u64 pws_max, u8 *out_buf, const int pw_len);
 void pw_add           (pw_batch_t *batch, const u64 pws_max, const u8 *pw_buf, const int pw_len);
+
+// The candidates from pws_idx on come from words_off onwards, see pw_run_t. A run that has not had a
+// candidate yet is moved rather than kept, because nothing came from where it pointed, so a row of
+// rejected words costs one run. A producer calls this for every word it rejects, which is why it is
+// inline.
+
+static inline void pw_runs_from (pw_runs_t *runs, const u64 pws_idx, const u128 words_off)
+{
+  if (runs->cnt > 0)
+  {
+    pw_run_t *last = &runs->buf[runs->cnt - 1];
+
+    if (last->pws_idx == pws_idx)
+    {
+      last->words_off = words_off;
+
+      return;
+    }
+  }
+
+  if (runs->cnt == runs->max)
+  {
+    if (pw_runs_grow (runs) == false) return;
+  }
+
+  pw_run_t *run = &runs->buf[runs->cnt];
+
+  run->pws_idx   = pws_idx;
+  run->words_off = words_off;
+
+  runs->cnt++;
+}
+
+// The candidates added from here on come from words_off onwards. For an empty batch that is where it
+// starts. Otherwise it is a run of its own.
+
+static inline void pw_batch_from (pw_batch_t *batch, const u128 words_off)
+{
+  if (batch->pws_cnt == 0)
+  {
+    batch->words_off = words_off;
+
+    return;
+  }
+
+  pw_runs_from (&batch->runs, batch->pws_cnt, words_off);
+}
 
 #endif // HC_WORDLIST_H

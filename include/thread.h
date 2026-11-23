@@ -47,6 +47,10 @@
 #define hc_thread_mutex_unlock(m)   LeaveCriticalSection      (&m)
 #define hc_thread_mutex_delete(m)   DeleteCriticalSection     (&m)
 
+// a critical section may already be entered again by the thread that holds it
+
+#define hc_thread_mutex_init_recursive(m) InitializeCriticalSection (&m)
+
 /*
 #define hc_thread_mutex_init(m)     m = CreateMutex     (NULL, FALSE, NULL)
 #define hc_thread_mutex_lock(m)     WaitForSingleObject (m, INFINITE)
@@ -79,6 +83,10 @@
 #define hc_thread_mutex_lock(m)     pthread_mutex_lock     (&m)
 #define hc_thread_mutex_unlock(m)   pthread_mutex_unlock   (&m)
 #define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
+
+// a mutex the thread that holds it may lock again, which a critical section on Windows always allows
+
+#define hc_thread_mutex_init_recursive(m) do { pthread_mutexattr_t hc_mutex_attr; pthread_mutexattr_init (&hc_mutex_attr); pthread_mutexattr_settype (&hc_mutex_attr, PTHREAD_MUTEX_RECURSIVE); pthread_mutex_init (&m, &hc_mutex_attr); pthread_mutexattr_destroy (&hc_mutex_attr); } while (0)
 
 #define hc_thread_cond_init(c)      pthread_cond_init      (&c, NULL)
 #define hc_thread_cond_signal(c)    pthread_cond_signal    (&c)

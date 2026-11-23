@@ -38,6 +38,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": (8000, 17000)}],
     },
     'normal': {'parameters': {'user_hash_iterations': 10000}},
     'runtime': {'limit': 2, 'copy_hash': True, 'parameters': {'iterations': 2}},

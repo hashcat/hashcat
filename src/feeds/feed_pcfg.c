@@ -9896,7 +9896,12 @@ static void unit_suffix_free (pcfg_global_t *pg)
     pg->structs[i].usuf = NULL;
   }
 
-  pg->built = false;
+  // With the tables gone there is nothing for a cache miss to keep. A cache file whose header matches
+  // frees the tables the probe left before it reads its rows, and one whose rows then fail to read
+  // would otherwise have unit_suffix_build () keep tables that no longer exist, and fail every run.
+
+  pg->built        = false;
+  pg->tables_final = false;
 }
 
 // Two artefacts of the ruleset are kept between runs, so the second run can read what the first

@@ -437,6 +437,7 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": 2}, {"iterations": 8}],
     },
   }
 
@@ -468,10 +469,21 @@ def module_generate_hash(word, salt=None, iterations=None):
     if checksum_ok(mnemonic):
       break
 
-  path_kind = random.randrange(4)
+  combos = 8
+
+  if iterations is None:
+    path_kind = random.randrange(4)
+  else:
+    # iterations is what hashcat reads off the line as salt_iter: the path combinations, times two
+    # for a candidate of two words. An association group shares one, so the path range is picked to
+    # give that product whatever number of words each candidate brings, which needs an even count.
+
+    combos = int(iterations) // (2 if ph_cnt == 2 else 1)
+
+    path_kind = 0 if combos > 1 else 1
 
   if path_kind == 0:
-    path = "m/44'/0'/0'/0/{0-7}"
+    path = "m/44'/0'/0'/0/{0-%d}" % (combos - 1)
   elif path_kind == 1:
     path = "m/44'/0'/0'/0/0"
   elif path_kind == 2:

@@ -2217,7 +2217,13 @@ static void sigterm_abort (MAYBE_UNUSED const int sig)
 {
   sigterm_received = 1;
 
-  if (sigterm_hashcat_ctx != NULL) hashcat_session_quit (sigterm_hashcat_ctx);
+  if (sigterm_hashcat_ctx == NULL) return;
+
+  // a session that has cracked every hash is already ending, and the quit would overwrite that
+
+  if (sigterm_hashcat_ctx->status_ctx->devices_status == STATUS_CRACKED) return;
+
+  hashcat_session_quit (sigterm_hashcat_ctx);
 }
 
 int main (int argc, char **argv)
@@ -2430,9 +2436,12 @@ int main (int argc, char **argv)
 
       rc_final = hashcat_session_execute (hashcat_ctx);
 
-      signal (SIGTERM, SIG_IGN);
+      // The attack is over, so there is nothing left to stop gracefully, and a teardown that hangs,
+      // in a driver for example, can still be ended with SIGTERM as before.
 
       sigterm_hashcat_ctx = NULL;
+
+      signal (SIGTERM, SIG_DFL);
     }
   }
 
@@ -2492,6 +2501,12 @@ int main (int argc, char **argv)
     if (restore_named == true)
     {
       event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --restore-file-path %s --restore, which prints the command for it.", restore_left);
+    }
+    else if (user_options->profile_dir != NULL)
+    {
+      // the restore file is in the profile folder's sessions folder, which only --profile-dir finds again
+
+      event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --profile-dir %s --session %s --restore, which prints the command for it.", user_options->profile_dir, user_options->session);
     }
     else
     {

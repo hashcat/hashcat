@@ -1023,9 +1023,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0
 {
   u32 t;
 
-  const u32 cmask = generate_cmask (buf0[0]);
-
-  t = buf0[0]; buf0[0] = (t & ~cmask) | (0x00000020 & cmask);
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
   t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
   t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
   t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
@@ -1033,6 +1031,11 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0
   t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
   t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
   t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
+
+  // The first letter is lowered in a second step. Written as one, (t & ~cmask) | (0x20 & cmask),
+  // Apple's Metal compiler fails to build the optimized -a 0 kernels on a Radeon Pro W5700X.
+
+  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask (t));
 
   return in_len;
 }

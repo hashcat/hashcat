@@ -4174,8 +4174,13 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_mutex_init (status_ctx->mux_dispatcher);
   hc_thread_mutex_init (status_ctx->mux_counter);
-  hc_thread_mutex_init (status_ctx->mux_display);
   hc_thread_mutex_init (status_ctx->mux_hwmon);
+
+  // The event callback runs with mux_display held, for a crack and for a status refresh, and a
+  // program that embeds the library may pause or resume from it. hashcat_session_pause () and
+  // hashcat_session_resume () take mux_display as well, so the same thread locks it a second time.
+
+  hc_thread_mutex_init_recursive (status_ctx->mux_display);
 
   return 0;
 }

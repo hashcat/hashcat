@@ -1669,9 +1669,8 @@ typedef struct pw_pre
 // Where a batch goes on from another position than the one it reached. A refill usually picks up
 // where the batch left off, but the brain skips the part of a chunk another client has already
 // covered, and with several devices the positions in between may have gone to another device. A
-// crack is named by the position its candidate came from, so the batch keeps each such place.
-
-#define PW_RUNS_MAX 32
+// rejected word keeps its position but adds no candidate, so the candidate after it starts a run as
+// well. A crack is named by the position its candidate came from, so the batch keeps each such place.
 
 typedef struct pw_run
 {
@@ -1679,6 +1678,18 @@ typedef struct pw_run
   u128 words_off; // and its position in the keyspace
 
 } pw_run_t;
+
+// A batch can need a run for every candidate that follows a rejected word, so the table grows with the
+// batch instead of having a fixed size. It is allocated with the first run, so an attack without
+// rejects or gaps never holds one.
+
+typedef struct pw_runs
+{
+  pw_run_t *buf;
+  u32       cnt;
+  u32       max;
+
+} pw_runs_t;
 
 typedef struct pw_batch
 {
@@ -1726,8 +1737,7 @@ typedef struct pw_batch
   u128 words_fin;
   u64  words_extra;
 
-  pw_run_t runs_buf[PW_RUNS_MAX];
-  u32      runs_cnt;
+  pw_runs_t runs;
 
   // A rejected word of a feed that amplifies cost a whole cell rather than one candidate, and this
   // holds what those cells came to, in candidates. The cell itself does not survive the rejection,
@@ -4922,6 +4932,11 @@ typedef struct hook_thread_param
 
   bool salt_per_pw;
   u64  pws_pos;
+
+  // The candidates the thread passed over because the run was stopping, which keep whatever their
+  // hook entries held before.
+
+  u64  skipped;
 
 } hook_thread_param_t;
 

@@ -335,17 +335,21 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (kpt_len > 0) memcpy (openssl_enc->kpt, kpt_pos, kpt_len);
 
-  // the salt and the last block tell two files apart, and the check type keeps a padding-only line
-  // from standing in for a stronger one of the same file
+  // The salt and the last block tell two files apart, and the check type keeps a padding-only line
+  // from standing in for a stronger one of the same file. The digest and the cipher keep two guesses
+  // at the parameters of one file apart: the kernel reads the parameters of a salt's first hash only,
+  // and with the same salt and digest a second line would be dropped as a duplicate.
 
   u8 *salt_ptr = (u8 *) salt->salt_buf;
 
   memcpy (salt_ptr + 0, openssl_enc->salt, 8);
   memcpy (salt_ptr + 8, openssl_enc->last, last_len);
 
-  salt_ptr[8 + last_len] = (u8) kpa;
+  salt_ptr[8 + last_len + 0] = (u8) kpa;
+  salt_ptr[8 + last_len + 1] = (u8) openssl_enc->md;
+  salt_ptr[8 + last_len + 2] = (u8) openssl_enc->cipher;
 
-  salt->salt_len = 8 + last_len + 1;
+  salt->salt_len = 8 + last_len + 3;
 
   const u32 last_pos = (last_len / 4) - 4;
 
