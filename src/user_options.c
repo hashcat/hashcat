@@ -940,6 +940,42 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
   const char *mode = NULL;
   user_options_t *user_options = hashcat_ctx->user_options;
 
+  // Use dedicated session names for these operations
+  // when --session is not explicitly specified
+
+  if (strcmp (user_options->session, PROGNAME) == 0)
+  {
+    if (user_options->benchmark == true)
+    {
+      user_options->session = "benchmark";
+      return;
+    }
+
+    if (user_options->speed_only == true)
+    {
+      user_options->session = "speed_only";
+      return;
+    }
+
+    if (user_options->progress_only == true)
+    {
+      user_options->session = "progress_only";
+      return;
+    }
+
+    if (user_options->stdout_flag == true)
+    {
+      user_options->session = "stdout";
+      return;
+    }
+
+    if (user_options->backend_info > 0)
+    {
+      user_options->session = "backend_info";
+      return;
+    }
+  }
+
   if (user_options->hash_info > 0)
   {
     mode = "hash_info";
