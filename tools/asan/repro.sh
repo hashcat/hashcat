@@ -34,19 +34,17 @@ CC=${CC:-clang}
 EXTRA=${EXTRA:-}
 OUT=${OUT:-./asan-repro}
 
-# Without CORE, the core is named after the major version the Makefile reports, so the name follows
-# the release rather than being written out here. tools/package_bin.sh reads it the same way.
+# Without CORE, the core is named after the library version the Makefile reports, so the name
+# follows the library rather than being written out here. tools/package_bin.sh reads it the same way.
 if [ -z "${CORE:-}" ]; then
-  VERSION_TAG=$(make -s version 2>/dev/null | tail -1)
-  MAJOR=${VERSION_TAG#v}
-  MAJOR=${MAJOR%%.*}
+  LIBRARY_VERSION=$(make -s library_version 2>/dev/null | tail -1)
 
-  if [ -z "$MAJOR" ]; then
-    echo "error: the Makefile reported no version, so the core's name is unknown. Set CORE" >&2
+  if [ -z "$LIBRARY_VERSION" ]; then
+    echo "error: the Makefile reported no library version, so the core's name is unknown. Set CORE" >&2
     exit 2
   fi
 
-  CORE=./libhashcat.so.$MAJOR
+  CORE=./libhashcat.so.$LIBRARY_VERSION
 fi
 
 # Must be an ordinary DEBUG=1 build. An ASan-instrumented core here makes every

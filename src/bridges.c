@@ -64,13 +64,17 @@ bool bridge_load (hashcat_ctx_t *hashcat_ctx, bridge_ctx_t *bridge_ctx, const ch
     event_log_warning (hashcat_ctx, NULL);
   }
 
-  bridge_ctx->bridge_handle = hc_dlopen (bridge_file);
+  // A bridge built against another plugin interface is not loaded at all, see hc_dlplugin_abi ().
+
+  const int plugin_abi = hc_dlplugin_abi (bridge_file);
+
+  const bool other_abi = (plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION);
+
+  bridge_ctx->bridge_handle = (other_abi == true) ? NULL : hc_dlopen (bridge_file);
 
   if (bridge_ctx->bridge_handle == NULL)
   {
-    const int plugin_abi = hc_dlplugin_abi (bridge_file);
-
-    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    if (other_abi == true)
     {
       event_log_error (hashcat_ctx, "Bridge %s was built for plugin interface %d, this hashcat provides %d", bridge_file, plugin_abi, HC_PLUGIN_ABI_VERSION);
     }

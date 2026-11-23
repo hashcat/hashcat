@@ -7,7 +7,7 @@ hashcat
 hashcat.exe
 libhashcat.so.*
 libhashcat*.dylib
-hashcat.dll
+hashcat*.dll
 *.debugfile
 *.debug
 *.potfile
@@ -50,7 +50,7 @@ obj/arrangement
 obj/*.c
 libhashcat.so.*
 libhashcat.*.dylib
-hashcat.dll
+hashcat*.dll
 include/CL
 tools/luks_tests
 tools/luks2_tests

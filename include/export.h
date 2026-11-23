@@ -15,12 +15,13 @@
 // removing the macro.
 //
 // HC_API is what a program that embeds the core calls to run a session. It is promised for as long
-// as the library file name stands, and that name carries the major version.
+// as the library file name stands, and that name carries the version of HC_API itself, which moves
+// whenever a signature or the layout of a struct that crosses HC_API changes.
 //
 // HC_PLUGIN_API is what a module, a bridge or a feed calls. It is promised for as long as
 // MODULE_INTERFACE_VERSION stands, which is a shorter promise: raising that number renames the
 // symbol every plugin is linked to require, and every plugin built against the old number is then
-// refused by the loader instead of running against an interface that has moved underneath it.
+// refused instead of running against an interface that has moved underneath it.
 //
 // A name that both of them call carries HC_API, because that is the longer of the two promises.
 //
@@ -60,8 +61,8 @@
 
 // The name that carries the plugin interface version. The core defines it and every plugin holds a
 // reference to it, and the number in the name is the whole of the check: a core that has moved on
-// defines a different name, so a plugin built against the old one cannot be loaded and the loader
-// says which name it could not find.
+// defines a different name, so a plugin built against the old one cannot be loaded. Hashcat reads
+// the number from the plugin file before it loads a plugin, see hc_dlplugin_abi ().
 //
 // The reference is written here rather than asked for on the link line, because a name the linker
 // was told to look up but that nothing refers to leaves no relocation behind, and a symbol with no

@@ -330,13 +330,27 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->dynlib_filename = generic_resolve (folder_config, generic_ctx->plugin_name, NULL);
 
-  generic_ctx->lib = hc_dlopen (generic_ctx->dynlib_filename);
+  // A feed built against another plugin interface is not loaded at all, see hc_dlplugin_abi (). A
+  // name without a directory is one the loader looks up along its own search path, which a read of
+  // the file cannot follow, so only a path is read.
+
+  const char *feed_file = generic_ctx->dynlib_filename;
+
+  #if defined (_WIN)
+  const bool feed_path = (strchr (feed_file, '/') != NULL) || (strchr (feed_file, '\\') != NULL);
+  #else
+  const bool feed_path = (strchr (feed_file, '/') != NULL);
+  #endif
+
+  const int plugin_abi = (feed_path == true) ? hc_dlplugin_abi (feed_file) : -1;
+
+  const bool other_abi = (plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION);
+
+  generic_ctx->lib = (other_abi == true) ? NULL : hc_dlopen (generic_ctx->dynlib_filename);
 
   if (generic_ctx->lib == NULL)
   {
-    const int plugin_abi = hc_dlplugin_abi (generic_ctx->dynlib_filename);
-
-    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    if (other_abi == true)
     {
       event_log_error (hashcat_ctx, "Feed %s was built for plugin interface %d, this hashcat provides %d", generic_ctx->dynlib_filename, plugin_abi, HC_PLUGIN_ABI_VERSION);
     }

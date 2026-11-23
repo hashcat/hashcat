@@ -110,7 +110,7 @@ endif
 ##
 ## So the .so name is given to a single platform per run and the goal decides. The .dll name needs no
 ## decision, a host that can cross compile never calls a .dll its own, and that answers the core
-## library too: hashcat.dll can only have come from the WIN platform.
+## library too: its DLL can only have come from the WIN platform.
 
 PLATFORMS               := NATIVE
 
@@ -189,8 +189,8 @@ endif
 ##
 
 MODULE_INTERFACE_VERSION := 810
-BRIDGE_INTERFACE_VERSION := 800
-FEEDS_INTERFACE_VERSION  := 800
+BRIDGE_INTERFACE_VERSION := 810
+FEEDS_INTERFACE_VERSION  := 810
 
 ##
 ## Toolchains
@@ -347,40 +347,46 @@ DEPS_SSE2NEON           := deps/sse2neon
 ##
 ## Filenames for library and frontend
 ##
-## The soname carries the major version alone, so a plugin or a program built against any release of
-## a major keeps working with every later release of that major. Under the full version it named a
-## different library every point release, which would have broken every prebuilt plugin four times a
-## year for a core that had not changed shape. What the plugins really depend on is narrower than the
-## whole library and moves faster, and that is expressed by the version node the export contract puts
-## them in rather than by the file name.
+## The library is named after the version of HC_API, the interface a program that embeds the core
+## calls, and not after the release. The name moves when that interface changes, in a signature or in
+## the layout of a struct that crosses it, and only then. A program keeps working with every release
+## that ships the library name it was built against, and a program built against an interface that
+## has moved since does not load this library at all, rather than loading it and reading structs laid
+## out differently from its own. HASHCAT_LIBRARY_VERSION is raised by hand, to the release that changes
+## HC_API, because nothing in the build can tell whether a release did.
 ##
-## A DLL carries no version in its name at all. Windows resolves an import by the file name written
-## into the importer, so a name that moves is a name nothing finds, and there is no soname to say
-## otherwise. hashcat.dll therefore sits beside hashcat.exe and is found with nothing set in the
-## environment, which is the whole reason the package is laid out that way.
+## The DLL carries the version as well, so this is the same on all three platforms. Windows resolves
+## an import by the file name written into the importer, and a DLL that kept one name would be loaded
+## by a program built against any interface it ever had. It sits beside hashcat.exe and is found with
+## nothing set in the environment, which is the whole reason the package is laid out that way.
+##
+## What a plugin calls is narrower than the whole library and moves faster, so a plugin is also held
+## to MODULE_INTERFACE_VERSION, by the name of a symbol it requires rather than by the file name.
 ##
 
+HASHCAT_LIBRARY_VERSION := 8.1
+
 HASHCAT_FRONTEND        := hashcat
-HASHCAT_LIBRARY_NATIVE  := libhashcat.so.$(VERSION_MAJOR)
-HASHCAT_LIBRARY_LINUX   := libhashcat.so.$(VERSION_MAJOR)
-HASHCAT_LIBRARY_WIN     := hashcat.dll
+HASHCAT_LIBRARY_NATIVE  := libhashcat.so.$(HASHCAT_LIBRARY_VERSION)
+HASHCAT_LIBRARY_LINUX   := libhashcat.so.$(HASHCAT_LIBRARY_VERSION)
+HASHCAT_LIBRARY_WIN     := hashcat-$(HASHCAT_LIBRARY_VERSION).dll
 
 ## What a linker resolves -lhashcat against. The runtime needs only the versioned file, because that
 ## is the name written into everything that links it, but a plugin built out of tree names the library
 ## with -l and the linker looks for the unversioned one. So the developer install adds it as a link
-## beside the library. PE has none: a plugin there names hashcat.dll and the import table records it.
+## beside the library. PE has none: a plugin there names the DLL and the import table records it.
 
 HASHCAT_LIBRARY_DEV_ELF   := libhashcat.so
 HASHCAT_LIBRARY_DEV_MACHO := libhashcat.dylib
 HASHCAT_LIBRARY_DEV_PE    :=
 
 ifeq ($(UNAME),Darwin)
-HASHCAT_LIBRARY_NATIVE  := libhashcat.$(VERSION_MAJOR).dylib
+HASHCAT_LIBRARY_NATIVE  := libhashcat.$(HASHCAT_LIBRARY_VERSION).dylib
 endif # Darwin
 
 ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
-HASHCAT_LIBRARY_NATIVE  := hashcat.dll
+HASHCAT_LIBRARY_NATIVE  := hashcat-$(HASHCAT_LIBRARY_VERSION).dll
 RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
 LIBRARY_RESOURCE_NATIVE := obj/hashcat_lib.res.NATIVE.o
 PLUGIN_RESOURCE_NATIVE  := obj/hashcat_plugin.res.NATIVE.o
@@ -388,7 +394,7 @@ endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
 HASHCAT_FRONTEND        := hashcat.exe
-HASHCAT_LIBRARY_NATIVE  := hashcat.dll
+HASHCAT_LIBRARY_NATIVE  := hashcat-$(HASHCAT_LIBRARY_VERSION).dll
 RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
 LIBRARY_RESOURCE_NATIVE := obj/hashcat_lib.res.NATIVE.o
 PLUGIN_RESOURCE_NATIVE  := obj/hashcat_plugin.res.NATIVE.o
@@ -615,7 +621,7 @@ CFLAGS                  += -fsanitize=$(SANITIZE) -fno-omit-frame-pointer
 # UBSAN_OPTIONS=halt_on_error=1 when that is what you actually want.
 # The sanitizer must reach the link too, otherwise every target that links the
 # C++ deps (deps/unrar) fails with undefined __asan_* references. CFLAGS is not
-# enough for the shared-library layout: libhashcat.so.8, the module plugins and
+# enough for the shared-library layout: the core library, the module plugins and
 # the feed plugins are all separate link steps.
 LFLAGS                  += -fsanitize=$(SANITIZE)
 endif
@@ -815,7 +821,8 @@ CFLAGS_PIC_NATIVE       := -fpic
 ## HC_PLUGIN_ABI_VERSION is on the core's line and on every plugin's line, and says which plugin
 ## interface the artifact was built against. The core defines the one name that carries the number
 ## and every plugin holds a reference to it, so a plugin built against an interface that has moved is
-## refused by the loader by name. The frontend is given neither and takes no part in it.
+## refused before it is loaded, see hc_dlplugin_abi (). The frontend is given neither and takes no
+## part in it.
 
 CFLAGS_ABI              := -DHC_PLUGIN_ABI_VERSION=$(MODULE_INTERFACE_VERSION)
 
@@ -1098,7 +1105,7 @@ $(foreach P,$(PLATFORMS),$(eval LFLAGS_$(P) += $(REPRO_LFLAGS_$(FORMAT_$(P)))))
 ## Two things are true of a built plugin and both are enforced rather than documented. It exports
 ## exactly one name, its entry point, because everything else is hidden. And it holds a reference to
 ## a name carrying the plugin interface version it was compiled against, so a plugin built for an
-## older hashcat is refused by the loader with a message saying which version it wanted, instead of
+## older hashcat is refused with a message saying which version it wanted, instead of
 ## loading and then misbehaving.
 ##
 ## You do not need this tree to build a plugin. make install_library_dev installs the headers the
@@ -1191,8 +1198,8 @@ endif
 ## here asks the person running hashcat to set an environment variable.
 ##
 ## Windows says none of this and wants none of it. The loader searches the directory of the
-## executable, hashcat.exe imports hashcat.dll, so the library is in the process before the first
-## plugin is loaded and every plugin resolves it from there by name.
+## executable, hashcat.exe imports the library's DLL, so the library is in the process before the
+## first plugin is loaded and every plugin resolves it from there by name.
 ##
 ## A plugin that reaches for something the library does not carry is a link error here. Without this
 ## it links, and the first the user hears of it is "undefined symbol" when the plugin is dlopened, in
@@ -1505,7 +1512,7 @@ LIBRARY_LFLAGS_WIN      := -shared
 ifeq ($(FORMAT_NATIVE),MACHO)
 LIBRARY_LFLAGS_NATIVE   += -install_name @rpath/$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -current_version $(VERSION_PURE)
-LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(VERSION_MAJOR)
+LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(HASHCAT_LIBRARY_VERSION)
 else ifeq ($(FORMAT_NATIVE),PE)
 ## a DLL carries no soname, it is found by the file name written into whatever imports it
 else
@@ -1553,11 +1560,12 @@ LIBRARY_LFLAGS_WIN      += $(TARGET_WIN)
 ## half: a plugin built against one plugin interface must not load against a core that has moved on.
 ##
 ## The core defines one name that carries MODULE_INTERFACE_VERSION, and every plugin holds a pointer
-## to it. Raise the number and the name changes, so every plugin built against the old one fails to
-## load and the loader says which name it could not find. This is one mechanism on all three
-## platforms. ELF could express the same thing as a version node and PE cannot, and one mechanism
-## that all of them understand is worth more than the extra sentence a version node would let ELF
-## say.
+## to it. Raise the number and the name changes, so every plugin built against the old one is
+## refused. Hashcat reads the number from the plugin file before loading it, see hc_dlplugin_abi (),
+## because an older core library left beside this one defines the old name and would let the loader
+## accept the plugin. This is one mechanism on all three platforms. ELF could express the same thing
+## as a version node and PE cannot, and one mechanism that all of them understand is worth more than
+## the extra sentence a version node would let ELF say.
 ##
 ## There is no flag for it. The pointer is in include/export.h, on the plugin's side of the same
 ## macro that names the symbol, so the link error and the load time refusal both come out of what
@@ -1609,13 +1617,14 @@ obj/hashcat.res.WIN.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
 obj/hashcat.res.NATIVE.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
 	$(call resource_compile,NATIVE)
 
-## src/hashcat_dll.rc is the same version block for hashcat.dll and for every plugin DLL. One object
-## serves all the plugins, so it names no file.
+## src/hashcat_dll.rc is the same version block for the core library and for every plugin DLL. The
+## block of the library names its file, and the name is passed in from here so it cannot drift from
+## the name the library is built under. One object serves all the plugins, so it names no file.
 
 resource_dll_compile = $(WINDRES_$(1)) -I src -DHC_VERSION_NUM=$(VERSION_NUM) -DHC_VERSION_STR='\"$(VERSION_TAG)\"' $(2) src/hashcat_dll.rc -o $@
 
 obj/hashcat_lib.res.%.o: src/hashcat_dll.rc obj/arrangement
-	$(call resource_dll_compile,$*,-DHC_RC_LIBRARY)
+	$(call resource_dll_compile,$*,-DHC_RC_LIBRARY='\"$(HASHCAT_LIBRARY_$*)\"')
 
 obj/hashcat_plugin.res.%.o: src/hashcat_dll.rc obj/arrangement
 	$(call resource_dll_compile,$*,)
@@ -1705,12 +1714,19 @@ default: $(HASHCAT_FRONTEND) modules bridges feeds
 version:
 	@echo $(VERSION_TAG)
 
+# The version the core library is named after. tools/package_bin.sh and the scripts in tools/asan/
+# ask for it for the same reason, so the name they look for moves with the library.
+
+.PHONY: library_version
+library_version:
+	@echo $(HASHCAT_LIBRARY_VERSION)
+
 .PHONY: clean
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
 	$(RM) -f libhashcat.so.*
-	$(RM) -f hashcat.dll
+	$(RM) -f hashcat*.dll
 	$(RM) -rf modules/*.dSYM
 	$(RM) -rf bridges/*.dSYM
 	$(RM) -rf feeds/*.dSYM

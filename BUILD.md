@@ -38,11 +38,11 @@ $ cd hashcat
 $ make clean && make
 ```
 
-The build produces `libhashcat.so.8` next to the `hashcat` binary. It holds the core, and the binary,
-the modules, the bridges and the feeds all link against it. It has to travel with them when the tree
-is copied somewhere else, and it is found beside the binary without anything set in the environment.
-`make SHARED=0` builds the older arrangement instead, where every plugin carries its own copy of the
-core.
+The build produces `libhashcat.so.8.1` next to the `hashcat` binary. It holds the core, and the
+binary, the modules, the bridges and the feeds all link against it. It has to travel with them when
+the tree is copied somewhere else, and it is found beside the binary without anything set in the
+environment. `make SHARED=0` builds the older arrangement instead, where every plugin carries its
+own copy of the core.
 
 ---
 
@@ -98,9 +98,9 @@ See: [BUILD_Docker.md](BUILD_Docker.md)
 | Using MSYS2                            | [BUILD_MSYS2.md](BUILD_MSYS2.md)     |
 | From Linux                             | Run: `make win`                      |
 
-The Windows build produces `hashcat.dll` beside `hashcat.exe`. It holds the core, and the executable,
-the modules, the bridges and the feeds all import from it, so it has to travel with them. Windows
-searches the directory of the executable, so nothing has to be set in the environment.
+The Windows build produces `hashcat-8.1.dll` beside `hashcat.exe`. It holds the core, and the
+executable, the modules, the bridges and the feeds all import from it, so it has to travel with
+them. Windows searches the directory of the executable, so nothing has to be set in the environment.
 `make win SHARED=0` builds the older arrangement instead, where every plugin carries its own copy of
 the core.
 

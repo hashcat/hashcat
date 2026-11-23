@@ -787,18 +787,25 @@ void hc_once (hc_once_t *once, void (*init) (void))
 
 #endif
 
-// A plugin that will not load has almost always been built against a plugin interface this core no
-// longer carries. The name it holds says which one, and it is in the file whether the plugin is an
-// ELF or a PE, so it is read back here. The Unix loader already names the symbol it could not
-// resolve. The Windows loader returns a code that says a procedure was not found and nothing else,
-// which reads as a broken install rather than as a plugin that needs rebuilding.
+// The plugin interface a plugin was built against. A plugin that links the core library holds a
+// name that carries the number, and the name is in the file whether the plugin is an ELF, a Mach-O
+// or a PE, so it is read back here. A plugin with its own copy of the core, as under SHARED=0,
+// resolves the name inside itself and keeps no trace of it, so nothing is found and it is loaded as
+// before.
+//
+// Every caller reads it before the load and does not load a plugin built against another interface.
+// The loader cannot be left to refuse one. A core library of an older version left beside this one,
+// as an upgrade that renames the library leaves it, defines the name an old plugin holds, so the
+// loader would map that old core and accept the plugin. The loader's refusal would also read worse.
+// The Unix loader names a symbol it could not resolve, and the Windows loader returns a code that
+// says a procedure was not found and nothing else, which reads as a broken install rather than as a
+// plugin that needs rebuilding.
 //
 // Returns the version the file was built against, or -1 when the file says nothing.
 //
-// Every caller runs this between a load that failed and the report of why it failed. Reading a file
-// is a call that succeeds, and on Windows a call that succeeds clears the thread's last error, which
-// is where hc_dlerror () reads the reason from. The last error is put back on the way out, so a
-// caller reports what the loader said instead of reporting that the operation completed successfully.
+// Reading a file is a call that succeeds, and on Windows a call that succeeds clears the thread's
+// last error, which is where hc_dlerror () reads the reason from. The last error is put back on the
+// way out, so this call leaves what hc_dlerror () reports unchanged.
 
 int hc_dlplugin_abi (const char *path)
 {

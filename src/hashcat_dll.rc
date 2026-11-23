@@ -3,11 +3,12 @@
  * License.....: MIT
  */
 
-// The version block of hashcat.dll and of every module, feed and bridge DLL. It is hashcat.rc's
-// version block without the manifest, which only an executable reads. Inventory and endpoint
-// tooling reads the block, and a DLL without one is the kind it flags. HC_RC_LIBRARY selects the
-// text for hashcat.dll. Without it the text is the plugins', whose one object is linked into all of
-// them and so names no file.
+// The version block of the core library's DLL and of every module, feed and bridge DLL. It is
+// hashcat.rc's version block without the manifest, which only an executable reads. Inventory and
+// endpoint tooling reads the block, and a DLL without one is the kind it flags. HC_RC_LIBRARY is the
+// file name of the core library, which the Makefile passes in, and it selects the library's text.
+// Without it the text is the plugins', whose one object is linked into all of them and so names no
+// file.
 
 #include <winresrc.h>
 
@@ -43,7 +44,7 @@ BEGIN
       VALUE "FileVersion",      HC_VERSION_STR
       VALUE "LegalCopyright",   "MIT licensed. See docs/license.txt"
 #ifdef HC_RC_LIBRARY
-      VALUE "OriginalFilename", "hashcat.dll"
+      VALUE "OriginalFilename", HC_RC_LIBRARY
 #endif
       VALUE "ProductName",      "hashcat"
       VALUE "ProductVersion",   HC_VERSION_STR

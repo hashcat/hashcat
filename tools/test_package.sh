@@ -38,7 +38,7 @@ cd "$DIR" || exit 1
 # what the binary and the plugins are called here
 
 case "$(uname -s)" in
-  CYGWIN*|MINGW*|MSYS*) PLUGIN_SUFFIX="dll"; CANDIDATES="./hashcat.exe";            LIBRARIES="hashcat.dll" ;;
+  CYGWIN*|MINGW*|MSYS*) PLUGIN_SUFFIX="dll"; CANDIDATES="./hashcat.exe";            LIBRARIES="hashcat-*.dll" ;;
   *)                    PLUGIN_SUFFIX="so";  CANDIDATES="./hashcat.bin ./hashcat";  LIBRARIES="libhashcat.so.* libhashcat.*.dylib" ;;
 esac
 

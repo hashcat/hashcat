@@ -168,18 +168,17 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
     event_log_warning (hashcat_ctx, NULL);
   }
 
-  module_ctx->module_handle = hc_dlopen (module_file);
+  // A module built against another plugin interface is not loaded at all, see hc_dlplugin_abi ().
+
+  const int plugin_abi = hc_dlplugin_abi (module_file);
+
+  const bool other_abi = (plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION);
+
+  module_ctx->module_handle = (other_abi == true) ? NULL : hc_dlopen (module_file);
 
   if (module_ctx->module_handle == NULL)
   {
-    // a plugin built against an interface this core no longer carries is the usual reason, and the
-    // file says which one it was built against, so that is reported rather than the loader's own
-    // words. The Unix loader names the symbol it could not resolve. The Windows loader says only
-    // that a procedure was not found, which reads as a broken install.
-
-    const int plugin_abi = hc_dlplugin_abi (module_file);
-
-    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    if (other_abi == true)
     {
       event_log_error (hashcat_ctx, "Module %s was built for plugin interface %d, this hashcat provides %d", module_file, plugin_abi, HC_PLUGIN_ABI_VERSION);
     }

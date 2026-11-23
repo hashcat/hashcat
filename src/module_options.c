@@ -419,7 +419,13 @@ static int module_file_mode (const folder_config_t *folder_config, const char *p
 
 static void module_options_collect (hashcat_ctx_t *hashcat_ctx, module_options_t *module_options, module_ctx_t *module_ctx, const char *module_file, const u32 hash_mode, module_cache_writer_t *writer, const module_cache_id_t *id)
 {
-  const hc_dynlib_t handle = hc_dlopen (module_file);
+  // A module built against another plugin interface is not loaded at all, see hc_dlplugin_abi ().
+
+  const int plugin_abi = hc_dlplugin_abi (module_file);
+
+  const bool other_abi = (plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION);
+
+  const hc_dynlib_t handle = (other_abi == true) ? NULL : hc_dlopen (module_file);
 
   // A module that cannot be loaded is skipped with one warning, and what lists every hash-mode leaves
   // it out, see module_options_broken (). A run of its hash-mode still stops with the reason when it
@@ -427,9 +433,7 @@ static void module_options_collect (hashcat_ctx_t *hashcat_ctx, module_options_t
 
   if (handle == NULL)
   {
-    const int plugin_abi = hc_dlplugin_abi (module_file);
-
-    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    if (other_abi == true)
     {
       event_log_warning (hashcat_ctx, "Module %s was built for plugin interface %d, this hashcat provides %d.", module_file, plugin_abi, HC_PLUGIN_ABI_VERSION);
     }

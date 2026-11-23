@@ -5,8 +5,8 @@
 
 // The name that says which plugin interface this core implements. Every module, bridge and feed is
 // linked to hold a reference to it, so raising MODULE_INTERFACE_VERSION renames it and every plugin
-// built against the old number is refused by the loader, which names the symbol it could not find.
-// The name is the whole of the check and nothing calls this.
+// built against the old number is refused. Hashcat reads the number from the plugin file before it
+// loads one, see hc_dlplugin_abi (). The name is the whole of the check and nothing calls this.
 //
 // It is a function rather than a constant because a reference to a function is the one thing every
 // linker imports the same way.

@@ -27,7 +27,22 @@ case "$VERSION_TAG" in
 esac
 
 export VERSION=${VERSION_TAG#v}
-export MAJOR=${VERSION%%.*}
+
+# The core library is named after the version of its interface, which is not the release version,
+# so that is asked of the Makefile as well.
+
+LIBRARY_VERSION=$(make -s library_version 2>/dev/null | tail -1)
+
+case "$LIBRARY_VERSION" in
+  [0-9]*) ;;
+  *)
+    echo "! the Makefile reported no library version, so the core library cannot be named. It said: $LIBRARY_VERSION"
+    exit 1
+    ;;
+esac
+
+export LIBRARY_LINUX=libhashcat.so.$LIBRARY_VERSION
+export LIBRARY_WIN=hashcat-$LIBRARY_VERSION.dll
 
 export IN=.
 export OUT=$HOME/xy/hashcat-$VERSION
@@ -36,7 +51,7 @@ export OUT=$HOME/xy/hashcat-$VERSION
 # plugins. A make that stopped early leaves some of them behind, and packing what is there produces
 # an archive that looks ordinary and cannot run, so the name of the missing one is said here instead
 
-for artifact in hashcat.bin hashcat.exe libhashcat.so.$MAJOR hashcat.dll; do
+for artifact in hashcat.bin hashcat.exe $LIBRARY_LINUX $LIBRARY_WIN; do
 
   if [ -f "$IN/$artifact" ]; then
     continue
@@ -82,8 +97,8 @@ cp    $IN/hashcat.hcstat2               $OUT/
 # directory above every plugin, on Windows it is found beside hashcat.exe, so the archive is
 # unpacked and run with nothing set in the environment
 
-cp    $IN/libhashcat.so.$MAJOR          $OUT/
-cp    $IN/hashcat.dll                   $OUT/
+cp    $IN/$LIBRARY_LINUX                $OUT/
+cp    $IN/$LIBRARY_WIN                  $OUT/
 
 # The compressors, for the Windows package only. hashcat loads these at runtime, and a Linux or macOS
 # box gets them from the system, but Windows provides none of them. Without liblzma the package
@@ -227,7 +242,7 @@ chmod 644 $OUT/pcfg/*
 chmod 644 $OUT/*.exe
 chmod 644 $OUT/*.dll
 chmod 755 $OUT/*.bin
-chmod 755 $OUT/libhashcat.so.$MAJOR
+chmod 755 $OUT/$LIBRARY_LINUX
 chmod 644 $OUT/hashcat.hcstat2
 chmod 755 $OUT/tools/*hashcat.pl
 chmod 755 $OUT/tools/*hashcat.py
