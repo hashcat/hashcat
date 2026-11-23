@@ -754,6 +754,9 @@ def child_flags(args, devices=True):
   if args.runtime:
     flags += ["--runtime", str(args.runtime)]
 
+  if args.kernel_accel:
+    flags += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.keep_tmp:
     flags.append("--keep-tmp")
 
@@ -777,6 +780,7 @@ def apply_run_options(args):
   KEEP_TMP = args.keep_tmp
 
   for name, seconds in (("--runtime", args.runtime),
+                        ("--kernel-accel", args.kernel_accel),
                         ("--metal-compiler-runtime", args.metal_compiler_runtime)):
     if seconds is not None and seconds <= 0:
       die("! %s must be greater than 0" % name)
@@ -1313,10 +1317,33 @@ def verdict(c):
   return "OK"
 
 
+def iteration_kernel_opts(mode, opts, generated=True):
+  # Bound warmup batches for reduced generated vectors while preserving explicit tuning.
+  accel = test_iterations.iteration_kernel_accel(mode) if generated else None
+
+  if accel is None:
+    return []
+
+  for option in opts:
+    option = os.fsdecode(option)
+
+    if option.split("=", 1)[0] in ("--kernel-accel", "-n") or (option.startswith("-n") and option[2:].isdigit()):
+      return []
+
+  flags = ["--kernel-accel", str(accel)]
+
+  if "--force" not in opts and b"--force" not in opts:
+    flags.append("--force")
+
+  return flags
+
+
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_hash=True):
   global LAST_CMD, LAST_STDIN, LAST_ENV, CAPPED_MEM_SKIP
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
+  tuning_opts = list(opts) + module_opts(mode) + list(extra)
+  cmd += iteration_kernel_opts(mode, tuning_opts, generated_hash)
   LAST_CMD = cmd
   LAST_STDIN = stdin_bytes
 
@@ -4929,6 +4956,9 @@ def selftest_opts(args):
 
   opts += ["--runtime", str(SELFTEST_RUNTIME), "-D", args.device]
 
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
 
@@ -5219,6 +5249,9 @@ def base_opts(args):
 
   opts += ["--runtime", str(RUNTIME), "-D", args.device]
 
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
+
   # -d pins the run to those backend devices: the ones the user named, or the single card the depth -j
   # split gives each worker. -D stays as the type, which a pinned device already is.
   if args.backend_devices:
@@ -5350,6 +5383,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   argv += [b"-a", str(attack).encode("ascii"), b"-m", str(mode).encode("ascii")]
   argv += [edge_as_bytes(target)]
   argv += [edge_as_bytes(x) for x in extra]
+  argv += [edge_as_bytes(x) for x in iteration_kernel_opts(mode, argv[1:])]
 
   LAST_CMD = argv
   LAST_STDIN = stdin_bytes
@@ -6276,6 +6310,9 @@ def edge_opts(args, optimized, width, pt_hex, outfile):
   opts += ISOLATION
   opts += ["-D", args.device, "--runtime", str(EDGE_RUNTIME), "--self-test-disable"]
 
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
 
@@ -6848,6 +6885,8 @@ def main():
   ap.add_argument("--runtime", dest="runtime", type=int, default=None,
                   help="hashcat --runtime in seconds for whichever path runs "
                        "(defaults: %d self-test, %d full, %d edge)" % (SELFTEST_RUNTIME, RUNTIME, EDGE_RUNTIME))
+  ap.add_argument("--kernel-accel", dest="kernel_accel", type=int, default=None,
+                  help="hashcat --kernel-accel, to bound concurrent candidates and memory use (requires -f)")
   ap.add_argument("-d", dest="backend_devices", default=None,
                   help="hashcat --backend-devices: 1 | 1,2 | ... (default: every device of the -D type)")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is

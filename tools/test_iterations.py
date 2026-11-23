@@ -54,15 +54,17 @@ def load_test_properties(mode):
     raise ValueError("m%05d.py: choose encoded or runtime reduction, not both" % mode)
   for name, section in settings.items():
     if name == "runtime":
-      allowed = {"limit", "compiled_cost", "scrypt", "copy_hash", "parameters"}
+      allowed = {"limit", "compiled_cost", "scrypt", "copy_hash", "parameters", "kernel_accel"}
     elif name == "reduced":
-      allowed = {"parameters", "copy_hash"}
+      allowed = {"parameters", "copy_hash", "kernel_accel"}
     else:
       allowed = {"parameters"}
     if not isinstance(section, dict) or set(section) - allowed:
       raise ValueError("m%05d.py: invalid %s test settings" % (mode, name))
     if "copy_hash" in section and type(section["copy_hash"]) is not bool:
       raise ValueError("m%05d.py: copy_hash must be a boolean" % mode)
+    if "kernel_accel" in section and (type(section["kernel_accel"]) is not int or not 1 <= section["kernel_accel"] <= 1024):
+      raise ValueError("m%05d.py: kernel_accel must be an integer from 1 to 1024" % mode)
     if name == "runtime":
       limit = section.get("limit")
       if type(limit) is not int or not 1 <= limit <= 4294967295:
@@ -142,6 +144,14 @@ def iteration_parameters(mode):
 def iteration_disable_selftest(mode):
   # A full-cost startup check would undo the reduction for each generated-vector test.
   return iteration_reduction_enabled(mode)
+
+
+def iteration_kernel_accel(mode):
+  # Reduced memory costs must not expand the fixed-length warmup batch.
+  if not iteration_reduction_enabled(mode):
+    return None
+  settings = load_test_properties(mode)
+  return settings.get("reduced", settings.get("runtime", {})).get("kernel_accel")
 
 
 def iteration_environment(mode, source=None, generated=True):

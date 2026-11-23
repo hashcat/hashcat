@@ -23,7 +23,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
-    'reduced': {'parameters': {'scrypt_n': 1024}},
+    'reduced': {'kernel_accel': 8, 'parameters': {'scrypt_n': 1024}},
   }
 
 

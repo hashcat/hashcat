@@ -81,6 +81,8 @@ With reduced counts, `-S` generates a supported reduced vector instead of using 
 
 Supported reduced-cost generated-vector tests disable hashcat's automatic startup self-test, which would otherwise repeat the full-cost KDF before each invocation. Explicit `-S` still cracks its selected vector, and `-S --full-iteration-count` cracks the published self-test vector. Full-count ordinary tests and modes without a reduced policy retain their startup checks.
 
+Only reduced-cost generated vectors for yescrypt (36100) and gost-yescrypt (36200) select acceleration 8 using the `kernel_accel` policy field. Their fixed 2048-iteration warmups can dominate a small test when memory-based tuning selects a large batch. The policy also supplies `--force`, which hashcat requires for manual acceleration. Acceleration is a tuning factor. Actual batch size also depends on device and thread settings. Other modes retain normal tuning. Explicit `test.py -f --kernel-accel N` overrides the policy and is forwarded to parallel workers. Full-count tests and published-vector fallbacks retain normal tuning unless an explicit acceleration is supplied.
+
 `module_test_properties()` requires `constraints` and may contain `normal.parameters` for generator defaults and either `reduced.parameters` for the fixed encoded count or a `runtime` policy for nonstandard test costs. `test_iteration_parameters(module_test_properties())` reads those properties inside the oracle process and applies reduced parameters when `ARTIFICIALLY_LOW_ITERATION_COUNT=true`. Explicit generator arguments take precedence. The manager reads the literal iteration declarations without importing crypto dependencies or evaluating constraints that may refer to module constants.
 
 ```python
