@@ -43,7 +43,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
   device_param->kernel_param.digests_cnt = 1;
   device_param->kernel_param.digests_offset_host = 0;
 
-  // the self-test buffer holds one salt, so a kernel that tests every salt in one launch walks only that one
+  // the self-test buffer holds one salt, so a kernel that tests many salts in one launch walks only that one
 
   device_param->kernel_param.salts_cnt = 1;
 

@@ -24,6 +24,12 @@
 
 #define KERNEL_PATH_SZ 1024
 
+// How many live salts a sweep launch takes before any launch has been timed. autotune grows the group
+// from here, see autotune_sweep_group (), and the attack then sizes it from its own launches, see
+// salt_sweep_launch ().
+
+#define SWEEP_GROUP_FIRST 1024
+
 static const char CL_VENDOR_AMD1[]              = "Advanced Micro Devices, Inc.";
 static const char CL_VENDOR_AMD2[]              = "AuthenticAMD";
 static const char CL_VENDOR_AMD_USE_INTEL[]     = "GenuineIntel";

@@ -1921,6 +1921,60 @@ static int autotune_variants (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
   return 0;
 }
 
+// A device that sweeps tests many salts in one launch, see module_salt_sweep (). A launch over every
+// live salt of a long list then runs past the target even at the smallest accel and loops. On an RTX
+// 4090, 2811 took 900 ms a launch at a million salts. At three million its smallest launch passed the
+// watchdog limit checked below, and the device was skipped. So autotune times its launches over a
+// group of the live salts, and salt_sweep_launch () starts the attack with that group.
+//
+// The group holds as many salts as the smallest launch tests in a 64th of the target, which leaves the
+// search room to grow accel and loops. It grows from SWEEP_GROUP_FIRST, each step sized from the launch
+// before it, at the thread count autotune3 () starts from. A list whose smallest launch fits that time
+// keeps all its live salts in one group, as before. With -n, -u and -T all given nothing else is tuned,
+// and the group fills the target itself.
+
+#define AUTOTUNE_SWEEP_ROOM 64
+
+static void autotune_sweep_group (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 accel_min, const u32 accel_max, const u32 loops_min, const u32 loops_max, const u32 threads_min, const u32 threads_max, const double target_msec)
+{
+  const bool fixed = (accel_min == accel_max) && (loops_min == loops_max) && (threads_min == threads_max);
+
+  const double goal_msec = (fixed == true) ? target_msec : target_msec / AUTOTUNE_SWEEP_ROOM;
+
+  u32 wave_accel = 0;
+
+  const u32 threads = (fixed == true) ? threads_min : autotune3_threads (hashcat_ctx, device_param, autotune3_slot (hashcat_ctx, device_param), threads_min, threads_max, &wave_accel);
+
+  const u32 live_cnt = device_param->sweep_live_cnt;
+
+  u32 group_cnt = MIN (live_cnt, SWEEP_GROUP_FIRST);
+
+  for (u32 i = 0; i < 8; i++)
+  {
+    if (group_cnt >= live_cnt) break;
+
+    device_param->kernel_param.salts_cnt = group_cnt;
+
+    const double msec = try_run (hashcat_ctx, device_param, accel_min, loops_min, threads);
+
+    if (msec <= 0) break;
+
+    const double factor = MIN ((goal_msec * AUTOTUNE3_GROW_MARGIN) / msec, (double) AUTOTUNE3_GROW_STEP);
+
+    if (factor < 1.03) break;
+
+    const double next_d = (double) group_cnt * factor;
+
+    group_cnt = (next_d >= (double) live_cnt) ? live_cnt : (u32) next_d;
+  }
+
+  device_param->kernel_param.salts_cnt = group_cnt;
+
+  device_param->sweep_group_tuned = group_cnt;
+  device_param->sweep_group_cnt   = group_cnt;
+  device_param->sweep_group_work  = 0;
+}
+
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -2057,6 +2111,13 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->at_rc = -2;
 
   if (run_kernel_atinit (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], kernel_power_max) == -1) return -1;
+
+  // Every launch below runs over the group, see autotune_sweep_group ().
+
+  if (device_param->salt_sweep == true)
+  {
+    autotune_sweep_group (hashcat_ctx, device_param, kernel_accel_min, kernel_accel_max, kernel_loops_min, kernel_loops_max, kernel_threads_min, kernel_threads_max, target_msec);
+  }
 
   // A module that lists the ways it can run decides kernel_accel by timing them, see
   // autotune_variants (). From there it is tuned as if -n had been given.

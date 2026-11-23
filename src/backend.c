@@ -4210,7 +4210,7 @@ u32 salts_in_turn (const hashcat_ctx_t *hashcat_ctx)
   return hashes->salts_cnt;
 }
 
-// Whether a device tests every salt of the list in one launch, which a module declares for its kernels
+// Whether a device tests many salts of the list in one launch, which a module declares for its kernels
 // in module_salt_sweep (). Only a fast hash can, because a slow hash keeps state for one salt from one
 // kernel to the next. -a 9 is left out, since each of its launches already serves every salt of its
 // batch, and --stdout launches nothing.
@@ -6791,106 +6791,173 @@ static void speed_only_window (hc_device_param_t *device_param)
   device_param->outerloop_msec     = total_msec;
 }
 
-// The sweep of a device whose kernels test every salt of the list in one launch, see
-// module_salt_sweep (). It is a single launch, and it books for each live salt what a launch of its own
-// would have booked, so the progress counters, the speed and --progress-only read as they do for a
-// sweep that launches salt by salt. The kernel walks only the live salts, listed by position in the
-// sweep buffer, and check_cracked () drops a second crack of a digest that is already cracked.
+// How many salts the next sweep launch tests, of the left_cnt still to test in this chunk, for a launch
+// of work candidates per salt. The count was sized against the target on a launch of sweep_group_work
+// candidates per salt. A launch with more of them takes at most proportionally longer, so it takes
+// proportionally fewer salts, and one with fewer keeps the count. The salts left are spread evenly over
+// the launches they need, so the launches of a chunk run the same length.
+//
+// The count never falls below the group autotune tuned the launch for and timed within the target. A
+// launch is not always shorter for fewer salts: a kernel that hashes each candidate once per window of
+// salts, as 5500 does, takes as long for part of a window as for all of it, and a smaller group would
+// only hash the candidates again.
 
-static int salt_sweep_launch (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u64 launch_cnt, const u64 launch_step, const u64 innerloop_left, const u64 innerloop_cnt, const double salt_share, u32 *live_salts, const u32 live_cnt)
+static u32 salt_sweep_group (const hc_device_param_t *device_param, const u32 left_cnt, const u64 work)
+{
+  double group_cnt = (double) device_param->sweep_group_cnt;
+
+  if ((device_param->sweep_group_work > 0) && (work > device_param->sweep_group_work))
+  {
+    group_cnt = (group_cnt * (double) device_param->sweep_group_work) / (double) work;
+  }
+
+  group_cnt = MAX (group_cnt, (double) device_param->sweep_group_tuned);
+  group_cnt = MAX (group_cnt, 1);
+
+  if ((double) left_cnt <= group_cnt) return left_cnt;
+
+  const u64 launches = CEILDIV ((u64) left_cnt, (u64) group_cnt);
+
+  const u32 even_cnt = (u32) CEILDIV ((u64) left_cnt, launches);
+
+  return even_cnt;
+}
+
+// The salts a launch of this work tests in the target time, from the kernel time of the launch that
+// just tested group_cnt of them. It is the time autotune holds against the target as well. A launch
+// takes about proportionally longer for more salts, so a group of that many runs about as long as the
+// target.
+
+static void salt_sweep_measured (const hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 group_cnt, const u64 work)
+{
+  const u32 exec_last = (device_param->exec_pos + EXEC_CACHE - 1) % EXEC_CACHE;
+
+  const double exec_msec = device_param->exec_msec[exec_last];
+
+  if (exec_msec <= 0) return;
+
+  // A count past the live salts is kept, so a launch with more work is sized from what this one could
+  // have tested rather than from the salts it had.
+
+  const double fit = ((double) group_cnt * hashcat_ctx->backend_ctx->target_msec) / exec_msec;
+
+  device_param->sweep_group_cnt  = (u32) MIN (MAX (fit, 1), (double) 0xffffffff);
+  device_param->sweep_group_work = work;
+}
+
+// The sweep of a device whose kernels test many salts in one launch, see module_salt_sweep (). A launch
+// takes longer the more salts it tests, and one over every live salt of a long list ran far past the
+// target. So the live salts go in groups of one launch each, sized to the target by
+// salt_sweep_group (), and the first one is the group autotune tuned the launch for, see
+// autotune_sweep_group ().
+//
+// A launch books for each salt of its group what a launch of its own would have booked, so the
+// progress counters, the speed and --progress-only read as they do for a sweep that launches salt by
+// salt. The kernel walks only the salts of its group, listed by position in the sweep buffer, and
+// check_cracked () drops a second crack of a digest that is already cracked.
+
+static int salt_sweep_launch (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u64 launch_cnt, const u64 launch_step, const u64 innerloop_left, const u64 innerloop_cnt, const double salt_share, const u32 *live_salts, const u32 live_cnt)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   status_ctx_t         *status_ctx   = hashcat_ctx->status_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  wait_while_paused (status_ctx);
-
-  // A salt cracked since the list was built, possibly by another device, books the chunk as done and
-  // is not counted as tested. The salts left are moved to the front of the list.
-
-  u32 tested_cnt = 0;
-
-  hc_thread_mutex_lock (status_ctx->mux_counter);
-
-  for (u32 live_pos = 0; live_pos < live_cnt; live_pos++)
-  {
-    const u32 salt_pos = live_salts[live_pos];
-
-    if (hashes->salts_shown[salt_pos] == 1)
-    {
-      status_ctx->words_progress_done[salt_pos] += launch_step;
-
-      continue;
-    }
-
-    live_salts[tested_cnt] = salt_pos;
-
-    tested_cnt++;
-  }
-
-  hc_thread_mutex_unlock (status_ctx->mux_counter);
-
-  if (tested_cnt == 0) return 0;
-
-  // The kernel tests the live salts, not the whole list: a salt cracked since the list was built
-  // costs nothing in this launch. The list carries the position of each live salt, and the kernel
-  // reads the salt through it, so mark_hash () still names the salt of the list.
-
   u32 *sweep_buf_host = device_param->sweep_buf_host;
 
-  for (u32 tested_pos = 0; tested_pos < tested_cnt; tested_pos++)
+  const u64 work = launch_cnt * innerloop_left;
+
+  u32 live_pos = 0;
+
+  while (live_pos < live_cnt)
   {
-    sweep_buf_host[tested_pos] = live_salts[tested_pos];
-  }
+    wait_while_paused (status_ctx);
 
-  if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, sweep_buf_host, (u64) tested_cnt * sizeof (u32)) == -1) return -1;
+    const u32 group_want = salt_sweep_group (device_param, live_cnt - live_pos, work);
 
-  // The launch answers for every digest of the list, so the digest fields span all of them, and
-  // mark_hash () has room for a crack of any of them.
+    // A salt cracked since the list was built, possibly by another device, books the chunk as done
+    // and is not counted as tested. The kernel tests the rest of the group, not the whole list. The
+    // list carries the position of each salt, and the kernel reads the salt through it, so
+    // mark_hash () still names the salt of the list.
 
-  device_param->kernel_param.salts_cnt           = tested_cnt;
-  device_param->kernel_param.salt_pos_host       = 0;
-  device_param->kernel_param.digests_cnt         = hashes->digests_cnt;
-  device_param->kernel_param.digests_offset_host = 0;
-
-  if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, launch_cnt, device_param->launch_chunk_kind, 0, false) == -1) return -1;
-
-  if (status_ctx->run_thread_level2 == true)
-  {
-    const double speed_msec = hc_timer_get (device_param->timer_speed);
-
-    hc_timer_set (&device_param->timer_speed);
-
-    u32 speed_pos = device_param->speed_pos;
-
-    device_param->speed_cnt[speed_pos] = launch_step * tested_cnt;
-
-    device_param->speed_msec[speed_pos] = speed_msec;
-
-    device_param->speed_words[speed_pos] = (((double) pws_cnt * (double) innerloop_left) / (double) innerloop_cnt) * salt_share * (double) tested_cnt;
-
-    speed_pos++;
-
-    if (speed_pos == SPEED_CACHE)
-    {
-      speed_pos = 0;
-    }
-
-    device_param->speed_pos = speed_pos;
+    u32 group_cnt = 0;
 
     hc_thread_mutex_lock (status_ctx->mux_counter);
 
-    for (u32 tested_pos = 0; tested_pos < tested_cnt; tested_pos++) status_ctx->words_progress_done[live_salts[tested_pos]] += launch_step;
+    while ((live_pos < live_cnt) && (group_cnt < group_want))
+    {
+      const u32 salt_pos = live_salts[live_pos];
+
+      live_pos++;
+
+      if (hashes->salts_shown[salt_pos] == 1)
+      {
+        status_ctx->words_progress_done[salt_pos] += launch_step;
+
+        continue;
+      }
+
+      sweep_buf_host[group_cnt] = salt_pos;
+
+      group_cnt++;
+    }
 
     hc_thread_mutex_unlock (status_ctx->mux_counter);
-  }
 
-  if (user_options->speed_only == true)
-  {
-    if (speed_only_stop (device_param, user_options->slow_candidates) == true) return 0;
-  }
+    if (group_cnt == 0) continue;
 
-  if (check_cracked (hashcat_ctx, device_param) == -1) return -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, sweep_buf_host, (u64) group_cnt * sizeof (u32)) == -1) return -1;
+
+    // The launch answers for every digest of the list, so the digest fields span all of them, and
+    // mark_hash () has room for a crack of any of them.
+
+    device_param->kernel_param.salts_cnt           = group_cnt;
+    device_param->kernel_param.salt_pos_host       = 0;
+    device_param->kernel_param.digests_cnt         = hashes->digests_cnt;
+    device_param->kernel_param.digests_offset_host = 0;
+
+    if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, launch_cnt, device_param->launch_chunk_kind, 0, false) == -1) return -1;
+
+    salt_sweep_measured (hashcat_ctx, device_param, group_cnt, work);
+
+    if (status_ctx->run_thread_level2 == true)
+    {
+      const double speed_msec = hc_timer_get (device_param->timer_speed);
+
+      hc_timer_set (&device_param->timer_speed);
+
+      u32 speed_pos = device_param->speed_pos;
+
+      device_param->speed_cnt[speed_pos] = launch_step * group_cnt;
+
+      device_param->speed_msec[speed_pos] = speed_msec;
+
+      device_param->speed_words[speed_pos] = (((double) pws_cnt * (double) innerloop_left) / (double) innerloop_cnt) * salt_share * (double) group_cnt;
+
+      speed_pos++;
+
+      if (speed_pos == SPEED_CACHE)
+      {
+        speed_pos = 0;
+      }
+
+      device_param->speed_pos = speed_pos;
+
+      hc_thread_mutex_lock (status_ctx->mux_counter);
+
+      for (u32 group_pos = 0; group_pos < group_cnt; group_pos++) status_ctx->words_progress_done[sweep_buf_host[group_pos]] += launch_step;
+
+      hc_thread_mutex_unlock (status_ctx->mux_counter);
+    }
+
+    if (user_options->speed_only == true)
+    {
+      if (speed_only_stop (device_param, user_options->slow_candidates) == true) return 0;
+    }
+
+    if (check_cracked (hashcat_ctx, device_param) == -1) return -1;
+
+    if (status_ctx->run_thread_level2 == false) break;
+  }
 
   return 0;
 }
@@ -12624,6 +12691,9 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_loops   = leader_param->kernel_loops;
     device_param->kernel_threads = MIN (leader_param->kernel_threads, device_param->kernel_threads_max);
 
+    device_param->sweep_group_tuned = leader_param->sweep_group_tuned;
+    device_param->sweep_group_cnt   = leader_param->sweep_group_cnt;
+
     device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
@@ -12726,6 +12796,9 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       device_param_dst->kernel_accel   = MIN (device_param_src->kernel_accel, kernel_accel_ceiling);
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
       device_param_dst->kernel_threads = kernel_threads_aligned;
+
+      device_param_dst->sweep_group_tuned = device_param_src->sweep_group_tuned;
+      device_param_dst->sweep_group_cnt   = device_param_src->sweep_group_cnt;
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param_dst->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
@@ -16572,7 +16645,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * salt sweep
      */
 
-    // Whether this device tests every salt of the list in one launch. It is settled before the build
+    // Whether this device tests many salts of the list in one launch. It is settled before the build
     // options are asked for, and module_jit_build_options () reads it from here, so the kernel a module
     // builds and the loop that launches it follow the same answer.
 
@@ -17096,6 +17169,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_SWEEP_BUF], 0, device_param->sweep_buf_host, (u64) live_cnt * sizeof (u32)) == -1) return -1;
     }
+
+    // autotune grows this group of live salts, see autotune_sweep_group ()
+
+    device_param->sweep_group_tuned = MIN (device_param->sweep_live_cnt, SWEEP_GROUP_FIRST);
+    device_param->sweep_group_cnt   = device_param->sweep_group_tuned;
+    device_param->sweep_group_work  = 0;
 
     /**
      * special buffers
@@ -18634,7 +18713,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->scratch_buf = scratch_buf;
 
     // Launch records for each salt, see launch_salt_t. Only salts that take turns share a loop position,
-    // and only a launch that is waited on reads a prediction. A device that tests every salt in one
+    // and only a launch that is waited on reads a prediction. A device that tests many salts in one
     // launch has no turns.
 
     const bool launch_salt_wanted = (salts_in_turn (hashcat_ctx) > 1) && (device_param->salt_sweep == false) && (device_param->launch_param_host != NULL) && (device_param->launch_result_host != NULL);

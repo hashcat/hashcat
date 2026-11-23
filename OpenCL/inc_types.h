@@ -2176,8 +2176,8 @@ typedef struct kernel_param
   u32 run_mask;             // 46
 
   // The salts a launch walks: every salt of the list, or the one salt of the self-test. A sweep
-  // launch (module_salt_sweep ()) instead counts the live salts, whose positions the sweep buffer
-  // lists, and sets digests_cnt to every digest of the list and digests_offset_host to 0.
+  // launch (module_salt_sweep ()) instead counts the live salts of its group, whose positions the
+  // sweep buffer lists, and sets digests_cnt to every digest of the list and digests_offset_host to 0.
 
   u32 salts_cnt;            // 47
 

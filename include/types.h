@@ -2251,7 +2251,7 @@ typedef struct hc_device_param
   float   exec_us_last[HC_DEV_KERN_CNT];
   u32     exec_loops_last[HC_DEV_KERN_CNT];
 
-  // the kernels test every salt of the list in one launch, see module_salt_sweep ()
+  // the kernels test many salts of the list in one launch, see module_salt_sweep ()
 
   bool    salt_sweep;
 
@@ -2264,6 +2264,14 @@ typedef struct hc_device_param
   // count the attack runs with
 
   u32     sweep_live_cnt;
+
+  // how many live salts one sweep launch tests: the group autotune tuned the launch for, the group the
+  // launches so far have room for, and the work of the launch that count was sized on, see
+  // salt_sweep_group ()
+
+  u32     sweep_group_tuned;
+  u32     sweep_group_cnt;
+  u64     sweep_group_work;
 
   // a launch predicted from its salt, see launch_salt_t, and the launch size the records of each kind of
   // chunk were taken at, in work items and in amplifier items per work item
