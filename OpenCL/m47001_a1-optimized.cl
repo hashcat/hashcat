@@ -1,0 +1,524 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+//#define NEW_SIMD_CODE
+
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_scalar.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
+#endif
+
+KERNEL_FQ KERNEL_FA void m47001_m04 (KERN_ATTR_BASIC ())
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
+
+  if (gid >= GID_CNT) return;
+
+  /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_l_len = pws[gid].pw_len & 63;
+
+  /**
+   * Salt prep
+   */
+
+  u32 rnd[4];
+
+  rnd[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  rnd[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  rnd[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  rnd[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+
+  // S-ENC is the SCBK encrypting 0x01 0x82 and the first 6 bytes of RND.A
+
+  u32 senc_pt[4];
+
+  senc_pt[0] = 0x8201 | (rnd[0] << 16);
+  senc_pt[1] = (rnd[0] >> 16) | (rnd[1] << 16);
+  senc_pt[2] = 0;
+  senc_pt[3] = 0;
+
+  // the SCBK is the MK encrypting cUID . ~cUID
+
+  u32 scbk_pt[4];
+
+  scbk_pt[0] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  scbk_pt[1] = salt_bufs[SALT_POS_HOST].salt_buf[5];
+  scbk_pt[2] = ~scbk_pt[0];
+  scbk_pt[3] = ~scbk_pt[1];
+
+  /**
+   * loop
+   */
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
+  {
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos);
+
+    const u32x pw_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can be shorter or longer than the 16 byte key.
+
+    if (pw_len != 16) continue;
+
+    /**
+     * concat password candidate
+     */
+
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
+
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
+
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
+    {
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0) combs_pre4_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece4_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece4_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece4_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+    }
+    else
+    #endif
+    {
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
+    }
+
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+
+    w0[0] = wordl0[0] | wordr0[0];
+    w0[1] = wordl0[1] | wordr0[1];
+    w0[2] = wordl0[2] | wordr0[2];
+    w0[3] = wordl0[3] | wordr0[3];
+    w1[0] = 0;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+
+    u32 ukey[4];
+
+    ukey[0] = w0[0];
+    ukey[1] = w0[1];
+    ukey[2] = w0[2];
+    ukey[3] = w0[3];
+
+    #define KEYLEN 44
+
+    u32 ks[KEYLEN];
+
+    aes128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
+
+    u32 scbk[4];
+
+    aes128_encrypt (ks, scbk_pt, scbk, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    aes128_set_encrypt_key (ks, scbk, s_te0, s_te1, s_te2, s_te3);
+
+    u32 senc[4];
+
+    aes128_encrypt (ks, senc_pt, senc, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    aes128_set_encrypt_key (ks, senc, s_te0, s_te1, s_te2, s_te3);
+
+    u32 ct[4];
+
+    aes128_encrypt (ks, rnd, ct, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    const u32 r0 = ct[0];
+    const u32 r1 = ct[1];
+    const u32 r2 = ct[2];
+    const u32 r3 = ct[3];
+
+    COMPARE_M_SIMD (r0, r1, r2, r3);
+  }
+}
+
+KERNEL_FQ KERNEL_FA void m47001_m08 (KERN_ATTR_BASIC ())
+{
+}
+
+KERNEL_FQ KERNEL_FA void m47001_m16 (KERN_ATTR_BASIC ())
+{
+}
+
+KERNEL_FQ KERNEL_FA void m47001_s04 (KERN_ATTR_BASIC ())
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
+
+  if (gid >= GID_CNT) return;
+
+  /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_l_len = pws[gid].pw_len & 63;
+
+  /**
+   * Salt prep
+   */
+
+  u32 rnd[4];
+
+  rnd[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  rnd[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  rnd[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  rnd[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+
+  // S-ENC is the SCBK encrypting 0x01 0x82 and the first 6 bytes of RND.A
+
+  u32 senc_pt[4];
+
+  senc_pt[0] = 0x8201 | (rnd[0] << 16);
+  senc_pt[1] = (rnd[0] >> 16) | (rnd[1] << 16);
+  senc_pt[2] = 0;
+  senc_pt[3] = 0;
+
+  // the SCBK is the MK encrypting cUID . ~cUID
+
+  u32 scbk_pt[4];
+
+  scbk_pt[0] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  scbk_pt[1] = salt_bufs[SALT_POS_HOST].salt_buf[5];
+  scbk_pt[2] = ~scbk_pt[0];
+  scbk_pt[3] = ~scbk_pt[1];
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
+  };
+
+  /**
+   * loop
+   */
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
+  {
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos);
+
+    const u32x pw_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can be shorter or longer than the 16 byte key.
+
+    if (pw_len != 16) continue;
+
+    /**
+     * concat password candidate
+     */
+
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
+
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
+
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
+    {
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0) combs_pre4_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece4_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece4_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece4_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+    }
+    else
+    #endif
+    {
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
+    }
+
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+
+    w0[0] = wordl0[0] | wordr0[0];
+    w0[1] = wordl0[1] | wordr0[1];
+    w0[2] = wordl0[2] | wordr0[2];
+    w0[3] = wordl0[3] | wordr0[3];
+    w1[0] = 0;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+
+    u32 ukey[4];
+
+    ukey[0] = w0[0];
+    ukey[1] = w0[1];
+    ukey[2] = w0[2];
+    ukey[3] = w0[3];
+
+    #define KEYLEN 44
+
+    u32 ks[KEYLEN];
+
+    aes128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
+
+    u32 scbk[4];
+
+    aes128_encrypt (ks, scbk_pt, scbk, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    aes128_set_encrypt_key (ks, scbk, s_te0, s_te1, s_te2, s_te3);
+
+    u32 senc[4];
+
+    aes128_encrypt (ks, senc_pt, senc, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    aes128_set_encrypt_key (ks, senc, s_te0, s_te1, s_te2, s_te3);
+
+    u32 ct[4];
+
+    aes128_encrypt (ks, rnd, ct, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    const u32 r0 = ct[0];
+    const u32 r1 = ct[1];
+    const u32 r2 = ct[2];
+    const u32 r3 = ct[3];
+
+    COMPARE_S_SIMD (r0, r1, r2, r3);
+  }
+}
+
+KERNEL_FQ KERNEL_FA void m47001_s08 (KERN_ATTR_BASIC ())
+{
+}
+
+KERNEL_FQ KERNEL_FA void m47001_s16 (KERN_ATTR_BASIC ())
+{
+}

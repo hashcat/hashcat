@@ -7,13 +7,16 @@
 
 #
 # Extracts the OSDP Secure Channel handshake from OSDPCAP captures, the JSON lines format written by
-# libosdp-conformance and OSDP.Net, for hash-mode 47000.
+# libosdp-conformance and OSDP.Net, for hash-mode 47000, or with --mk for hash-mode 47001.
 #
 # The CP opens a session with osdp_CHLNG (SCB type 0x11, command 0x76) carrying RND.A. The PD
 # answers with osdp_CCRYPT (SCB type 0x12, reply 0x76) carrying its cUID, RND.B and the client
 # cryptogram.
 #
 # Hash format: $osdp$rnd_a*rnd_b*client_cryptogram
+# With --mk:   $osdp-mk$cuid*rnd_a*rnd_b*client_cryptogram
+#
+# --mk leaves out a session that runs on SCBK-D, since that key does not come from a Master Key.
 #
 # Every hash goes to stdout. A hash whose cryptogram checks against SCBK-D, the published default
 # key 0x30..0x3f, is also written to stderr, already paired with that key in hashcat's hash:plain
@@ -22,6 +25,7 @@
 #   $osdp$9acc78e0e206fd87*d66d5a91e600806a*53fa00e5e6e152abd57a7e10000b4a5f:$HEX[303132333435363738393a3b3c3d3e3f] (SCBK-D, the default key)
 #
 
+import argparse
 import json
 import sys
 
@@ -130,14 +134,15 @@ def parse(frame):
   return frame[1], ctrl & 0x03, scb_type, frame[code_pos], frame[code_pos + 1:len(frame) - check_len]
 
 
-def extract(path):
+def extract(path, mk):
   try:
     f = open(path, "r", encoding="utf-8", errors="replace")
   except IOError as e:
     sys.stderr.write("%s: %s\n" % (path, e))
     return None
 
-  hashes = []
+  sessions = []
+  hashes   = []
 
   # (RND.A, SQN) of the osdp_CHLNG awaiting its osdp_CCRYPT, per PD address. Any other command to
   # or reply from that PD drops it, so a late reply cannot pair with a later challenge.
@@ -202,37 +207,55 @@ def extract(path):
         if sqn != chlng_sqn:
           continue
 
+        cuid       = data[ 0: 8]
         rnd_b      = data[ 8:16]
         cryptogram = data[16:32]
 
         h = "$osdp$%s*%s*%s" % (rnd_a.hex(), rnd_b.hex(), cryptogram.hex())
 
-        if h in hashes:
+        if h in sessions:
           continue
 
-        hashes.append(h)
+        sessions.append(h)
+
+        default_key = check_key(SCBK_D, rnd_a, rnd_b, cryptogram)
 
         # SCBK-D holds ':', so hashcat prints it as $HEX[]
 
-        if check_key(SCBK_D, rnd_a, rnd_b, cryptogram):
+        if default_key:
           sys.stderr.write("%s:$HEX[%s] (SCBK-D, the default key)\n" % (h, SCBK_D.hex()))
 
-  if len(hashes) == 0:
+        if mk:
+          if default_key:
+            continue
+
+          h = "$osdp-mk$%s*%s*%s*%s" % (cuid.hex(), rnd_a.hex(), rnd_b.hex(), cryptogram.hex())
+
+        hashes.append(h)
+
+  if len(sessions) == 0:
     sys.stderr.write("%s: no osdp_CHLNG and osdp_CCRYPT pair found\n" % path)
+    return None
+
+  if len(hashes) == 0:
+    sys.stderr.write("%s: every session runs on SCBK-D, none on a key from a Master Key\n" % path)
     return None
 
   return hashes
 
 
 def main():
-  if len(sys.argv) < 2:
-    sys.stderr.write("Usage: %s capture.osdpcap ...\n" % sys.argv[0])
-    sys.exit(1)
+  parser = argparse.ArgumentParser(description="Extract OSDP Secure Channel handshakes from OSDPCAP captures")
+
+  parser.add_argument("--mk", action="store_true", help="write the lines of hash-mode 47001, for an SCBK derived from a Master Key")
+  parser.add_argument("captures", nargs="+", metavar="capture.osdpcap")
+
+  args = parser.parse_args()
 
   rc = 0
 
-  for path in sys.argv[1:]:
-    hashes = extract(path)
+  for path in args.captures:
+    hashes = extract(path, args.mk)
 
     if hashes is None:
       rc = 1
