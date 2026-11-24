@@ -1286,7 +1286,11 @@ DECLSPEC u32x hc_swap32 (const u32x v)
   #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
   #else
-  #if defined USE_BITSELECT && defined USE_ROTATE
+  // When Apple's Metal compiler folds rotate () on a constant, a rotation by 8 bits comes out as
+  // one by 24, and one by 24 as one by 8. This form would then swap constant words wrong, such as
+  // the strings of a hash recipe in a big endian family, so Metal takes hc_swap32_S () per lane.
+
+  #if defined USE_BITSELECT && defined USE_ROTATE && !defined IS_METAL
   r = bitselect (rotate (v, make_u32x (24)),
                  rotate (v, make_u32x ( 8)),
                             make_u32x (0x00ff00ff));
