@@ -1777,6 +1777,47 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 
 #endif
 
+// A wide step part holds the output of an earlier step. src/recipe.c accepts utf16le of such an
+// output only when it is ASCII, as hex and base64 text are. Such a part needs none of the UTF-8
+// scan and decoder that the scalar utf16le updates carry for pass, salt and the fields. A second
+// copy of them only makes the kernel slower. RECIPE_WSTEP therefore widens the bytes itself and
+// hashes them with the plain update U, 32 bytes at a time. The vector utf16le updates have
+// neither, so RECIPE_WSTEP_vector keeps W.
+
+#define RECIPE_WSTEP(U,W,SRC,LEN)                                                         \
+{                                                                                         \
+  PRIVATE_AS const u32 *ws_src = (SRC);                                                   \
+                                                                                          \
+  const int ws_len = (LEN);                                                               \
+                                                                                          \
+  for (int ws_pos = 0; ws_pos < ws_len; ws_pos += 32)                                     \
+  {                                                                                       \
+    const int ws_idx = ws_pos / 4;                                                        \
+    const int ws_cnt = ((ws_len - ws_pos) >= 32) ? 32 : (ws_len - ws_pos);                \
+                                                                                          \
+    u32 ws_a[4];                                                                          \
+    u32 ws_b[4];                                                                          \
+                                                                                          \
+    ws_a[0] = hc_bounded_word_le_S (ws_src, ws_idx + 0, ws_cnt -  0);                     \
+    ws_a[1] = hc_bounded_word_le_S (ws_src, ws_idx + 1, ws_cnt -  4);                     \
+    ws_a[2] = hc_bounded_word_le_S (ws_src, ws_idx + 2, ws_cnt -  8);                     \
+    ws_a[3] = hc_bounded_word_le_S (ws_src, ws_idx + 3, ws_cnt - 12);                     \
+    ws_b[0] = hc_bounded_word_le_S (ws_src, ws_idx + 4, ws_cnt - 16);                     \
+    ws_b[1] = hc_bounded_word_le_S (ws_src, ws_idx + 5, ws_cnt - 20);                     \
+    ws_b[2] = hc_bounded_word_le_S (ws_src, ws_idx + 6, ws_cnt - 24);                     \
+    ws_b[3] = hc_bounded_word_le_S (ws_src, ws_idx + 7, ws_cnt - 28);                     \
+                                                                                          \
+    u32 ws_w[16];                                                                         \
+                                                                                          \
+    make_utf16le_S (ws_a, ws_w + 0, ws_w +  4);                                           \
+    make_utf16le_S (ws_b, ws_w + 8, ws_w + 12);                                           \
+                                                                                          \
+    U (&ctx, ws_w, ws_cnt * 2);                                                           \
+  }                                                                                       \
+}
+
+#define RECIPE_WSTEP_vector(U,W,SRC,LEN) W (&ctx, SRC, LEN);
+
 // Feed one part into the running hash. U is the plain update and W is the UTF-16LE update. PU and
 // PB are the update and buffer for pass. SU and SB are their salt equivalents. See RECIPE_UPDP_*.
 // Part tokens are PASS, SALT, LIT0 through LIT3, STEP0 through STEP15, their UTF-16LE variants with
@@ -1784,124 +1825,125 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 // through PSTEP15 read outputs computed once per salt by recipe_prep () from the state during
 // per-candidate evaluation. XP0 through XP3 are password copies, and XS0 through XS3 are salt
 // copies stored in the state by recipe_prep ().
+// WS hashes the UTF-16LE variants of the STEP and PSTEP parts, see RECIPE_WSTEP.
 
-#define RECIPE_CALL_NONE(U,W,PU,PB,SU,SB,G,WG)
-#define RECIPE_CALL_SALT(U,W,PU,PB,SU,SB,G,WG)       SU (&ctx, SB, (int) salt_len);
+#define RECIPE_CALL_NONE(U,W,PU,PB,SU,SB,G,WG,WS)
+#define RECIPE_CALL_SALT(U,W,PU,PB,SU,SB,G,WG,WS)       SU (&ctx, SB, (int) salt_len);
 
 // In the combinator kernel the password can be the base word followed by the right word, which
 // G and WG then hash from global memory, see RECIPE_TAIL below.
 
 #ifdef RECIPE_TAIL
-#define RECIPE_CALL_PASS(U,W,PU,PB,SU,SB,G,WG)       PU (&ctx, PB, (int) pw_len); G (&ctx, tail, (int) tail_len);
-#define RECIPE_CALL_PASS16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, w, (int) pw_len); WG (&ctx, tail, (int) tail_len);
+#define RECIPE_CALL_PASS(U,W,PU,PB,SU,SB,G,WG,WS)       PU (&ctx, PB, (int) pw_len); G (&ctx, tail, (int) tail_len);
+#define RECIPE_CALL_PASS16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, w, (int) pw_len); WG (&ctx, tail, (int) tail_len);
 #else
-#define RECIPE_CALL_PASS(U,W,PU,PB,SU,SB,G,WG)       PU (&ctx, PB, (int) pw_len);
-#define RECIPE_CALL_PASS16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, w, (int) pw_len);
+#define RECIPE_CALL_PASS(U,W,PU,PB,SU,SB,G,WG,WS)       PU (&ctx, PB, (int) pw_len);
+#define RECIPE_CALL_PASS16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, w, (int) pw_len);
 #endif
-#define RECIPE_CALL_SALT16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, s, (int) salt_len);
-#define RECIPE_CALL_SALTD(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, st->sd, (int) st->sd_len);
+#define RECIPE_CALL_SALT16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, s, (int) salt_len);
+#define RECIPE_CALL_SALTD(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, st->sd, (int) st->sd_len);
 
 // SALT2, PEPPER and USER are the fields of the hash line, see RECIPE_LINE_FIELDS.
 
-#define RECIPE_CALL_SALT2(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, st->fd0, (int) st->fd0_len);
-#define RECIPE_CALL_PEPPER(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, st->fd1, (int) st->fd1_len);
-#define RECIPE_CALL_USER(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, st->fd2, (int) st->fd2_len);
-#define RECIPE_CALL_SALT2_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, st->fd0, (int) st->fd0_len);
-#define RECIPE_CALL_PEPPER_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, st->fd1, (int) st->fd1_len);
-#define RECIPE_CALL_USER_16(U,W,PU,PB,SU,SB,G,WG)    W (&ctx, st->fd2, (int) st->fd2_len);
+#define RECIPE_CALL_SALT2(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, st->fd0, (int) st->fd0_len);
+#define RECIPE_CALL_PEPPER(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, st->fd1, (int) st->fd1_len);
+#define RECIPE_CALL_USER(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, st->fd2, (int) st->fd2_len);
+#define RECIPE_CALL_SALT2_16(U,W,PU,PB,SU,SB,G,WG,WS)   W (&ctx, st->fd0, (int) st->fd0_len);
+#define RECIPE_CALL_PEPPER_16(U,W,PU,PB,SU,SB,G,WG,WS)  W (&ctx, st->fd1, (int) st->fd1_len);
+#define RECIPE_CALL_USER_16(U,W,PU,PB,SU,SB,G,WG,WS)    W (&ctx, st->fd2, (int) st->fd2_len);
 
 // VAR0 through VAR3 are the carried variables of a loop recipe, see RECIPE_LOOP.
 
-#define RECIPE_CALL_VAR0(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, vb + (0 * 64), (int) vl[0]);
-#define RECIPE_CALL_VAR1(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, vb + (1 * 64), (int) vl[1]);
-#define RECIPE_CALL_VAR2(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, vb + (2 * 64), (int) vl[2]);
-#define RECIPE_CALL_VAR3(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, vb + (3 * 64), (int) vl[3]);
-#define RECIPE_CALL_LIT0(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits + (0 * RECIPE_LIT_WORDS), RECIPE_L0_LEN);
-#define RECIPE_CALL_LIT1(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits + (1 * RECIPE_LIT_WORDS), RECIPE_L1_LEN);
-#define RECIPE_CALL_LIT2(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits + (2 * RECIPE_LIT_WORDS), RECIPE_L2_LEN);
-#define RECIPE_CALL_LIT3(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits + (3 * RECIPE_LIT_WORDS), RECIPE_L3_LEN);
-#define RECIPE_CALL_STEP0(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (0 * 32), (int) out_lens[0]);
-#define RECIPE_CALL_STEP1(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (1 * 32), (int) out_lens[1]);
-#define RECIPE_CALL_STEP2(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (2 * 32), (int) out_lens[2]);
-#define RECIPE_CALL_STEP3(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (3 * 32), (int) out_lens[3]);
-#define RECIPE_CALL_STEP4(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (4 * 32), (int) out_lens[4]);
-#define RECIPE_CALL_STEP5(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (5 * 32), (int) out_lens[5]);
-#define RECIPE_CALL_STEP6(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (6 * 32), (int) out_lens[6]);
-#define RECIPE_CALL_STEP7(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (7 * 32), (int) out_lens[7]);
-#define RECIPE_CALL_STEP8(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (8 * 32), (int) out_lens[8]);
-#define RECIPE_CALL_STEP9(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, outs + (9 * 32), (int) out_lens[9]);
-#define RECIPE_CALL_STEP10(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, outs + (10 * 32), (int) out_lens[10]);
-#define RECIPE_CALL_STEP11(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, outs + (11 * 32), (int) out_lens[11]);
-#define RECIPE_CALL_STEP12(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, outs + (12 * 32), (int) out_lens[12]);
-#define RECIPE_CALL_STEP13(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, outs + (13 * 32), (int) out_lens[13]);
-#define RECIPE_CALL_STEP14(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, outs + (14 * 32), (int) out_lens[14]);
-#define RECIPE_CALL_STEP15(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, outs + (15 * 32), (int) out_lens[15]);
-#define RECIPE_CALL_STEP0_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (0 * 32), (int) out_lens[0]);
-#define RECIPE_CALL_STEP1_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (1 * 32), (int) out_lens[1]);
-#define RECIPE_CALL_STEP2_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (2 * 32), (int) out_lens[2]);
-#define RECIPE_CALL_STEP3_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (3 * 32), (int) out_lens[3]);
-#define RECIPE_CALL_STEP4_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (4 * 32), (int) out_lens[4]);
-#define RECIPE_CALL_STEP5_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (5 * 32), (int) out_lens[5]);
-#define RECIPE_CALL_STEP6_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (6 * 32), (int) out_lens[6]);
-#define RECIPE_CALL_STEP7_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (7 * 32), (int) out_lens[7]);
-#define RECIPE_CALL_STEP8_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (8 * 32), (int) out_lens[8]);
-#define RECIPE_CALL_STEP9_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, outs + (9 * 32), (int) out_lens[9]);
-#define RECIPE_CALL_STEP10_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, outs + (10 * 32), (int) out_lens[10]);
-#define RECIPE_CALL_STEP11_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, outs + (11 * 32), (int) out_lens[11]);
-#define RECIPE_CALL_STEP12_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, outs + (12 * 32), (int) out_lens[12]);
-#define RECIPE_CALL_STEP13_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, outs + (13 * 32), (int) out_lens[13]);
-#define RECIPE_CALL_STEP14_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, outs + (14 * 32), (int) out_lens[14]);
-#define RECIPE_CALL_STEP15_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, outs + (15 * 32), (int) out_lens[15]);
-#define RECIPE_CALL_PSTEP0(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (0 * 32), (int) pout_lens[0]);
-#define RECIPE_CALL_PSTEP1(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (1 * 32), (int) pout_lens[1]);
-#define RECIPE_CALL_PSTEP2(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (2 * 32), (int) pout_lens[2]);
-#define RECIPE_CALL_PSTEP3(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (3 * 32), (int) pout_lens[3]);
-#define RECIPE_CALL_PSTEP4(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (4 * 32), (int) pout_lens[4]);
-#define RECIPE_CALL_PSTEP5(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (5 * 32), (int) pout_lens[5]);
-#define RECIPE_CALL_PSTEP6(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (6 * 32), (int) pout_lens[6]);
-#define RECIPE_CALL_PSTEP7(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (7 * 32), (int) pout_lens[7]);
-#define RECIPE_CALL_PSTEP8(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (8 * 32), (int) pout_lens[8]);
-#define RECIPE_CALL_PSTEP9(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, pouts + (9 * 32), (int) pout_lens[9]);
-#define RECIPE_CALL_PSTEP10(U,W,PU,PB,SU,SB,G,WG)    U (&ctx, pouts + (10 * 32), (int) pout_lens[10]);
-#define RECIPE_CALL_PSTEP11(U,W,PU,PB,SU,SB,G,WG)    U (&ctx, pouts + (11 * 32), (int) pout_lens[11]);
-#define RECIPE_CALL_PSTEP12(U,W,PU,PB,SU,SB,G,WG)    U (&ctx, pouts + (12 * 32), (int) pout_lens[12]);
-#define RECIPE_CALL_PSTEP13(U,W,PU,PB,SU,SB,G,WG)    U (&ctx, pouts + (13 * 32), (int) pout_lens[13]);
-#define RECIPE_CALL_PSTEP14(U,W,PU,PB,SU,SB,G,WG)    U (&ctx, pouts + (14 * 32), (int) pout_lens[14]);
-#define RECIPE_CALL_PSTEP15(U,W,PU,PB,SU,SB,G,WG)    U (&ctx, pouts + (15 * 32), (int) pout_lens[15]);
-#define RECIPE_CALL_PSTEP0_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (0 * 32), (int) pout_lens[0]);
-#define RECIPE_CALL_PSTEP1_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (1 * 32), (int) pout_lens[1]);
-#define RECIPE_CALL_PSTEP2_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (2 * 32), (int) pout_lens[2]);
-#define RECIPE_CALL_PSTEP3_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (3 * 32), (int) pout_lens[3]);
-#define RECIPE_CALL_PSTEP4_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (4 * 32), (int) pout_lens[4]);
-#define RECIPE_CALL_PSTEP5_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (5 * 32), (int) pout_lens[5]);
-#define RECIPE_CALL_PSTEP6_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (6 * 32), (int) pout_lens[6]);
-#define RECIPE_CALL_PSTEP7_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (7 * 32), (int) pout_lens[7]);
-#define RECIPE_CALL_PSTEP8_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (8 * 32), (int) pout_lens[8]);
-#define RECIPE_CALL_PSTEP9_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, pouts + (9 * 32), (int) pout_lens[9]);
-#define RECIPE_CALL_PSTEP10_16(U,W,PU,PB,SU,SB,G,WG) W (&ctx, pouts + (10 * 32), (int) pout_lens[10]);
-#define RECIPE_CALL_PSTEP11_16(U,W,PU,PB,SU,SB,G,WG) W (&ctx, pouts + (11 * 32), (int) pout_lens[11]);
-#define RECIPE_CALL_PSTEP12_16(U,W,PU,PB,SU,SB,G,WG) W (&ctx, pouts + (12 * 32), (int) pout_lens[12]);
-#define RECIPE_CALL_PSTEP13_16(U,W,PU,PB,SU,SB,G,WG) W (&ctx, pouts + (13 * 32), (int) pout_lens[13]);
-#define RECIPE_CALL_PSTEP14_16(U,W,PU,PB,SU,SB,G,WG) W (&ctx, pouts + (14 * 32), (int) pout_lens[14]);
-#define RECIPE_CALL_PSTEP15_16(U,W,PU,PB,SU,SB,G,WG) W (&ctx, pouts + (15 * 32), (int) pout_lens[15]);
-#define RECIPE_CALL_XP0(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, xb0, (int) xl0);
-#define RECIPE_CALL_XP1(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, xb1, (int) xl1);
-#define RECIPE_CALL_XP2(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, xb2, (int) xl2);
-#define RECIPE_CALL_XP3(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, xb3, (int) xl3);
-#define RECIPE_CALL_XP0_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, xb0, (int) xl0);
-#define RECIPE_CALL_XP1_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, xb1, (int) xl1);
-#define RECIPE_CALL_XP2_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, xb2, (int) xl2);
-#define RECIPE_CALL_XP3_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, xb3, (int) xl3);
-#define RECIPE_CALL_XS0(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, st->xb0, (int) st->xl0);
-#define RECIPE_CALL_XS1(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, st->xb1, (int) st->xl1);
-#define RECIPE_CALL_XS2(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, st->xb2, (int) st->xl2);
-#define RECIPE_CALL_XS3(U,W,PU,PB,SU,SB,G,WG)        U (&ctx, st->xb3, (int) st->xl3);
-#define RECIPE_CALL_XS0_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, st->xb0, (int) st->xl0);
-#define RECIPE_CALL_XS1_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, st->xb1, (int) st->xl1);
-#define RECIPE_CALL_XS2_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, st->xb2, (int) st->xl2);
-#define RECIPE_CALL_XS3_16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, st->xb3, (int) st->xl3);
+#define RECIPE_CALL_VAR0(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, vb + (0 * 64), (int) vl[0]);
+#define RECIPE_CALL_VAR1(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, vb + (1 * 64), (int) vl[1]);
+#define RECIPE_CALL_VAR2(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, vb + (2 * 64), (int) vl[2]);
+#define RECIPE_CALL_VAR3(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, vb + (3 * 64), (int) vl[3]);
+#define RECIPE_CALL_LIT0(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, lits + (0 * RECIPE_LIT_WORDS), RECIPE_L0_LEN);
+#define RECIPE_CALL_LIT1(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, lits + (1 * RECIPE_LIT_WORDS), RECIPE_L1_LEN);
+#define RECIPE_CALL_LIT2(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, lits + (2 * RECIPE_LIT_WORDS), RECIPE_L2_LEN);
+#define RECIPE_CALL_LIT3(U,W,PU,PB,SU,SB,G,WG,WS)       U (&ctx, lits + (3 * RECIPE_LIT_WORDS), RECIPE_L3_LEN);
+#define RECIPE_CALL_STEP0(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (0 * 32), (int) out_lens[0]);
+#define RECIPE_CALL_STEP1(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (1 * 32), (int) out_lens[1]);
+#define RECIPE_CALL_STEP2(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (2 * 32), (int) out_lens[2]);
+#define RECIPE_CALL_STEP3(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (3 * 32), (int) out_lens[3]);
+#define RECIPE_CALL_STEP4(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (4 * 32), (int) out_lens[4]);
+#define RECIPE_CALL_STEP5(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (5 * 32), (int) out_lens[5]);
+#define RECIPE_CALL_STEP6(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (6 * 32), (int) out_lens[6]);
+#define RECIPE_CALL_STEP7(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (7 * 32), (int) out_lens[7]);
+#define RECIPE_CALL_STEP8(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (8 * 32), (int) out_lens[8]);
+#define RECIPE_CALL_STEP9(U,W,PU,PB,SU,SB,G,WG,WS)      U (&ctx, outs + (9 * 32), (int) out_lens[9]);
+#define RECIPE_CALL_STEP10(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, outs + (10 * 32), (int) out_lens[10]);
+#define RECIPE_CALL_STEP11(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, outs + (11 * 32), (int) out_lens[11]);
+#define RECIPE_CALL_STEP12(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, outs + (12 * 32), (int) out_lens[12]);
+#define RECIPE_CALL_STEP13(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, outs + (13 * 32), (int) out_lens[13]);
+#define RECIPE_CALL_STEP14(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, outs + (14 * 32), (int) out_lens[14]);
+#define RECIPE_CALL_STEP15(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, outs + (15 * 32), (int) out_lens[15]);
+#define RECIPE_CALL_STEP0_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (0 * 32), (int) out_lens[0])
+#define RECIPE_CALL_STEP1_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (1 * 32), (int) out_lens[1])
+#define RECIPE_CALL_STEP2_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (2 * 32), (int) out_lens[2])
+#define RECIPE_CALL_STEP3_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (3 * 32), (int) out_lens[3])
+#define RECIPE_CALL_STEP4_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (4 * 32), (int) out_lens[4])
+#define RECIPE_CALL_STEP5_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (5 * 32), (int) out_lens[5])
+#define RECIPE_CALL_STEP6_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (6 * 32), (int) out_lens[6])
+#define RECIPE_CALL_STEP7_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (7 * 32), (int) out_lens[7])
+#define RECIPE_CALL_STEP8_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (8 * 32), (int) out_lens[8])
+#define RECIPE_CALL_STEP9_16(U,W,PU,PB,SU,SB,G,WG,WS)   WS (U, W, outs + (9 * 32), (int) out_lens[9])
+#define RECIPE_CALL_STEP10_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, outs + (10 * 32), (int) out_lens[10])
+#define RECIPE_CALL_STEP11_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, outs + (11 * 32), (int) out_lens[11])
+#define RECIPE_CALL_STEP12_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, outs + (12 * 32), (int) out_lens[12])
+#define RECIPE_CALL_STEP13_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, outs + (13 * 32), (int) out_lens[13])
+#define RECIPE_CALL_STEP14_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, outs + (14 * 32), (int) out_lens[14])
+#define RECIPE_CALL_STEP15_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, outs + (15 * 32), (int) out_lens[15])
+#define RECIPE_CALL_PSTEP0(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (0 * 32), (int) pout_lens[0]);
+#define RECIPE_CALL_PSTEP1(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (1 * 32), (int) pout_lens[1]);
+#define RECIPE_CALL_PSTEP2(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (2 * 32), (int) pout_lens[2]);
+#define RECIPE_CALL_PSTEP3(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (3 * 32), (int) pout_lens[3]);
+#define RECIPE_CALL_PSTEP4(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (4 * 32), (int) pout_lens[4]);
+#define RECIPE_CALL_PSTEP5(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (5 * 32), (int) pout_lens[5]);
+#define RECIPE_CALL_PSTEP6(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (6 * 32), (int) pout_lens[6]);
+#define RECIPE_CALL_PSTEP7(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (7 * 32), (int) pout_lens[7]);
+#define RECIPE_CALL_PSTEP8(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (8 * 32), (int) pout_lens[8]);
+#define RECIPE_CALL_PSTEP9(U,W,PU,PB,SU,SB,G,WG,WS)     U (&ctx, pouts + (9 * 32), (int) pout_lens[9]);
+#define RECIPE_CALL_PSTEP10(U,W,PU,PB,SU,SB,G,WG,WS)    U (&ctx, pouts + (10 * 32), (int) pout_lens[10]);
+#define RECIPE_CALL_PSTEP11(U,W,PU,PB,SU,SB,G,WG,WS)    U (&ctx, pouts + (11 * 32), (int) pout_lens[11]);
+#define RECIPE_CALL_PSTEP12(U,W,PU,PB,SU,SB,G,WG,WS)    U (&ctx, pouts + (12 * 32), (int) pout_lens[12]);
+#define RECIPE_CALL_PSTEP13(U,W,PU,PB,SU,SB,G,WG,WS)    U (&ctx, pouts + (13 * 32), (int) pout_lens[13]);
+#define RECIPE_CALL_PSTEP14(U,W,PU,PB,SU,SB,G,WG,WS)    U (&ctx, pouts + (14 * 32), (int) pout_lens[14]);
+#define RECIPE_CALL_PSTEP15(U,W,PU,PB,SU,SB,G,WG,WS)    U (&ctx, pouts + (15 * 32), (int) pout_lens[15]);
+#define RECIPE_CALL_PSTEP0_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (0 * 32), (int) pout_lens[0])
+#define RECIPE_CALL_PSTEP1_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (1 * 32), (int) pout_lens[1])
+#define RECIPE_CALL_PSTEP2_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (2 * 32), (int) pout_lens[2])
+#define RECIPE_CALL_PSTEP3_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (3 * 32), (int) pout_lens[3])
+#define RECIPE_CALL_PSTEP4_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (4 * 32), (int) pout_lens[4])
+#define RECIPE_CALL_PSTEP5_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (5 * 32), (int) pout_lens[5])
+#define RECIPE_CALL_PSTEP6_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (6 * 32), (int) pout_lens[6])
+#define RECIPE_CALL_PSTEP7_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (7 * 32), (int) pout_lens[7])
+#define RECIPE_CALL_PSTEP8_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (8 * 32), (int) pout_lens[8])
+#define RECIPE_CALL_PSTEP9_16(U,W,PU,PB,SU,SB,G,WG,WS)  WS (U, W, pouts + (9 * 32), (int) pout_lens[9])
+#define RECIPE_CALL_PSTEP10_16(U,W,PU,PB,SU,SB,G,WG,WS) WS (U, W, pouts + (10 * 32), (int) pout_lens[10])
+#define RECIPE_CALL_PSTEP11_16(U,W,PU,PB,SU,SB,G,WG,WS) WS (U, W, pouts + (11 * 32), (int) pout_lens[11])
+#define RECIPE_CALL_PSTEP12_16(U,W,PU,PB,SU,SB,G,WG,WS) WS (U, W, pouts + (12 * 32), (int) pout_lens[12])
+#define RECIPE_CALL_PSTEP13_16(U,W,PU,PB,SU,SB,G,WG,WS) WS (U, W, pouts + (13 * 32), (int) pout_lens[13])
+#define RECIPE_CALL_PSTEP14_16(U,W,PU,PB,SU,SB,G,WG,WS) WS (U, W, pouts + (14 * 32), (int) pout_lens[14])
+#define RECIPE_CALL_PSTEP15_16(U,W,PU,PB,SU,SB,G,WG,WS) WS (U, W, pouts + (15 * 32), (int) pout_lens[15])
+#define RECIPE_CALL_XP0(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, xb0, (int) xl0);
+#define RECIPE_CALL_XP1(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, xb1, (int) xl1);
+#define RECIPE_CALL_XP2(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, xb2, (int) xl2);
+#define RECIPE_CALL_XP3(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, xb3, (int) xl3);
+#define RECIPE_CALL_XP0_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, xb0, (int) xl0);
+#define RECIPE_CALL_XP1_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, xb1, (int) xl1);
+#define RECIPE_CALL_XP2_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, xb2, (int) xl2);
+#define RECIPE_CALL_XP3_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, xb3, (int) xl3);
+#define RECIPE_CALL_XS0(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, st->xb0, (int) st->xl0);
+#define RECIPE_CALL_XS1(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, st->xb1, (int) st->xl1);
+#define RECIPE_CALL_XS2(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, st->xb2, (int) st->xl2);
+#define RECIPE_CALL_XS3(U,W,PU,PB,SU,SB,G,WG,WS)        U (&ctx, st->xb3, (int) st->xl3);
+#define RECIPE_CALL_XS0_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, st->xb0, (int) st->xl0);
+#define RECIPE_CALL_XS1_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, st->xb1, (int) st->xl1);
+#define RECIPE_CALL_XS2_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, st->xb2, (int) st->xl2);
+#define RECIPE_CALL_XS3_16(U,W,PU,PB,SU,SB,G,WG,WS)     W (&ctx, st->xb3, (int) st->xl3);
 
-#define RECIPE_PART3(TOK,F,X)  RECIPE_CALL_##TOK (RECIPE_UPD_##F (X), RECIPE_UPDW_##F (X), RECIPE_UPDP_##F (X), RECIPE_PBUF_##F, RECIPE_UPDS_##F (X), RECIPE_SBUF_##F, RECIPE_UPDG_##F, RECIPE_UPDWG_##F)
+#define RECIPE_PART3(TOK,F,X)  RECIPE_CALL_##TOK (RECIPE_UPD_##F (X), RECIPE_UPDW_##F (X), RECIPE_UPDP_##F (X), RECIPE_PBUF_##F, RECIPE_UPDS_##F (X), RECIPE_SBUF_##F, RECIPE_UPDG_##F, RECIPE_UPDWG_##F, RECIPE_WSTEP##X)
 #define RECIPE_PART2(TOK,F,X)  RECIPE_PART3 (TOK, F, X)
 #define RECIPE_PART(K,I,F,X)   RECIPE_PART2 (RECIPE_S##K##_P##I, F, X)
 
