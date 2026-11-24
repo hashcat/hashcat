@@ -3917,6 +3917,11 @@ int brain_server_dump_folder (const char *listen_host, const int listen_port, co
 
   if (brain_server_read_hash_dumps (brain_server_dbs, dump_dir) == false)
   {
+    hcfree (brain_server_dbs->hash_buf);
+    hcfree (brain_server_dbs);
+
+    close (server_fd);
+
     if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
@@ -4158,8 +4163,10 @@ int brain_server_dump_folder (const char *listen_host, const int listen_port, co
 
   hcfree (brain_server_dbs->hash_buf);
   hcfree (brain_server_dbs->attack_buf);
+  hcfree (brain_server_dbs->client_slots);
   hcfree (brain_server_dbs);
   hcfree (brain_server_client_options);
+  hcfree (session_whitelist_buf);
 
   if (brain_password == NULL) hcfree (auth_password);
 
