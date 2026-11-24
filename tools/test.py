@@ -596,7 +596,50 @@ def setup_outdir(args):
   # Say where only when the user named the folder. The default is silent, as test.sh was, so a run's
   # console output is the same bytes with or without the folder.
   if args.logdir:
-    print("[ test.py ] > logging to %s/ (logfull.txt, test_report.log, summary.txt)" % path)
+    print("[ test.py ] > logging to %s/ (logfull.txt, test_report.log, summary.txt, hardware.json)" % path)
+
+
+def save_run_metadata(args):
+  # Workers share the parent's inventory, so a parallel run records it only once.
+  if not OWN_OUTDIR:
+    return
+
+  host = {"system": platform.system(), "architecture": platform.machine(),
+          "processor": platform.processor(), "logical_cpus": os.cpu_count()}
+
+  try:
+    # Record the host CPU model because we have seen failures specific to certain processors.
+    with open("/proc/cpuinfo") as cpuinfo:
+      for line in cpuinfo:
+        if not line.strip():
+          break
+        field, _, value = line.partition(":")
+        if field.strip() == "model name":
+          host["processor"] = value.strip()
+        elif field.strip() == "vendor_id":
+          host["vendor"] = value.strip()
+  except OSError:
+    pass
+
+  command = [BIN, "-I", "--machine-readable"] + ISOLATION
+  metadata = {"host": host, "test_command": [sys.executable] + sys.argv,
+              "selection": {"device_types": args.device, "devices": args.backend_devices},
+              "inventory_command": command}
+
+  try:
+    result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+    metadata["inventory_exit_code"] = result.returncode
+    metadata["inventory_stderr"] = result.stderr.decode("utf-8", "replace")
+    try:
+      metadata["inventory"] = json.loads(result.stdout.decode("utf-8", "replace"))
+    except ValueError:
+      metadata["inventory_stdout"] = result.stdout.decode("utf-8", "replace")
+  except (OSError, subprocess.TimeoutExpired) as exc:
+    metadata["inventory_error"] = str(exc)
+
+  with open(os.path.join(OUTDIR, "hardware.json"), "w") as hardware:
+    json.dump(metadata, hardware, indent=2)
+    hardware.write("\n")
 
 
 def finalize_outputs(note):
@@ -6961,7 +7004,7 @@ def main():
                        "card (most modes in the least time); depth runs one mode per device at that "
                        "device's full memory, so -j opts in but the device count sets the concurrency")
   ap.add_argument("--logdir", dest="logdir", nargs="?", const=AUTO_LOGDIR, default=None,
-                  help="name the output folder (default test_<ts>/, as test.sh); it holds logfull.txt, "
+                  help="name the output folder (default test_<ts>/, as test.sh); it holds hardware.json, logfull.txt, "
                        "the reason and the cmdline for every skip and error")
   ap.add_argument("--edge", dest="edge", action="store_true",
                   help="edge-case testing (the port of tools/test_edge.sh)")
@@ -7046,20 +7089,24 @@ def main():
 
   apply_run_options(args)
 
+  parent_run = not (args.edge_child or args.selftest_child or os.environ.get("TESTPY_OUTDIR"))
+
+  # Set up shared logs and Ctrl-C/exit handlers before collecting hardware or checking devices.
+  # This preserves diagnostics on interruption and saves hardware metadata when preflight fails.
+  signal.signal(signal.SIGINT, on_sigint)
+  setup_outdir(args)
+  atexit.register(finalize_outputs, "completed")
+  save_run_metadata(args)
+
   # The parent's job alone. A full-test -j child carries no flag of its own, so the folder it inherited
   # is what identifies it.
 
-  if not (args.edge_child or args.selftest_child or os.environ.get("TESTPY_OUTDIR")):
+  if parent_run:
     if args.minimal or not bridged_only(args.mode):
       require_device_type(args.device, args.backend_devices)
 
     if not args.skip_clean_cache:
       clean_apple_caches()
-
-  # Ctrl-C persists what has been gathered and prints the total; a -j run hands each worker its share
-  # of memory; the reason log opens before any hashcat runs, and its path is exported so -j children
-  # write into the one folder. All harmless on a plain serial run, where no folder is made.
-  signal.signal(signal.SIGINT, on_sigint)
 
   # The breadth split shares each card between workers, so each needs its capped slice of the memory;
   # the depth split gives each mode a whole device, so it runs uncapped. Edge and -S use breadth.
@@ -7067,9 +7114,6 @@ def main():
 
   if not depth:
     export_worker_mem_shares(args)
-
-  setup_outdir(args)
-  atexit.register(finalize_outputs, "completed")
 
   if args.edge:
     sys.exit(run_edge(args))
