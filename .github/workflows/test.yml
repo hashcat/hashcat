@@ -325,7 +325,7 @@ jobs:
 
           # Measure this mode's test duration for the timing records used to balance CI shards.
           started = time.monotonic()
-          result = subprocess.run([sys.executable, "tools/test.py", "-m", *sys.argv[1:], "-D", "1", "-f"])
+          result = subprocess.run([sys.executable, "tools/test.py", "-m", *sys.argv[1:], "-D", "1"])
           seconds = max(1, math.ceil(time.monotonic() - started))
           kind = os.environ["KIND"]
           if result.returncode == 0 and os.environ["EVENT"] != "pull_request" and kind != "container":
