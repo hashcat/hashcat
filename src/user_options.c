@@ -1260,23 +1260,27 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    // -a 4, -a 5 and -a 13 are feed attacks whose feed is already known, so the whole rewrite is the
-    // feed name in front of the work arguments. What follows it is what that feed reads either way: for
-    // pcfg a ruleset and settings, for table the wordlists, the table and settings, for tokenmask the
-    // mask and settings.
+    // -a 4, -a 5, -a 10 and -a 13 are feed attacks whose feed is already known, so the whole rewrite is
+    // the feed name in front of the work arguments. What follows it is what that feed reads either way:
+    // for pcfg a ruleset and settings, for table the wordlists and the table, for prince a wordlist, and
+    // for tokenmask the mask.
+
+    char *feed_name = "table";
 
     if (attack_mode == ATTACK_MODE_PCFG)
     {
-      hc_argv[hc_argc_new] = "pcfg";
+      feed_name = "pcfg";
     }
     else if (attack_mode == ATTACK_MODE_PRINCE)
     {
-      hc_argv[hc_argc_new] = "prince";
+      feed_name = "prince";
     }
-    else
+    else if (attack_mode == ATTACK_MODE_TOKENMASK)
     {
-      hc_argv[hc_argc_new] = "table";
+      feed_name = "tokenmask";
     }
+
+    hc_argv[hc_argc_new] = feed_name;
 
     hc_argc_new++;
 

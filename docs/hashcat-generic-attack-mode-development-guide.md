@@ -72,7 +72,7 @@ Attack mode 4 is the dedicated alias for the PCFG feed. Function `user_options_a
 
 The rewrite inserts the plugin name and leaves everything else where it was, so `workv[0]` still holds the plugin name and the feed cannot determine which spelling the user used. Both spellings therefore produce the same run and the same brain session.
 
-Alias `-a 5` performs the same rewrite for the table feed, rewritten into `-a 8 hashes.txt table wordlist table-file`, and alias `-a 10` does it for the PRINCE feed, rewritten into `-a 8 hashes.txt prince wordlist`. The function also expresses `-a 1`, `-a 6` and `-a 7` as the unified hybrid mode `-a 12`. If rules are supplied, those modes and `-a 12` use the hybrid feed, while `-a 3` uses the mask feed. Without rules, `-a 3` keeps its device-side mask engine and the hybrid modes remain `-a 12`.
+Alias `-a 5` performs the same rewrite for the table feed, rewritten into `-a 8 hashes.txt table wordlist table-file`, alias `-a 10` does it for the PRINCE feed, rewritten into `-a 8 hashes.txt prince wordlist`, and alias `-a 13` does it for the token mask feed, rewritten into `-a 8 hashes.txt tokenmask mask`. The function also expresses `-a 1`, `-a 6` and `-a 7` as the unified hybrid mode `-a 12`. If rules are supplied, those modes and `-a 12` use the hybrid feed, while `-a 3` uses the mask feed. Without rules, `-a 3` keeps its device-side mask engine and the hybrid modes remain `-a 12`.
 
 Other modes select feeds without this command-line rewrite. The wordlist and stdin feeds supply the word-based attacks, and `-a 9` selects the association, PCFG or wordlist feed for each phase of the account-aware attack.
 
