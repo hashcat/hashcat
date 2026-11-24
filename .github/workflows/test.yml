@@ -108,7 +108,7 @@ permissions:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     outputs:
       run: ${{ steps.plan.outputs.run }}
@@ -170,7 +170,7 @@ jobs:
   test:
     needs: plan
     if: needs.plan.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 180 }}
 
     strategy:
@@ -192,6 +192,24 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
             | sudo tee /etc/apt/sources.list.d/oneAPI.list > /dev/null
           sudo apt-get update
+          if ! apt-cache show clinfo > /dev/null 2>&1; then
+            . /etc/os-release
+            # Restore Ubuntu sources when the runner image has no Ubuntu package index.
+            cat <<EOF | sudo tee /etc/apt/sources.list.d/hashcat-ubuntu.sources > /dev/null
+          Types: deb
+          URIs: http://archive.ubuntu.com/ubuntu/
+          Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates ${VERSION_CODENAME}-backports
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: http://security.ubuntu.com/ubuntu/
+          Suites: ${VERSION_CODENAME}-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+            sudo apt-get update
+          fi
           sudo apt-get install -y --no-install-recommends \
                intel-oneapi-runtime-opencl ocl-icd-libopencl1 clinfo build-essential
           clinfo -l
@@ -402,7 +420,7 @@ jobs:
       !cancelled() && github.event_name != 'pull_request' && needs.plan.outputs.run == 'true'
       && (contains(needs.plan.outputs.matrix, 'opt') || contains(needs.plan.outputs.matrix, 'pure')
           || contains(needs.plan.outputs.matrix, 'bridge') || contains(needs.plan.outputs.matrix, 'edge'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
 
