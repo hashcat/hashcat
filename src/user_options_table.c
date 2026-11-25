@@ -804,7 +804,7 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   {
     .type           = OPTION_TYPE_FLAG,
     .actions        = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE,
-    .attack_modes   = AM (1) | AM (3) | AM (6) | AM (7),
+    .attack_modes   = AM (1) | AM (3) | AM (6) | AM (7) | AM (13),
     .conflict_modes = AM (4) | AM (5) | AM (8) | AM (10) | AM (12),
   },
 

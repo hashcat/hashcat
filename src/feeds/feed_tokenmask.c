@@ -5,7 +5,7 @@
 
 // The token mask feed. It reads a mask the way a brute force attack does, one position per token of
 // the mask, but a position's charset is a set of STRINGS rather than a set of bytes. A built-in like
-// ?l is still the 26 lowercase letters, each a one byte token; a custom charset ?1 to ?8 is a file
+// ?l is still the 26 lowercase letters, each a one byte token. A custom charset ?1 to ?8 is a file
 // whose lines are the tokens, so ?1?1 over a file holding "test" spells "testtest". That is what lets
 // a position carry a multibyte character, a whole word, or any other string a byte charset cannot.
 //
@@ -61,7 +61,7 @@
 #define TM_CS_MAX (TM_POS_MAX + 8)
 
 // How deep an inline charset's ?N references may nest before it is called a cycle. A reference that
-// comes back to a charset still being read is caught directly; this is the backstop for a chain that
+// comes back to a charset still being read is caught directly. This is the backstop for a chain that
 // never does but is absurd anyway.
 
 #define TM_DEPTH_MAX 8
@@ -112,7 +112,7 @@ typedef struct tm_charset
 } tm_charset_t;
 
 // One mask of the run. --increment runs a mask at every length, so a run is a list of these laid end
-// to end. Candidate number N and base word number N both fall in whichever mask's range holds them;
+// to end. Candidate number N and base word number N both fall in whichever mask's range holds them.
 // cand_base and unit_base are where each mask's range begins, so a position is routed to a mask by
 // where it lands.
 
@@ -633,7 +633,7 @@ static bool tm_cs_expand_inline (tm_global_t *tg, tm_charset_t *cs, const char *
   return true;
 }
 
-// A custom charset is a file when one of that name opens, its lines the tokens; otherwise it is an
+// A custom charset is a file when one of that name opens, its lines the tokens. Otherwise it is an
 // inline set. The feed decides between them the same either-or hashcat's own -1 to -8 use.
 
 static bool tm_cs_build_custom (tm_global_t *tg, tm_charset_t *cs, const char *val, const u32 depth, char *err_buf, const size_t err_size)
@@ -931,7 +931,7 @@ static u32 *tm_pool_alloc (const u64 words)
 }
 
 // Lay the cell charsets into the pool, in the one of two shapes the kernel was built for. With tokens
-// of one length a slot names the byte offset of its first token and multiplies; with tokens of several
+// of one length a slot names the byte offset of its first token and multiplies. With tokens of several
 // it names the u32 index of an offset table and a token's length is the difference to the next offset,
 // which is what the sentinel after each charset is for. Only a charset a cell slot reaches is laid
 // down, because the front charsets are written on the host and never read by the card, so a large token
@@ -1025,9 +1025,9 @@ static void tm_mask_minmax (const tm_global_t *tg, const tm_mask_t *m, u64 *min_
 
 // The cell a base word of this mask hands the card: one slot per cell position, each a byte bucket the
 // odometer reads an entry of. The cell writes its positions after the base word, so slots[0] carries
-// where that writing begins, which is the base word length; the kernel runs the running write offset
+// where that writing begins, which is the base word length. The kernel runs the running write offset
 // from there, and FROM in each slot's packed word is the slot itself, so a carry rewrites from the slot
-// that moved on. slots[0]'s offset here is the shortest base word, a real one, for the probe;
+// that moved on. slots[0]'s offset here is the shortest base word, a real one, for the probe.
 // thread_next_dev () patches it to the true length per base word.
 
 static void tm_mask_cell (const tm_global_t *tg, tm_mask_t *m)
@@ -1129,7 +1129,7 @@ static bool tm_dev_build (tm_global_t *tg, char *err_buf, const size_t err_size)
   tg->varlen = true;
 
   // The inner loop width, the table feed's proven value. One base word's launch walks up to this many
-  // candidates, and a wider loop makes that launch run longer; past a point it trips the device's
+  // candidates, and a wider loop makes that launch run longer. Past a point it trips the device's
   // watchdog and the autotuner gives up. A position whose radix passes this cannot be a cell slot and
   // stays in the front, so a mask ending in a very large charset loses its device cell. That is rare,
   // and the alternative is a launch the card will not run.
@@ -1171,7 +1171,14 @@ static bool tm_dev_build (tm_global_t *tg, char *err_buf, const size_t err_size)
 
     m->unit_base = unit_base;
 
-    unit_base = unit_base + m->units;
+    if (overflow_check_u128_add (unit_base, m->units) == true)
+    {
+      unit_base = GENERIC_KEYSPACE_UNKNOWN_U128;
+    }
+    else
+    {
+      unit_base = unit_base + m->units;
+    }
   }
 
   tg->units = unit_base;
@@ -1191,7 +1198,7 @@ static bool tm_dev_build (tm_global_t *tg, char *err_buf, const size_t err_size)
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 
-// MASK is set because the feed reads the custom charsets -1 through -8; without it a run that names one
+// MASK is set because the feed reads the custom charsets -1 through -8. Without it a run that names one
 // is refused. DEVICE is set because the feed can amplify on the card through the PCFG device engine,
 // which is what keeps a fast hash fed. EXPLAIN is set because the feed can say which tokens made a
 // candidate, which is what --debug-mode writes. ICONV and AUTOHEX are for a feed that reads lines
@@ -1315,6 +1322,8 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   const bool increment = (uo->increment > 0);
 
+  const bool inverse = (uo->increment == INCREMENT_INVERSED);
+
   char err[256];
 
   tm_mask_t base;
@@ -1361,7 +1370,12 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
     m->pos_cnt = k;
 
-    for (u32 i = 0; i < k; i++) m->pos_cs[i] = base.pos_cs[i];
+    // --increment-inverse shortens from the left rather than the right, so a length of k keeps the last k
+    // positions of the mask instead of the first k. hashcat's own increment does the same for -a 3.
+
+    const u32 off = (inverse == true) ? (base.pos_cnt - k) : 0;
+
+    for (u32 i = 0; i < k; i++) m->pos_cs[i] = base.pos_cs[off + i];
 
     snprintf (m->text, sizeof (m->text), "%s", base.text);
 
@@ -1387,7 +1401,18 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
     m->cand_base = tg->keyspace;
 
-    tg->keyspace = tg->keyspace + m->keyspace;
+    // Saturate the running total the way tm_keyspace () saturates a single mask. A sum past 128 bits is
+    // reported as unknown rather than wrapped. This keeps --increment over a mask with more candidates
+    // than fit from turning a real total into a small wrong one.
+
+    if (overflow_check_u128_add (tg->keyspace, m->keyspace) == true)
+    {
+      tg->keyspace = GENERIC_KEYSPACE_UNKNOWN_U128;
+    }
+    else
+    {
+      tg->keyspace = tg->keyspace + m->keyspace;
+    }
 
     if (lo < run_min) run_min = lo;
     if (hi > run_max) run_max = hi;
@@ -1447,6 +1472,19 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
     else
     {
       feed_say (tg->hcctx, "tokenmask: device engine, %u mask(s), about %u candidates per base word", tg->mask_cnt, tg->dev_mean);
+    }
+  }
+  else
+  {
+    if (tg->keyspace >= GENERIC_KEYSPACE_UNKNOWN_U128)
+    {
+      feed_say (tg->hcctx, "tokenmask: host engine, more candidates than fit 128 bits, so the run goes without a total");
+    }
+    else
+    {
+      char cand_buf[U128_DEC_SIZE];
+
+      feed_say (tg->hcctx, "tokenmask: host engine, %s candidates", u128_to_dec (cand_buf, tg->keyspace));
     }
   }
 
@@ -1657,7 +1695,7 @@ bool global_dev_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const u32 *
 
 // One base word and the cell it hands the card. The base word is the front positions written out, its
 // position decomposing into one digit per front position, rightmost of them fastest, the same walk the
-// host engine makes over the whole mask. The cell is the fixed one built in global_init (); only slot
+// host engine makes over the whole mask. The cell is the fixed one built in global_init (). Only slot
 // 0's write offset depends on this base word, and only when the pool is varlen, so only then is it
 // patched. One call stands for cell_rect candidates and the feed's position advances by one base word.
 

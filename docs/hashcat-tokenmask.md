@@ -39,7 +39,10 @@ token POSITIONS, not a number of bytes, because a token mask's positions are not
 ./hashcat -a 13 -m 0 hashes.txt ?1?1?1?1 -1 tokens.txt --increment --increment-min 2 --increment-max 3
 ```
 
-One mask per run. Running several masks together, and mask files, are not supported; give one mask on
+`--increment-inverse` shortens from the left rather than the right, so a length of k keeps the last k
+positions of the mask instead of the first k, the same as it does for `-a 3`.
+
+One mask per run. Running several masks together, and mask files, are not supported. Give one mask on
 the command line.
 
 ## --debug-mode
@@ -166,6 +169,6 @@ candidate count either way.
   over its own token count, exactly as a byte mask counts. Candidate number N is a function of N, so
   a seek is exact and a restore is reliable.
 - The candidate count is the product of the per-position token counts, counted in 128 bits, so a mask
-  over several large token files is counted exactly; a count past 2^128 is reported as unknown rather
+  over several large token files is counted exactly. A count past 2^128 is reported as unknown rather
   than miscounted.
 - A charset is read once and shared by every position that names it.
