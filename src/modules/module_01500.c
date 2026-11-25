@@ -36,35 +36,6 @@ static const char *ST_HASH        = "24leDr0hHfb3A";
 
 static u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 
-static bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
-  {
-    if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-    {
-      // works on Apple Intel: Intel(R) Core(TM) i7-4578U CPU @ 3.00GHz
-      return false;
-    }
-
-    if (strncmp (device_param->device_name, "AMD EPYC", 8) == 0)
-    {
-      // works on Linux: AMD EPYC 7642 48-Core Processor, OpenCL 2.1 (Build 0)
-      return false;
-    }
-
-    if (device_param->opencl_platform_vendor_id != VENDOR_ID_INTEL_SDK)
-    {
-      // works on Linux/POCL
-      return false;
-    }
-
-    // skip by default for now
-    return true;
-  }
-
-  return false;
-}
-
 static int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
   const u8 *ptr_src = (const u8 *) src_buf;
@@ -269,5 +240,4 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_pw_max                   = module_pw_max;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
 }
