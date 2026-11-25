@@ -1576,17 +1576,98 @@ static u128 status_candidates_per_salt (const hashcat_ctx_t *hashcat_ctx, const 
   return candidates;
 }
 
+// How far the salt furthest along has got, in candidates from the start of the keyspace. Salts are
+// worked side by side over the same candidates and a cracked salt stops counting, so the count of the
+// one in front is how much of the stream has been through the devices.
+
+static u128 status_progress_lead_per_salt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  u128 lead = 0;
+
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  {
+    const u128 all = status_ctx->words_progress_done[salt_pos]
+                   + status_ctx->words_progress_rejected[salt_pos]
+                   + status_ctx->words_progress_restored[salt_pos];
+
+    lead = MAX (lead, all);
+  }
+
+  return lead;
+}
+
+// The candidates a --limit window holds for one salt on the device engine, measured from the run.
+//
+// The engine books each launch at what its cells really held, but the limit counts base words, and the
+// mean cell that would turn one into the other is the mean of the whole keyspace. A window is rarely
+// that mean. The first million base words of the default grammar average 4829 candidates against a
+// mean of 2740, so a run passed its own total a little over half way through and showed 100% from
+// there on, while the time left wrapped to the Next Big Bang. The first billion average 2475, and
+// that run ended Exhausted at 90%.
+//
+// So the window is sized by the candidates done over the base words they came from. The furthest
+// point a device has finished cannot pass the end of the window, so the size never falls below what
+// has been done, and it is exact once the window is. The skip comes off at the mean cell, because that
+// is what the progress passed over was booked at. Zero means there is nothing to measure, and the
+// caller falls back to the mean cell.
+
+static u128 status_window_measured (const hashcat_ctx_t *hashcat_ctx, const u128 window_end)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const u128 window_start = MIN (status_ctx->words_skip, window_end);
+
+  const u128 furthest = MIN (status_get_words_cur_furthest (hashcat_ctx), window_end);
+
+  if (window_start >= furthest) return 0;
+
+  bool overflow = false;
+
+  const u128 skipped = status_candidates_per_salt (hashcat_ctx, window_start, &overflow);
+
+  if (overflow == true) return 0;
+
+  const u128 lead = status_progress_lead_per_salt (hashcat_ctx);
+
+  if (skipped >= lead) return 0;
+
+  const u128 done_cnt   = lead - skipped;
+  const u128 done_words = furthest - window_start;
+  const u128 all_words  = window_end - window_start;
+
+  if (overflow_check_u128_mul (done_cnt, all_words) == true) return 0;
+
+  const u128 window_cnt = (done_cnt * all_words) / done_words;
+
+  if (overflow_check_u128_add (skipped, window_cnt) == true) return 0;
+
+  const u128 measured = skipped + window_cnt;
+
+  return measured;
+}
+
 // The keyspace one salt is measured against, in candidates. Without --limit that is words_cnt, which
 // counts candidates already, and KEYSPACE_UNSIZED there is how a producer says it cannot count itself.
 // A --stdin-count hint is not a keyspace, and each caller puts that where it belongs for itself.
 
 static u128 status_end_per_salt (const hashcat_ctx_t *hashcat_ctx, bool *overflow)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (status_ctx->words_limit)
   {
     const u128 base_words = MIN (status_ctx->words_limit, status_ctx->words_base);
+
+    if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+    {
+      const u128 measured = status_window_measured (hashcat_ctx, base_words);
+
+      if (measured > 0) return measured;
+    }
 
     const u128 candidates = status_candidates_per_salt (hashcat_ctx, base_words, overflow);
 
@@ -1765,6 +1846,13 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
 
       if ((progress_end_relative_skip) > 0 && (hashes_msec_all > 0))
       {
+        // A total behind the work done is an estimate that came up short. The device engine still makes
+        // one after --skip or a restore without --limit, because the part passed over is booked at the
+        // mean cell. No time left can be told from it, and the subtraction would wrap to a figure past
+        // the age of the universe.
+
+        if (progress_cur_relative_skip >= progress_end_relative_skip) return 0;
+
         const u128 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
         // The work ignored can be more than the work left, and there is then no estimate to give.
@@ -2235,7 +2323,9 @@ u128 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
                      + status_ctx->words_progress_rejected[salt_pos]
                      + status_ctx->words_progress_restored[salt_pos];
 
-      const u128 left = words_cnt - all;
+      // The total can be an estimate a salt is already past, and nothing of that salt is left then.
+
+      const u128 left = (words_cnt > all) ? (words_cnt - all) : 0;
 
       progress_ignore += left;
     }
