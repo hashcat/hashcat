@@ -784,6 +784,13 @@ def die(msg):
   sys.exit(1)
 
 
+def refuse_run(msg):
+  atexit.unregister(finalize_outputs)
+  finalize_outputs("refused before tests")
+
+  die(msg)
+
+
 def child_flags(args, devices=True):
   # The options a -j child needs to repeat its parent's hashcat invocation. --skip-clean-cache is not
   # among them: a child never reaches the cache clean in the first place. The depth split pins each
@@ -902,7 +909,7 @@ def require_device_type(device, ids):
   picked = backend_device_ids(ids) if ids else None
 
   if ids and picked is None:
-    die("! -d %s: hashcat takes comma separated device numbers from 1 to 255" % ids)
+    refuse_run("! -d %s: hashcat takes comma separated device numbers from 1 to 255" % ids)
 
   listed = backend_devices(device)
 
@@ -910,15 +917,15 @@ def require_device_type(device, ids):
     if picked is None or set(picked) & {d["id"] for d in listed}:
       return
 
-    die("! -d %s names no device hashcat -I lists under -D %s, so no run can start." % (ids, device))
+    refuse_run("! -d %s names no device hashcat -I lists under -D %s, so no run can start." % (ids, device))
 
   have = {d["type"] for d in backend_devices() if d["type"]}
 
   if not have:
     return
 
-  die("! -D %s selects no device on this machine, where hashcat -I lists only %s, so no run can start."
-      % (device, "/".join(sorted(have))))
+  refuse_run("! -D %s selects no device on this machine, where hashcat -I lists only %s, so no run can start."
+             % (device, "/".join(sorted(have))))
 
 
 # Modes that need hardware to run at all. Without HCFPGA_TEST=1 they are left out of every run, so a
