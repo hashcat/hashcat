@@ -28,11 +28,12 @@ OPDATA_MAGIC = b"opdata01"
 
 OPDATA_LEN_MIN = 8 + 8 + 16 + 16 + 32
 
-# the salt and the data field of hash-mode 8200, in bytes, from the token lengths in
-# src/modules/module_08200.c
+# the salt and the data field of hash-mode 8200, in bytes, and its largest iteration count, from the
+# token lengths in src/modules/module_08200.c
 
 SALT_LEN = 16
 DATA_LEN_MAX = 1024
+ITERATIONS_MAX = 999999
 
 
 def profile_file(path: str) -> str:
@@ -71,6 +72,8 @@ def hash_line(profile: dict) -> str:
   iterations = int(profile["iterations"])
 
   if iterations < 1: raise ValueError("the iteration count is %d" % iterations)
+
+  if iterations > ITERATIONS_MAX: raise ValueError("the iteration count is %d, hash-mode 8200 takes at most %u" % (iterations, ITERATIONS_MAX))
 
   blob = base64.b64decode(profile["masterKey"], validate = True)
 

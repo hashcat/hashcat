@@ -15,10 +15,15 @@
 
 import argparse
 import json
+import string
 import sys
 
 CIPHERTEXT_MAX = 256
 SALT_MAX       = 32
+
+# modes 15600 and 15700 read each KDF parameter as a number of at most six digits
+
+PARAM_MAX = 999999
 
 
 def crypto_of(j):
@@ -38,9 +43,9 @@ def hex_problem(name, value):
   if (len(value) % 2) != 0:
     return "%s has an odd number of hex characters" % name
 
-  try:
-    bytes.fromhex(value)
-  except ValueError:
+  # not bytes.fromhex (), which lets whitespace between the pairs through, and the modules do not
+
+  if all(c in string.hexdigits for c in value) == False:
     return "%s is not hex" % name
 
   return None
@@ -140,6 +145,12 @@ def keystore_to_line(j):
       if problem is not None:
         return (None, problem)
 
+    # mode 15700 refuses p = 0 on top of the six digits
+
+    for name, minimum in [("n", 0), ("r", 0), ("p", 1)]:
+      if (numbers[name] < minimum) or (numbers[name] > PARAM_MAX):
+        return (None, "scrypt %s is %i, and hashcat takes %i to %i" % (name, numbers[name], minimum, PARAM_MAX))
+
     if (numbers["n"] % 1024) != 0:
       return (None, "scrypt n is %i, and hashcat needs a multiple of 1024" % numbers["n"])
 
@@ -161,6 +172,9 @@ def keystore_to_line(j):
 
     if problem is not None:
       return (None, problem)
+
+    if (c < 1) or (c > PARAM_MAX):
+      return (None, "the pbkdf2 c is %i, and hashcat takes 1 to %i" % (c, PARAM_MAX))
 
     line = "$ethereum$p*%i*%s*%s*%s" % (c, salt, ciphertext, mac)
 

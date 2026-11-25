@@ -21,6 +21,7 @@
 import argparse
 import base64
 import binascii
+import math
 import shutil
 import sys
 import tempfile
@@ -28,6 +29,10 @@ import tempfile
 import plyvel
 
 TARGET_KEY = b"general_mnemonic"
+
+# the length of a known plaintext that hash-mode 2300 takes, in bytes
+KPT_MIN = 5
+KPT_MAX = 255
 
 BANNER = r"""      _             _    ___ _            _            _
  __ _| |_ ___ _ __ (_)__|_  ) |_  __ _ __| |_  __ __ _| |_
@@ -44,6 +49,59 @@ def find_value(db):
     for key, val in db.iterator():
         if TARGET_KEY in key:
             return key, val
+
+
+def line_bytes(text):
+    """The bytes a line goes out as, which are also the bytes the known plaintext is counted in.
+
+    The module counts and compares the known plaintext in bytes, so the line is UTF-8 whatever the
+    encoding of the console, and an argument that is not valid UTF-8 keeps its own bytes.
+    """
+    return text.encode("utf-8", "surrogateescape")
+
+
+def ascii_count_min(window):
+    """OPENSSL_ENC_ASCII_MIN of src/modules/module_02300.c, computed rather than copied.
+
+    The least number of printable bytes in a window of this size that keeps a wrong password under
+    one in 2^32, together with the padding that lets one in 255 through. A random byte is printable
+    with odds of 97 in 256 (0x0a, 0x0d and 0x20 to 0x7e). 0 means that no count is enough.
+    """
+    tail = 0
+    need = 0
+
+    for n in range(window, -1, -1):
+        tail += math.comb(window, n) * (97 ** n) * (159 ** (window - n))
+
+        if (tail << 32) >= (255 * (256 ** window)):
+            break
+
+        need = n
+
+    return need
+
+
+def ascii_pct_min(ct_len):
+    """The least -a that hash-mode 2300 takes for this many bytes of ciphertext, or 0 for none.
+
+    The module judges a line by the data it carries less the 16 bytes the padding can strip, and a
+    single block carries no data.
+    """
+    window = 0
+
+    if ct_len > 16:
+        window = min(ct_len, 256) - 16
+
+    need = ascii_count_min(window)
+
+    if need == 0:
+        return 0
+
+    for pct in range(1, 101):
+        if (((pct * window) + 99) // 100) >= need:
+            return pct
+
+    return 0
 
 
 def process_data(data, cipher, md, plaintext, min_ascii) -> bool:
@@ -68,17 +126,27 @@ def process_data(data, cipher, md, plaintext, min_ascii) -> bool:
     if plaintext is not None:
         check = f"1${plaintext}"
     else:
+        pct_min = ascii_pct_min(len(ct))
+
+        if pct_min == 0:
+            sys.stderr.write(f"general_mnemonic: {len(ct)} bytes of ciphertext are too few for -a, give a known plaintext with -p\n")
+            return False
+
+        if min_ascii < pct_min:
+            sys.stderr.write(f"general_mnemonic: hash-mode 2300 needs -a {pct_min} or more for {len(ct)} bytes of ciphertext\n")
+            return False
+
         check = f"2${min_ascii}"
 
     head = f"$openssl${cipher}${md}$8${salt.hex()}"
 
     if len(ct) == 16:
-        print(f"{head}${ct.hex()}$1${check}")
+        sys.stdout.buffer.write(line_bytes(f"{head}${ct.hex()}$1${check}\n"))
         return True
 
     # the first 256 bytes are enough to test a known plaintext or the share of ASCII
     first = ct[:256]
-    print(f"{head}${ct[-32:].hex()}$0${len(first)}${first.hex()}${check}")
+    sys.stdout.buffer.write(line_bytes(f"{head}${ct[-32:].hex()}$0${len(first)}${first.hex()}${check}\n"))
     return True
 
 
@@ -102,9 +170,10 @@ def main():
 
     if args.plaintext is not None and (
         any(c in args.plaintext for c in "\n\r:")
-        or len(args.plaintext) > 255
+        or len(line_bytes(args.plaintext)) < KPT_MIN
+        or len(line_bytes(args.plaintext)) > KPT_MAX
     ):
-        parser.error("plaintext must be one line, max 255 chars, no colon")
+        parser.error(f"plaintext must be one line, {KPT_MIN} to {KPT_MAX} bytes, no colon")
 
     if args.min_ascii is not None and not 1 <= args.min_ascii <= 100:
         parser.error("the ASCII share is a percentage from 1 to 100")

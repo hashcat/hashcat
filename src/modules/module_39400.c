@@ -119,7 +119,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
 
-  // format 3: $krb5pa$23$user$realm$<32hex_checksum>$<72hex_encrypted>
+  // format 3: $krb5pa$23$user$realm$<32hex_checksum>$<58-76hex_encrypted>
 
   token.token_cnt  = 5;
 
@@ -142,8 +142,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len[4]     = 72;
-  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[4] = 58;
+  token.len_max[4] = 76;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -151,8 +152,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const u8 *checksum_pos;
   const u8 *timestamp_pos;
 
+  int timestamp_hex_len;
+
   if (rc_tokenizer == PARSER_OK)
   {
+    timestamp_hex_len = token.len[4];
+
     krb5pa->format = 3;
 
     memcpy (krb5pa->user,  token.buf[1], token.len[1]);
@@ -164,11 +169,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    // format 1: $krb5pa$23$user$realm$salt$<72hex_enc><32hex_checksum>
+    // format 1: $krb5pa$23$user$realm$salt$<58-76hex_enc><32hex_checksum>
 
     memset (&token, 0, sizeof (hc_token_t));
 
-    token.token_cnt  = 6;
+    token.token_cnt  = 5;
 
     token.signatures_cnt    = 1;
     token.signatures_buf[0] = SIGNATURE_KRB5PA;
@@ -192,17 +197,16 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     token.len_max[3] = MAX_RAW_TOKEN_LEN - 1;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-    token.len[4]     = 72;
-    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.len[5]     = 32;
-    token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
+    token.len_min[4] = 90;
+    token.len_max[4] = 108;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
     if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+    const int data_hex_len = token.len[4];
 
     krb5pa->format = 1;
 
@@ -210,13 +214,15 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     memcpy (krb5pa->realm, token.buf[2], token.len[2]);
     memcpy (krb5pa->raw_token,  token.buf[3], token.len[3]);
 
+    timestamp_hex_len = data_hex_len - 32;
+
     timestamp_pos = token.buf[4];
-    checksum_pos  = token.buf[5];
+    checksum_pos  = token.buf[4] + timestamp_hex_len;
   }
 
   u8 *timestamp_ptr = (u8 *) krb5pa->enc_timestamp;
 
-  for (int i = 0; i < 72; i += 2)
+  for (int i = 0; i < timestamp_hex_len; i += 2)
   {
     const u8 p0 = timestamp_pos[i + 0];
     const u8 p1 = timestamp_pos[i + 1];
@@ -224,6 +230,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     *timestamp_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
   }
+
+  krb5pa->enc_timestamp_len = timestamp_hex_len / 2;
 
   u8 *checksum_ptr = (u8 *) krb5pa->checksum;
 
@@ -271,7 +279,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     snprintf (checksum_hex + i * 2, 3, "%02x", ptr_checksum[i]);
   }
 
-  for (u32 i = 0; i < 36; i++)
+  for (u32 i = 0; i < krb5pa->enc_timestamp_len; i++)
   {
     snprintf (encrypted_hex + i * 2, 3, "%02x", ptr_timestamp[i]);
   }

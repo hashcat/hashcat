@@ -96,6 +96,27 @@ static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return esalt_size;
 }
 
+// Format 2 carries no etype, so a principal that opens with digits and a '$' is the joined layout of
+// another etype, $krb5asrep$3$user@realm:checksum$edata2. Read as format 2 it would load with a user
+// named 3$user and never crack. A '$' right before the '@' ends a machine account instead, such as
+// 1234$@realm.
+
+static bool has_etype_prefix (const char *buf, const int len)
+{
+  int digits = 0;
+
+  while ((digits < len) && (is_valid_digit_char ((const u8) buf[digits]) == true)) digits++;
+
+  if (digits == 0) return false;
+
+  if ((digits + 1) >= len) return false;
+
+  if (buf[digits + 0] != '$') return false;
+  if (buf[digits + 1] == '@') return false;
+
+  return true;
+}
+
 static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -148,6 +169,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const int raw_token_left = line_len - (int) (raw_token_start - line_buf);
 
   if (raw_token_left < 0) return (PARSER_SALT_LENGTH);
+
+  if ((krb5asrep->format == 2) && (has_etype_prefix (raw_token_start, raw_token_left) == true)) return (PARSER_SIGNATURE_UNMATCHED);
 
   const char *raw_token_stop = (const char *) hc_strchr_next ((const u8 *) raw_token_start, raw_token_left, ':');
 
