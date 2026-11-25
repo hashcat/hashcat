@@ -1093,6 +1093,12 @@ static pcfg_arc_t *arc_load (const char *path)
 
     at += PCFG_TAR_BLOCK;
 
+    // An entry whose size runs past the end of the archive ends the walk here. The size field holds up
+    // to 36 bits. A 32-bit size_t truncates that, and stepping over it could then put the offset anywhere
+    // in the buffer or in front of it.
+
+    if (size > (u64) (len - at)) break;
+
     if ((type == '0') || (type == 0))
     {
       if ((at + size) <= len)
@@ -4543,9 +4549,23 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
   return made;
 }
 
+// Whether a question names one capitalisation, which it reads from the list aux. No other question
+// depends on aux, and a PLAIN, WORD or CASE question leaves it unset.
+
+static bool view_reads_aux (const pcfg_vreq_t *q)
+{
+  if (q->kind != PCFG_VIEW_WIDE) return false;
+  if (q->key  == PCFG_WIDE_ANY)  return false;
+
+  return true;
+}
+
 // Whether two questions are the same. Offsets are compared relative to where the fragment stood, see
 // view_get (). amb is not compared, because mask_amb () derives it from off and want_len alone, both of
 // which are.
+//
+// aux is compared where the question reads it. A later contains= pass meets one letter list paired with
+// several capitalisation lists of one entry each, and each of them names its capitalisation as entry 0.
 
 static bool view_same (const pcfg_vreq_t *q, const pcfg_vreq_t *k)
 {
@@ -4555,6 +4575,8 @@ static bool view_same (const pcfg_vreq_t *q, const pcfg_vreq_t *k)
   if (q->key      != k->key)      return false;
 
   if ((q->off + k->base) != (k->off + q->base)) return false;
+
+  if ((view_reads_aux (q) == true) && (q->aux != k->aux)) return false;
 
   return true;
 }
@@ -4566,9 +4588,12 @@ static u32 view_hash (const pcfg_vreq_t *q)
 {
   const u32 rel = q->off - q->base;
 
+  const u64 aux = (view_reads_aux (q) == true) ? q->aux : 0;
+
   u64 h = ((u64) q->kind << 56) ^ ((u64) q->parent << 32) ^ ((u64) q->want_len << 16) ^ (u64) rel;
 
   h ^= q->key * 0x9e3779b97f4a7c15ULL;
+  h ^= aux    * 0xc2b2ae3d27d4eb4fULL;
   h ^= h >> 31;
   h *= 0xbf58476d1ce4e5b9ULL;
   h ^= h >> 29;
