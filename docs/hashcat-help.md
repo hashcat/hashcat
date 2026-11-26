@@ -68,7 +68,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --induction-dir             | Dir  | Specify the induction directory for loopback     | --induction=inducts
      --outfile-check-dir         | Dir  | Directory to monitor for 3rd party outfiles      | --outfile-check-dir=x
      --cache-path                | Dir  | Specify the directory hashcat caches in          | --cache-path=/mnt/hccache
-     --profile-dir               | Dir  | Specify the directory for potfiles and sessions  | --profile-dir=/mnt/hcdata
+     --profile-dir               | Dir  | Installed layout with potfiles and sessions here | --profile-dir=/mnt/hcdata
      --logfile-disable           |      | Disable the logfile                              |
      --eapol-message-pair        | Num  | Load only EAPOL message pairs matching X         | --eapol-message-pair=2
      --nonce-error-corrections   | Num  | BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
