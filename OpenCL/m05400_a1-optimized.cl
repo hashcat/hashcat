@@ -22,6 +22,8 @@ typedef struct ikepsk
   u32 msg_buf[128];
   u32 msg_len[6];
 
+  u32 ni_len;
+
 } ikepsk_t;
 
 DECLSPEC void hmac_sha1_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad)

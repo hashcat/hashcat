@@ -11,20 +11,16 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, random_number
 
-# where each of the eight fields sits in the 440 random message bytes and the 40 nonce bytes
-
-MSG_FIELDS = ((0, 128), (128, 128), (256, 8), (264, 8), (272, 160), (432, 8))
+# The SA and ID payloads and the two nonces vary in length on the wire. Random lengths make the
+# test check that each field comes back from hashcat with the length it went in with.
 
 
 def random_salt():
-  nr = random_bytes(40).hex()
-  msg = random_bytes(440).hex()
+  sizes = (128, 128, 8, 8, random_number(1, 160), random_number(1, 32), random_number(8, 27), random_number(8, 27))
 
-  fields = [msg[2 * off:2 * (off + size)] for off, size in MSG_FIELDS] + [nr[:40], nr[40:]]
-
-  return ":".join(fields)
+  return ":".join(random_bytes(size).hex() for size in sizes)
 
 
 def generate_hash(algo, word, salt):
