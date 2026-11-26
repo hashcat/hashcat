@@ -18,6 +18,10 @@ from lib.test_helpers import random_bytes, random_number
 
 
 def random_salt():
+  # Each nonce stops at 27 bytes: the optimized (-O) kernels of -m 5300 and
+  # -m 5400 hash the whole nonce pair in one 64-byte block, so a pair longer
+  # than 55 bytes is accepted by the parser but does not crack under -O.
+  # That is a kernel limit, not a test failure.
   sizes = (128, 128, 8, 8, random_number(1, 160), random_number(1, 32), random_number(8, 27), random_number(8, 27))
 
   return ":".join(random_bytes(size).hex() for size in sizes)
