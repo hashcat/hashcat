@@ -673,6 +673,7 @@ device. That is the one to use for a fast hash.
   9 | Association
  10 | PRINCE, chains of wordlist words make the candidates
  12 | Hybrid, the mask positions the word
+ 13 | Token Mask, each position draws a whole token from its charset
 .fi
 .SH BUILT\-IN CHARSETS
 .nf
@@ -722,6 +723,7 @@ Hardware reached through an assimilation bridge is selected by the hash\-mode, n
   PCFG + ruleset   | MD5   | hashcat \-a 4 \-m 0 example0.hash /path/to/ruleset
   Table            | MD5   | hashcat \-a 5 \-m 0 example0.hash example.dict tables/leetspeak\-common.table tables/toggle.table
   PRINCE           | MD5   | hashcat \-a 10 \-m 0 example0.hash example.dict
+  Token Mask       | MD5   | hashcat \-a 13 \-m 0 example0.hash ?1?1?1 \-1 tokensets/emoji.tokenset
   Combinator       | MD5   | hashcat \-a 1 \-m 0 example0.hash example.dict example.dict
   Generic          | $1$   | hashcat \-a 8 \-m 500 example500.hash feeds/feed_wordlist.so 1word.dict \-r rules/best66.rule
   Association      | $1$   | hashcat \-a 9 \-m 500 example500.hash 1word.dict \-r rules/best66.rule
