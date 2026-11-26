@@ -3023,12 +3023,33 @@ static u32 curve_floor_edge (const cpt_ctx_t *cpt_ctx, const u32 from, const u32
   return keep;
 }
 
+// The fit as the status view reads it out of cpt_ctx. The search for the floor takes tens of passes
+// over the points, so it fills one of these first, and status_curve_sample () publishes it whole.
+
+typedef struct curve_fit
+{
+  u32    never;
+  double inter;
+  double slope;
+  bool   have;
+
+  double s;
+  double xbar;
+  double sxx;
+  int    n;
+
+  bool   bounded;
+
+  u32    never_lo;
+  u32    never_hi;
+
+} curve_fit_t;
+
 // Returns false when there is not enough curve to fit anything.
 
-static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
+static bool curve_fit (const cpt_ctx_t *cpt_ctx, const u32 remaining, curve_fit_t *fit)
 {
-  cpt_ctx->curve_have    = false;
-  cpt_ctx->curve_bounded = false;
+  memset (fit, 0, sizeof (curve_fit_t));
 
   if (remaining == 0) return false;
 
@@ -3042,14 +3063,14 @@ static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
 
   if (f.ok == false) return false;
 
-  cpt_ctx->curve_never = never;
-  cpt_ctx->curve_inter = f.inter;
-  cpt_ctx->curve_slope = f.slope;
-  cpt_ctx->curve_s     = f.s;
-  cpt_ctx->curve_xbar  = f.xbar;
-  cpt_ctx->curve_sxx   = f.sxx;
-  cpt_ctx->curve_n     = f.n;
-  cpt_ctx->curve_have  = true;
+  fit->never = never;
+  fit->inter = f.inter;
+  fit->slope = f.slope;
+  fit->s     = f.s;
+  fit->xbar  = f.xbar;
+  fit->sxx   = f.sxx;
+  fit->n     = f.n;
+  fit->have  = true;
 
   // The band the floor could be anywhere in. One more parameter than the line costs one degree of
   // freedom, and a fit inside that much of the best one is a fit this data cannot tell apart from
@@ -3062,19 +3083,19 @@ static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
 
   if (f.n <= 3)
   {
-    cpt_ctx->curve_never_lo = 0;
-    cpt_ctx->curve_never_hi = remaining - 1;
+    fit->never_lo = 0;
+    fit->never_hi = remaining - 1;
 
     return true;
   }
 
-  cpt_ctx->curve_never_lo = never;
-  cpt_ctx->curve_never_hi = never;
-  cpt_ctx->curve_bounded  = true;
+  fit->never_lo = never;
+  fit->never_hi = never;
+  fit->bounded  = true;
 
   const double worst = f.sse * (1.0 + (1.0 / (double) (f.n - 3)));
 
-  cpt_ctx->curve_never_hi = curve_floor_edge (cpt_ctx, never, remaining - 1, worst);
+  fit->never_hi = curve_floor_edge (cpt_ctx, never, remaining - 1, worst);
 
   // Downwards the same bisection runs with the ends swapped, so it is written out rather than
   // folded into one function with a direction flag.
@@ -3082,7 +3103,7 @@ static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
   u32 lo = 0;
   u32 hi = never;
 
-  cpt_ctx->curve_never_lo = never;
+  fit->never_lo = never;
 
   while (true)
   {
@@ -3096,7 +3117,7 @@ static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
 
     if ((g.ok == true) && (g.sse <= worst))
     {
-      cpt_ctx->curve_never_lo = mid;
+      fit->never_lo = mid;
 
       hi = mid;
     }
@@ -3112,12 +3133,12 @@ static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
   // the band around it was a single digest wide, and both lines then reported a list that stops at
   // 4110 digests against the 5386 it went on to reach.
 
-  if (cpt_ctx->curve_never_lo >= cpt_ctx->curve_never_hi)
+  if (fit->never_lo >= fit->never_hi)
   {
-    cpt_ctx->curve_never_lo = 0;
-    cpt_ctx->curve_never_hi = remaining - 1;
+    fit->never_lo = 0;
+    fit->never_hi = remaining - 1;
 
-    cpt_ctx->curve_bounded = false;
+    fit->bounded = false;
   }
 
   return true;
@@ -3131,8 +3152,8 @@ static bool curve_fit (cpt_ctx_t *cpt_ctx, const u32 remaining)
 
 void status_curve_sample (hashcat_ctx_t *hashcat_ctx)
 {
-  cpt_ctx_t          *cpt_ctx    = hashcat_ctx->cpt_ctx;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   if (cpt_ctx->enabled == false) return;
   if (status_ctx->accessible == false) return;
@@ -3146,24 +3167,12 @@ void status_curve_sample (hashcat_ctx_t *hashcat_ctx)
     if (progress <= cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1].progress) return;
   }
 
-  if (cpt_ctx->curve_cnt == CURVE_SAMPLES)
-  {
-    for (int i = 0; i < (CURVE_SAMPLES / 2); i++)
-    {
-      cpt_ctx->curve_buf[i] = cpt_ctx->curve_buf[i * 2];
-    }
-
-    cpt_ctx->curve_cnt = CURVE_SAMPLES / 2;
-  }
-
   const u32 digests_cnt  = status_get_digests_cnt  (hashcat_ctx);
   const u32 digests_done = status_get_digests_done (hashcat_ctx);
 
   if (digests_done > digests_cnt) return;
 
   const u32 remaining = digests_cnt - digests_done;
-
-  cpt_ctx->curve_total = digests_cnt;
 
   // A list carrying cracks in from a potfile is not on its curve until this run cracks one of its
   // own, because until then the remainder it reports was reached by candidates somebody else spent.
@@ -3177,20 +3186,74 @@ void status_curve_sample (hashcat_ctx_t *hashcat_ctx)
     if (digests_done <= digests_done_pot) on_curve = false;
   }
 
+  const double msec_real = status_get_msec_real (hashcat_ctx);
+
+  // The status view reads the points and the fit under mux_display, on the keypress thread and on the
+  // main thread at the end of a round, so they change only under it as well. The search for the floor
+  // takes tens of passes over the points, so the fit runs outside the lock and is published whole. A
+  // view in the middle of the search would read a band of no width, which the rest of the search then
+  // widens.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
+  if (cpt_ctx->curve_cnt == CURVE_SAMPLES)
+  {
+    for (int i = 0; i < (CURVE_SAMPLES / 2); i++)
+    {
+      cpt_ctx->curve_buf[i] = cpt_ctx->curve_buf[i * 2];
+    }
+
+    cpt_ctx->curve_cnt = CURVE_SAMPLES / 2;
+  }
+
+  cpt_ctx->curve_total = digests_cnt;
+
   cpt_ctx->curve_buf[cpt_ctx->curve_cnt].progress  = progress;
   cpt_ctx->curve_buf[cpt_ctx->curve_cnt].remaining = remaining;
-  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].when      = time (NULL);
+  cpt_ctx->curve_buf[cpt_ctx->curve_cnt].msec_real = msec_real;
   cpt_ctx->curve_buf[cpt_ctx->curve_cnt].on_curve  = on_curve;
 
   cpt_ctx->curve_cnt++;
 
-  curve_fit (cpt_ctx, remaining);
+  const int curve_cnt = cpt_ctx->curve_cnt;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
+
+  // Only this thread adds points, so the ones the fit reads hold still.
+
+  curve_fit_t fit;
+
+  curve_fit (cpt_ctx, remaining, &fit);
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
+  // A round that started meanwhile has cleared the points, and this fit is of the round before it.
+
+  if (cpt_ctx->curve_cnt == curve_cnt)
+  {
+    cpt_ctx->curve_never    = fit.never;
+    cpt_ctx->curve_inter    = fit.inter;
+    cpt_ctx->curve_slope    = fit.slope;
+    cpt_ctx->curve_have     = fit.have;
+    cpt_ctx->curve_s        = fit.s;
+    cpt_ctx->curve_xbar     = fit.xbar;
+    cpt_ctx->curve_sxx      = fit.sxx;
+    cpt_ctx->curve_n        = fit.n;
+    cpt_ctx->curve_bounded  = fit.bounded;
+    cpt_ctx->curve_never_lo = fit.never_lo;
+    cpt_ctx->curve_never_hi = fit.never_hi;
+  }
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 }
 
 // The candidates a second the run has achieved, over its whole span. A window would be a choice of
 // window, and the span is what the run has actually done. It lags a speed that is still climbing,
 // which makes the conversion conservative, and the conversion is the only part of the outlook that
 // knows about time at all.
+//
+// The span is measured on the clock of the attack, which stops while the run is paused. A pause
+// spends no candidates, and on the wall clock it would lower the rate until the run had made up for it.
 
 static double curve_rate (const cpt_ctx_t *cpt_ctx)
 {
@@ -3199,12 +3262,12 @@ static double curve_rate (const cpt_ctx_t *cpt_ctx)
   const curve_point_t *first = &cpt_ctx->curve_buf[0];
   const curve_point_t *last  = &cpt_ctx->curve_buf[cpt_ctx->curve_cnt - 1];
 
-  const time_t span = last->when - first->when;
+  const double span = (last->msec_real - first->msec_real) / 1000;
 
   if (span <= 0) return 0;
   if (last->progress <= first->progress) return 0;
 
-  const double rate = (double) (last->progress - first->progress) / (double) span;
+  const double rate = (double) (last->progress - first->progress) / span;
 
   return rate;
 }
@@ -3355,6 +3418,21 @@ double status_get_recovered_limit_percent (const hashcat_ctx_t *hashcat_ctx)
   return percent;
 }
 
+// One projection of the Recovered/Time line. Zero is curve_project () saying it has nothing worth
+// saying, which is not a forecast of no digests at all.
+
+static void status_est_format (char *buf, const size_t buf_size, const int est)
+{
+  if (est > 0)
+  {
+    snprintf (buf, buf_size, "%d", est);
+
+    return;
+  }
+
+  snprintf (buf, buf_size, "N/A");
+}
+
 char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 {
   char *cpt;
@@ -3376,27 +3454,25 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   // available through status_get_cpt_avg_min () and the two multiplied out forms through _hour () and
   // _day ().
 
-  const int est_min  = status_get_recovered_est_min  (hashcat_ctx);
-  const int est_hour = status_get_recovered_est_hour (hashcat_ctx);
-  const int est_day  = status_get_recovered_est_day  (hashcat_ctx);
+  // Each window passes or fails the test in curve_project () on its own, so each one says N/A for
+  // itself. Following the minute for all three would hide an hour and a day that pass behind a minute
+  // that does not, and print a window that does not pass as a total of 0.
 
-  if (est_min > 0)
-  {
-    hc_asprintf (&cpt, "CUR:%d,%d,%d EST:%d,%d,%d (Min,Hour,Day)",
-      cpt_cur_min,
-      cpt_cur_hour,
-      cpt_cur_day,
-      est_min,
-      est_hour,
-      est_day);
-  }
-  else
-  {
-    hc_asprintf (&cpt, "CUR:%d,%d,%d EST:N/A,N/A,N/A (Min,Hour,Day)",
-      cpt_cur_min,
-      cpt_cur_hour,
-      cpt_cur_day);
-  }
+  char est_min[16];
+  char est_hour[16];
+  char est_day[16];
+
+  status_est_format (est_min,  sizeof (est_min),  status_get_recovered_est_min  (hashcat_ctx));
+  status_est_format (est_hour, sizeof (est_hour), status_get_recovered_est_hour (hashcat_ctx));
+  status_est_format (est_day,  sizeof (est_day),  status_get_recovered_est_day  (hashcat_ctx));
+
+  hc_asprintf (&cpt, "CUR:%d,%d,%d EST:%s,%s,%s (Min,Hour,Day)",
+    cpt_cur_min,
+    cpt_cur_hour,
+    cpt_cur_day,
+    est_min,
+    est_hour,
+    est_day);
 
   return cpt;
 }

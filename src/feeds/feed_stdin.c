@@ -86,9 +86,9 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_AUTOHEX
 
 #define STDIN_SELECT_SEC 1
 
-// After this many successful reads the stream is taken to be a pipe rather than a keyboard, and the
-// timeout is dropped. The number is the old producer's and the reason is the same: select () per read
-// is a real cost on a fast pipe and it buys nothing once something is clearly feeding it.
+// After this many successful reads the stream is taken to be a pipe rather than a keyboard, and its
+// idle seconds stop counting towards --stdin-timeout-abort. The number is the old producer's, which
+// waited for every line and dropped the wait here because that cost a syscall per line.
 
 #define STDIN_DISABLE_READ_TIMEOUT_AFTER 1000
 
@@ -313,12 +313,25 @@ static HC_API_CALL void *stdin_reader (void *p)
 
     carry_len = 0;
 
-    // Wait for something to arrive, but not so long that a session being stopped goes unnoticed. Once
-    // the stream has proved itself this is dropped, because it costs a syscall per read and an
-    // interactive user is long gone by then. Under --stdin-timeout-flush it stays, because the idle
-    // seconds it counts are what --stdin-timeout-abort goes by for the whole session.
+    // Wait for something to arrive, but not so long that a session being stopped goes unnoticed. A read
+    // that blocks sees no stop at all, so on a pipe gone idle a SIGTERM or a --runtime abort would wait
+    // until the producer writes again or closes it. The wait costs one syscall per read, and each read
+    // takes whatever the pipe holds, up to a block.
+    //
+    // The idle seconds count towards --stdin-timeout-abort until the stream has proved itself, and for
+    // the whole session under --stdin-timeout-flush. On Windows a pipe is polled in steps of 10 ms, and
+    // a reader that has emptied the pipe would sleep a step before every read, so the wait goes with the
+    // count there. A stop on a pipe gone idle then still waits for the producer, as it always has.
 
-    if ((stdin_global->selects_returned < STDIN_DISABLE_READ_TIMEOUT_AFTER) || (stdin_global->flush_sec > 0))
+    const bool count_idle = (stdin_global->selects_returned < STDIN_DISABLE_READ_TIMEOUT_AFTER) || (stdin_global->flush_sec > 0);
+
+    #if defined (_WIN)
+    const bool wait_timed = count_idle;
+    #else
+    const bool wait_timed = true;
+    #endif
+
+    if (wait_timed == true)
     {
       int rc_select = 0;
 
@@ -332,7 +345,18 @@ static HC_API_CALL void *stdin_reader (void *p)
         {
           if (status_ctx->run_thread_level1 == false) break;
 
-          status_ctx->stdin_read_timeout_cnt++;
+          // global_term () can tear the feed down while the run flags are still up, once a --limit
+          // window has run out or a session ended before its attack, and it waits for this thread.
+
+          hc_thread_mutex_lock (stdin_global->mux);
+
+          const bool stopping = stdin_global->stop;
+
+          hc_thread_mutex_unlock (stdin_global->mux);
+
+          if (stopping == true) break;
+
+          if (count_idle == true) status_ctx->stdin_read_timeout_cnt++;
         }
       }
 

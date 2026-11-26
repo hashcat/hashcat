@@ -1765,9 +1765,10 @@ typedef struct curve_point
   u32       remaining;
 
   // When the point was taken, which is what turns a window of seconds into a span of candidates.
-  // The curve itself is in candidates and knows nothing about the clock.
+  // It is the running time of the attack in milliseconds, see status_get_msec_real (), which leaves
+  // out the time spent paused. The curve itself is in candidates and knows nothing about the clock.
 
-  time_t    when;
+  double    msec_real;
 
   // Whether this point lies on the curve this attack is walking. A run restarted on a list an
   // earlier run already cracked re-walks those candidates with the answers sitting in the potfile,

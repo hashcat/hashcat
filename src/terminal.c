@@ -399,6 +399,19 @@ static void keypress_seek (hashcat_ctx_t *hashcat_ctx, const int direction, cons
   if (quiet == false) send_prompt (hashcat_ctx);
 }
 
+// The statuses of a session that is not attacking yet: autodetect, the kernel builds, the self-test
+// and autotune, the last two again for every later round of a queue.
+
+static bool keypress_too_early (const u32 devices_status)
+{
+  if (devices_status == STATUS_INIT)       return true;
+  if (devices_status == STATUS_AUTODETECT) return true;
+  if (devices_status == STATUS_SELFTEST)   return true;
+  if (devices_status == STATUS_AUTOTUNE)   return true;
+
+  return false;
+}
+
 static void keypress (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -411,7 +424,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   // be echoed into the output and then thrown away: canonical mode holds a line until a newline
   // arrives, and turning ICANON off does not hand the partial line to read (). So a user who hit q
   // while hashcat was still compiling saw a stray q in the log, no quit, and had to send a signal.
-  // With the mode changed first the key waits in the input queue and the loop reads it as soon as
+  // With the mode changed first the key waits in the input queue, and the loop acts on it as soon as
   // the attack is running.
 
   tty_break ();
@@ -431,6 +444,15 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
     // arrows, so those two keys do nothing here, not even redraw the prompt.
 
     if ((ch == TTY_KEY_UP) || (ch == TTY_KEY_DOWN)) continue;
+
+    // A key that arrives while the session is still starting is held until the attack runs. The wait
+    // above ends when the status leaves STATUS_INIT, which the self-test or autotune does long before
+    // the attack, and autodetect leaves it before that wait even begins. The commands below are for a
+    // running attack, and myquit () refuses any other session, so a q would be read and dropped.
+
+    while ((status_ctx->shutdown_outer == false) && (keypress_too_early (status_ctx->devices_status) == true)) usleep (100000);
+
+    if (status_ctx->shutdown_outer == true) break;
 
     //https://github.com/hashcat/hashcat/issues/302
     //#if defined (_POSIX)

@@ -307,7 +307,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
-  status_ctx->devices_status = STATUS_INIT;
+  // A quit is kept for the check ahead of autotune, see outer_loop ().
+
+  if (status_ctx->devices_status != STATUS_ABORTED) status_ctx->devices_status = STATUS_INIT;
 
   logfile_generate_subid (hashcat_ctx);
 
@@ -667,6 +669,19 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
+  // A quit while this round was set up ends it ahead of autotune, which looks at no run flag. This
+  // round and the loops above it raised some of the run flags again, so they are cleared once more,
+  // or every later round of a queue would be set up only to end here as well.
+
+  if (status_ctx->devices_status == STATUS_ABORTED)
+  {
+    myabort (hashcat_ctx);
+
+    logfile_sub_msg ("STOP");
+
+    return 0;
+  }
+
   /**
    * limit kernel loops by the amplification count we have from:
    * - straight_ctx, combinator_ctx or mask_ctx for fast hashes
@@ -788,7 +803,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->finished_pending = false;
 
-  status_ctx->devices_status = STATUS_RUNNING;
+  // A quit during autotune, or one sent from the EVENT_CRACKER_STARTING handler, has cleared the run
+  // flags already, and the threads below stop at once. The round has to end as aborted, not as
+  // exhausted.
+
+  if (status_ctx->devices_status != STATUS_ABORTED) status_ctx->devices_status = STATUS_RUNNING;
 
   // A status snapshot taken between rounds borrows its strings from hashcat_status_final, and
   // status_status_destroy () reads this flag to decide whether to free them. The keypress and monitor
@@ -1212,7 +1231,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   user_options_t       *user_options        = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
-  status_ctx->devices_status = STATUS_INIT;
+  // myabort () marks a quit in devices_status, and the session acts on it between the startup phases
+  // below, none of which looks at a run flag. A status set over it here would leave the quit to be
+  // noticed only once the attack starts.
+
+  if (status_ctx->devices_status != STATUS_ABORTED) status_ctx->devices_status = STATUS_INIT;
 
   //status_ctx->run_main_level1   = true;
   status_ctx->run_main_level2   = true;
@@ -1897,6 +1920,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_BRIDGES_SALT_POST);
 
+  // A quit while the hashes were loaded and the attack was set up. The kernel builds below can take
+  // minutes on a cold cache.
+
+  if (status_ctx->devices_status == STATUS_ABORTED)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return 0;
+  }
+
   /**
    * inform the user
    */
@@ -1935,6 +1968,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
 
   EVENT (EVENT_BACKEND_SESSION_POST);
+
+  // A quit during the kernel builds, which nothing interrupts, ends the session once they are done.
+
+  if (status_ctx->devices_status == STATUS_ABORTED)
+  {
+    backend_session_destroy (hashcat_ctx);
+
+    outer_loop_destroy (hashcat_ctx);
+
+    return 0;
+  }
 
   /**
    * create self-test threads
@@ -2010,9 +2054,18 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       }
     }
 
-    status_ctx->devices_status = STATUS_INIT;
+    if (status_ctx->devices_status != STATUS_ABORTED) status_ctx->devices_status = STATUS_INIT;
 
     EVENT (EVENT_SELFTEST_FINISHED);
+  }
+
+  if (status_ctx->devices_status == STATUS_ABORTED)
+  {
+    backend_session_destroy (hashcat_ctx);
+
+    outer_loop_destroy (hashcat_ctx);
+
+    return 0;
   }
 
   /**
