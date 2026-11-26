@@ -223,6 +223,28 @@ void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
   hc_fclose (&potfile_ctx->fp);
 }
 
+// An xz or zstd potfile is read like any other, but nothing can append to one. A run that is going
+// to crack is told so before it builds its kernels rather than when potfile_write_open () comes to
+// open the file. --show and --left only read it, and they are done before this is asked.
+
+int potfile_write_check (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+  if (potfile_ctx->enabled == false) return 0;
+
+  if (hashconfig->potfile_disable == true) return 0;
+
+  const char *container = hc_path_container_name (potfile_ctx->filename);
+
+  if ((strcmp (container, "xz") != 0) && (strcmp (container, "zstd") != 0)) return 0;
+
+  event_log_error (hashcat_ctx, "%s: Cannot append to an existing %s file. Decompress it or choose another file.", potfile_ctx->filename, container);
+
+  return -1;
+}
+
 int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
@@ -250,6 +272,12 @@ void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
   if (potfile_ctx->enabled == false) return;
 
   if (hashconfig->potfile_disable == true) return;
+
+  // zlib writes once more when a gzip potfile is closed, an empty member at least, so that happens
+  // under the lock too, and closing the file releases it. A batch that was cut short still holds the
+  // lock, and taking it a second time would wait forever on Windows.
+
+  if (potfile_ctx->batch_depth == 0) hc_lockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 
   hc_fclose (&potfile_ctx->fp);
 }

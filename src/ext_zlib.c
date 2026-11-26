@@ -36,8 +36,7 @@ static const char *const ZLIB_SONAMES[] =
 // recent one would refuse a library that can do everything hashcat wants. gzread and gzwrite are used
 // rather than gzfread and gzfwrite for the same reason, those two being 1.2.9 and later.
 //
-// gzbuffer only sets a buffer size and gzvprintf is only reached when writing a gzip file, which
-// nothing does, so neither is worth refusing a library over.
+// gzbuffer only sets a buffer size, so it is not worth refusing a library over.
 //
 // The 64 bit names are asked for directly. zlib's header turns gzopen into gzopen64 and gzseek into
 // gzseek64 through a macro when the build wants large files, and a macro is not something dlsym can
@@ -81,7 +80,6 @@ static const hc_dynlib_sym_t ZLIB_SYMS[] =
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzputc,        true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzgetc,        true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzgets,        true),
-  HC_DYNLIB_SYM (hc_zlib_lib_t, gzvprintf,     false),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzeof,         true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzflush,       true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzclose,       true),

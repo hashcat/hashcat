@@ -21,6 +21,7 @@
 #define RULE_OP_MANGLE_EXTRACT           'x'  // extract X chars of word at pos N
 #define RULE_OP_MANGLE_OMIT              'O'  // omit X chars of word at pos N
 #define RULE_OP_MANGLE_INSERT            'i'  // insert char X at pos N
+#define RULE_OP_MANGLE_INSERT_STRING     'A'  // insert string STR at pos N, or append it for N = z. ex: A2"xy" on hello -> hexyllo
 #define RULE_OP_MANGLE_INSERT_EVERY      'v'  // insert char X every N chars
 #define RULE_OP_MANGLE_OVERSTRIKE        'o'  // overwrite with char X at pos N
 #define RULE_OP_MANGLE_TRUNCATE_AT       '\'' // cut the word at pos N
@@ -97,7 +98,7 @@ A character outside ASCII occupies more than one byte in UTF-8. It can be writte
   $\xe2$\x84$\x96
   $<the character>
 
-The five operations that emit bytes accept a directly written character: `$`, `^`, `i`, `v` and `o`. Such a character compiles to one operation per byte, exactly as the escaped form spells out explicitly. The rule engine remains byte-oriented, and both forms consume the same number of the 31 available operations. A three-byte character consumes three operations, and hashcat identifies and rejects any rule that would exceed the limit.
+The six operations that emit bytes accept a directly written character: `$`, `^`, `i`, `v`, `o` and the string of `A`. Such a character compiles to one operation per byte, exactly as the escaped form spells out explicitly. The rule engine remains byte-oriented, and both forms consume the same number of the 31 available operations. A three-byte character consumes three operations, and hashcat identifies and rejects any rule that would exceed the limit.
 
 A byte that is not part of a complete UTF-8 sequence retains its literal one-byte meaning, so rule files containing raw bytes are unaffected.
 
@@ -106,3 +107,11 @@ Byte order depends on the operation. Append, insert and overwrite process bytes 
   ^\xa9^\xc3
 
 The rule engine remains byte-oriented throughout. Matching and counting operations such as `@`, `s`, `e` and the rejection rules test individual bytes and can split a multibyte character. Position arguments for operations such as `D`, `x` and `O` are byte offsets, while `<` and `>` compare byte lengths. A word containing six non-ASCII characters can therefore have a rule length of 12 bytes.
+
+/* inserting a string */
+
+A inserts a whole string with one function, as JtR's AN"STR" does. The character after N opens the string, and its next occurrence closes it. Any character that does not occur in STR can therefore serve as the delimiter: A2"xy", A2/xy/ and A2.xy. are the same rule. N = 0 prepends the string and N = z appends it.
+
+STR accepts `\xHH` like any other operand. The escape is decoded before the closing delimiter is searched for. An escaped delimiter therefore still closes the string.
+
+A compiles to one append, prepend or insert per byte of STR. Each byte consumes one of the 31 available operations, the same as each byte of a multibyte character. A position is written as a single character, 0 to 9 and A to Z, so the last byte of STR cannot land past position 35. A rule that would put it there is rejected, except for N = z.

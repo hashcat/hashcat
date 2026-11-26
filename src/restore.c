@@ -314,7 +314,7 @@ static bool restore_arg_is_ours (const char *arg)
   return false;
 }
 
-static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir);
+static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir, MAYBE_UNUSED const char *install_folder, const char *shared_folder);
 
 // The check value ties the argv slot to this low half. An older hashcat writes a pointer back there
 // when that hashcat resumes the file and saves it again, and the check keeps it from being taken for a
@@ -349,7 +349,7 @@ static u64 restore_read_words_cur_hi (MAYBE_UNUSED const restore_data_t *rd)
   #endif
 }
 
-static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const bool with_chdir)
+static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const bool with_chdir, const char *install_folder, const char *shared_folder)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
@@ -396,7 +396,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
 
     hc_fclose (&fp);
 
-    return check_restore_cwd (hashcat_ctx, with_chdir);
+    return check_restore_cwd (hashcat_ctx, with_chdir, install_folder, shared_folder);
   }
 
   // we only use these 2 checks to avoid "tainted string" warnings
@@ -469,10 +469,10 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
 
   hc_fclose (&fp);
 
-  return check_restore_cwd (hashcat_ctx, with_chdir);
+  return check_restore_cwd (hashcat_ctx, with_chdir, install_folder, shared_folder);
 }
 
-static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir)
+static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir, MAYBE_UNUSED const char *install_folder, const char *shared_folder)
 {
   restore_ctx_t   *restore_ctx   = hashcat_ctx->restore_ctx;
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -515,8 +515,21 @@ static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir)
 
     hcfree (cwd);
 
+    // The folders are set up again below from the ones the session was given. What the first set up
+    // made of them would give a copy that runs from its own folder the installed layout. The install
+    // folder is resolved before the chdir (), as the first set up resolved it, so that a relative one
+    // names the same folder. One that did not resolve was taken as / then, and NULL is / as well.
+
+    char *install_folder_real = NULL;
+
+    #if defined (_POSIX)
+    if (install_folder != NULL) install_folder_real = realpath (install_folder, NULL);
+    #endif
+
     if (chdir (rd->cwd))
     {
+      hcfree (install_folder_real);
+
       char *cwd_err = restore_str_escape (rd->cwd);
 
       event_log_error (hashcat_ctx, "Directory '%s' needed to restore the session was not found.", cwd_err);
@@ -538,17 +551,11 @@ static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir)
      * updated folders
      */
 
-    // copy the paths of INSTALL_FOLDER and SHARED_FOLDER from the folder config:
-
-    char *install_folder = hcstrdup (folder_config->install_dir);
-    char *shared_folder  = hcstrdup (folder_config->shared_dir);
-
     folder_config_destroy (hashcat_ctx);
 
-    const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder);
+    const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder_real, shared_folder);
 
-    hcfree (install_folder);
-    hcfree (shared_folder);
+    hcfree (install_folder_real);
 
     if (rc_folder_config_init == -1) return -1;
 
@@ -1029,7 +1036,7 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
   event_log_warning (hashcat_ctx, NULL);
 }
 
-int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
+int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv, const char *install_folder, const char *shared_folder)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   restore_ctx_t   *restore_ctx   = hashcat_ctx->restore_ctx;
@@ -1084,7 +1091,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
     const bool with_argv  = (user_options->restore == true);
     const bool with_chdir = (user_options->restore == false);
 
-    if (read_restore (hashcat_ctx, with_argv, with_chdir) == -1) return -1;
+    if (read_restore (hashcat_ctx, with_argv, with_chdir, install_folder, shared_folder) == -1) return -1;
 
     restore_data_t *rd = restore_ctx->rd;
 

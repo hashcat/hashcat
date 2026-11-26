@@ -98,7 +98,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --induction-dir             | Dir  | Specify the induction directory for loopback     | --induction=inducts",
   "     --outfile-check-dir         | Dir  | Directory to monitor for 3rd party outfiles      | --outfile-check-dir=x",
   "     --cache-path                | Dir  | Specify the directory hashcat caches in          | --cache-path=/mnt/hccache",
-  "     --profile-dir               | Dir  | Specify the directory for potfiles and sessions  | --profile-dir=/mnt/hcdata",
+  "     --profile-dir               | Dir  | Installed layout with potfiles and sessions here | --profile-dir=/mnt/hcdata",
   "     --logfile-disable           |      | Disable the logfile                              |",
   USAGE_MODULE_OPTIONS,
   " -b, --benchmark                 |      | Run benchmark of selected hash-modes             |",

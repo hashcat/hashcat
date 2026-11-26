@@ -23,6 +23,13 @@
 #define HCFILE_CHUNK_SIZE 4 * 1024 * 1024
 #endif
 
+// A gzip write that is at least as long as zlib's input buffer is compressed straight out of the
+// caller's memory. If it then fails, the stream points there until gzclose () finishes it, and
+// --stdout frees the memory of a rules batch before it closes the file. A shorter write is copied in
+// first. 4 KiB is shorter than the 8 KiB default of every zlib that has such a buffer.
+
+#define HCFILE_GZ_CHUNK_SIZE 4096
+
 // zlib's own handle, and the library it came from. types.h can then name the type without
 // including zlib.h, and a read reaches the function pointers without a lookup of its own.
 
@@ -31,6 +38,11 @@ struct gzfile
   const hc_zlib_lib_t *z;
 
   hc_gzfile_t fp;
+
+  // Whether a flush may finish the member. gzbuffer () answers 0 only in the zlib that starts a new
+  // member at the next write, and a stub of it in an older one answers -1.
+
+  bool finish_flush;
 };
 
 // A reader over a buffer the caller owns. Nothing here copies and nothing here frees the buffer: one
@@ -74,6 +86,21 @@ static bool zstd_magic (const u8 *check)
   if ((check[0] >= 0x50) && (check[0] <= 0x5f)) return true;
 
   return false;
+}
+
+// Whether the first bytes of a path may be read to tell its format. A fifo would lose them and a
+// terminal would wait for a line, so a path stat () calls anything but a regular file is left alone.
+// One that stat () cannot describe is still read, because open () may reach it all the same.
+
+static bool path_sniffable (const char *path)
+{
+  struct stat s;
+
+  if (stat (path, &s) == -1) return true;
+
+  const bool regular = (S_ISREG (s.st_mode) != 0);
+
+  return regular;
 }
 
 // An .xz reader over the descriptor hc_fopen already opened, so there is one handle for the file
@@ -530,6 +557,15 @@ static void fopen_codec_missing (const char *format, const char *detail, const c
   errno = ENOSYS;
 }
 
+static void fopen_append_unsupported (const char *format)
+{
+  snprintf (fopen_err_buf, sizeof (fopen_err_buf), "Cannot append to an existing %s file. Decompress it or choose another file", format);
+
+  fopen_err_set = true;
+
+  errno = ENOSYS;
+}
+
 const char *hc_fopen_strerror (void)
 {
   if (fopen_err_set == true) return fopen_err_buf;
@@ -562,7 +598,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  bool is_read = false;
+  bool is_read  = false;
+  bool is_write = false;
 
   if (strncmp (mode, "a", 1) == 0)
   {
@@ -587,6 +624,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   {
     oflag = O_WRONLY | O_CREAT | O_TRUNC | HC_O_NOINHERIT;
 
+    is_write = true;
+
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
     if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
     #endif
@@ -602,9 +641,10 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   bool is_gzip = false;
   bool is_xz   = false;
   bool is_zstd = false;
-  bool is_fifo = hc_path_is_fifo (path);
 
-  if (is_fifo == false)
+  // "w" replaces what the file holds, so the old content says nothing about the format to write
+
+  if ((path_sniffable (path) == true) && (is_write == false))
   {
     int fd_tmp = open (path, O_RDONLY | HC_O_NOINHERIT);
 
@@ -630,6 +670,23 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
       close (fd_tmp);
     }
+  }
+
+  // There is no xz or zstd encoder here, so every append to such a file would be lost. Only gzip
+  // has one, and it appends a new member.
+
+  if ((is_read == false) && (is_xz == true))
+  {
+    fopen_append_unsupported ("xz");
+
+    return false;
+  }
+
+  if ((is_read == false) && (is_zstd == true))
+  {
+    fopen_append_unsupported ("zstd");
+
+    return false;
   }
 
   if (fmode == -1)
@@ -679,7 +736,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
       return false;
     }
 
-    if (z->gzbuffer) z->gzbuffer (gfp->fp, HCFILE_BUFFER_SIZE);
+    gfp->finish_flush = (z->gzbuffer != NULL) && (z->gzbuffer (gfp->fp, HCFILE_BUFFER_SIZE) == 0);
 
     fp->gfp = gfp;
   }
@@ -823,7 +880,14 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   }
   else
   {
-    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)
+    {
+      close (fp->fd);
+
+      fp->fd = -1;
+
+      return false;
+    }
 
     if (fp->bom_size)
     {
@@ -954,7 +1018,14 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
   if (fp->fd == -1) return false;
 
-  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)
+  {
+    close (fp->fd);
+
+    fp->fd = -1;
+
+    return false;
+  }
 
   fp->path = path;
   fp->mode = mode;
@@ -1150,7 +1221,7 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     {
       const size_t left = want - done;
 
-      const unsigned int chunk = (left > 0x40000000) ? 0x40000000 : (unsigned int) left;
+      const u32 chunk = (u32) MIN (left, (size_t) HCFILE_GZ_CHUNK_SIZE);
 
       const int got = fp->gfp->z->gzwrite (fp->gfp->fp, (const u8 *) ptr + done, chunk);
 
@@ -1598,6 +1669,27 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   return r;
 }
 
+// The gzvprintf () of zlib formats into its own buffer, and for a string that does not fit there it
+// writes nothing and reports no error. A potfile line can be far longer than that buffer, so the line
+// is formatted here and written as data.
+
+static int gz_vprintf (HCFILE *fp, const char *format, va_list ap)
+{
+  char *buf = NULL;
+
+  const int len = vasprintf (&buf, format, ap);
+
+  if (len < 0) return -1;
+
+  const size_t written = hc_fwrite (buf, 1, (size_t) len, fp);
+
+  hcfree (buf);
+
+  if (written != (size_t) len) return -1;
+
+  return len;
+}
+
 int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
 {
   int r = -1;
@@ -1610,7 +1702,7 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
   }
   else if (fp->gfp)
   {
-    if (fp->gfp->z->gzvprintf) r = fp->gfp->z->gzvprintf (fp->gfp->fp, format, ap);
+    r = gz_vprintf (fp, format, ap);
   }
 
   return r;
@@ -1632,7 +1724,7 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
   }
   else if (fp->gfp)
   {
-    if (fp->gfp->z->gzvprintf) r = fp->gfp->z->gzvprintf (fp->gfp->fp, format, ap);
+    r = gz_vprintf (fp, format, ap);
   }
 
   va_end (ap);
@@ -1709,7 +1801,13 @@ void hc_fflush (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    fp->gfp->z->gzflush (fp->gfp->fp, HC_Z_SYNC_FLUSH);
+    // A member finished at each flush is complete when the lock is released, so another process
+    // appending to the same file cannot split it. zlib starts the next member with the next write. An
+    // older zlib could not write again after finishing, so it only syncs.
+
+    const int flush = (fp->gfp->finish_flush == true) ? HC_Z_FINISH : HC_Z_SYNC_FLUSH;
+
+    fp->gfp->z->gzflush (fp->gfp->fp, flush);
   }
 }
 
@@ -2037,6 +2135,34 @@ bool hc_path_is_compressed (const char *path)
   if (memcmp (check, XZ_SIG, sizeof (XZ_SIG)) == 0) return true;
 
   return false;
+}
+
+// The container a file holds by the tests hc_fopen () makes, on the same zero padded first bytes, and
+// for the same paths. Anything else answers "", so a terminal named as an output file is never read.
+
+const char *hc_path_container_name (const char *path)
+{
+  if (path_sniffable (path) == false) return "";
+
+  u8 check[8] = { 0 };
+
+  const int fd = open (path, O_RDONLY | HC_O_NOINHERIT);
+
+  if (fd == -1) return "";
+
+  const ssize_t nread = read (fd, check, sizeof (check));
+
+  close (fd);
+
+  if (nread <= 0) return "";
+
+  if ((check[0] == 0x1f) && (check[1] == 0x8b) && (check[2] == 0x08)) return "gzip";
+
+  if (memcmp (check, XZ_SIG, sizeof (XZ_SIG)) == 0) return "xz";
+
+  if (zstd_magic (check) == true) return "zstd";
+
+  return "";
 }
 
 bool hc_path_has_bom (const char *path)

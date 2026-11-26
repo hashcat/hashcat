@@ -1219,7 +1219,7 @@ Header `shared.h` was split, so include the header that now owns each helper. Pa
 
 ## Porting a plugin from 8.0.0 ##
 
-The C source of a plugin written for hashcat 8.0.0 needs no change. Its `module_init()` assigns `MODULE_DEFAULT` to every callback it does not implement, and hashcat accepts that as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
+The C source of a plugin written for hashcat 8.0.0 builds unchanged, with one exception. Header `modules.h` no longer declares the callbacks. A module that calls one of its own callbacks above the line defining it therefore needs a declaration of that callback, the way `src/modules/module_02500.c` declares `module_hash_decode()`. Without one, GCC 14 and clang 16 stop at the call as an implicit declaration. A `module_init()` that assigns `MODULE_DEFAULT` to every callback it does not implement is accepted as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
 
 Five hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above, `module_tune_variants`, see `module_tune_variants()` above, and `module_salt_sweep`, see `module_salt_sweep()` above. Leaving them unassigned preserves the previous behavior. The kernel parameters gained `salts_cnt`, which only the kernels of a mode with `module_salt_sweep` read.
 

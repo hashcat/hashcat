@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "event.h"
 #include "shared.h"
 #include "filehandling.h"
@@ -212,18 +213,32 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_ctx->mode = user_options->debug_mode;
 
+  // a copy either way, so that debugfile_destroy () has one thing to free
+
   if (user_options->debug_file == NULL)
   {
     hc_asprintf (&debugfile_ctx->filename, "%s/hashcat.debugfile", folder_config->profile_dir);
   }
   else
   {
-    debugfile_ctx->filename = user_options->debug_file;
+    debugfile_ctx->filename = hcstrdup (user_options->debug_file);
+  }
+
+  // Lines go only to a debug file that is a plain file, so a compressed one would lose them all. It
+  // is asked before the open, which for gzip would already write to it.
+
+  const char *container = hc_path_container_name (debugfile_ctx->filename);
+
+  if (container[0] != 0)
+  {
+    event_log_error (hashcat_ctx, "%s: Cannot append to an existing %s file. Decompress it or choose another file.", debugfile_ctx->filename, container);
+
+    return -1;
   }
 
   if (hc_fopen (&debugfile_ctx->fp, debugfile_ctx->filename, "ab") == false)
   {
-    event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
+    event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, hc_fopen_strerror ());
 
     return -1;
   }
@@ -241,6 +256,8 @@ void debugfile_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     hc_fclose (&debugfile_ctx->fp);
   }
+
+  hcfree (debugfile_ctx->filename);
 
   memset (debugfile_ctx, 0, sizeof (debugfile_ctx_t));
 }

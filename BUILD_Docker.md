@@ -47,13 +47,15 @@ A ref older than v8.0.0 is refused rather than built. This file passes `CC_WIN=c
 
 ### Output ###
 
-Using the default settings, the resulting output package will be located in: `/root/xy/hashcat-<version>.7z`,
-or `hashcat-<version>-<compiler>.7z` if both `USE_GCC` and `USE_CLANG` are set to 1.
+Using the default settings, the resulting output packages will be located in: `/root/xy/hashcat-<version>.7z` and `/root/xy/hashcat-<version>.zip`,
+or `hashcat-<version>-<compiler>.7z` and `hashcat-<version>-<compiler>.zip` if both `USE_GCC` and `USE_CLANG` are set to 1.
+The zip holds the same tree as the 7z, for winget, which installs portable applications from zip archives only.
+A ref from before the zip was added, v8.0.0 among them, produces the 7z alone.
 
 `<version>` is the version the built binary reports, which the package script asks the Makefile for rather than writing out itself.
 A tag gives the release version on its own, `hashcat-8.0.0.7z`. Any other commit gives git's description of it, `hashcat-8.0.0-9-g1234abc.7z`, so a beta package is distinguishable from the release and from another beta.
 
-You can copy it to your host with this command:
+You can copy both to your host with this command:
 
 ```bash
 docker run --rm \
@@ -61,10 +63,10 @@ docker run --rm \
   -e HOST_GID=$(id -g) \
   -v $(pwd):/out \
   hashcat_binaries:16.04 \
-  bash -c "cp /root/xy/hashcat-*.7z /out && chown \$HOST_UID:\$HOST_GID /out/hashcat-*.7z"
+  bash -c "shopt -s nullglob && cp /root/xy/hashcat-*.7z /root/xy/hashcat-*.zip /out && chown \$HOST_UID:\$HOST_GID /out/hashcat-*.7z /out/hashcat-*.zip"
 ```
 
-The package will be available on your host machine in the `out` directory.
+The packages will be available on your host machine in the directory you ran the command from.
 
 ### Debug ###
 

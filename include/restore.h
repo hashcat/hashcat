@@ -37,7 +37,7 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx);
 
 void unlink_restore (hashcat_ctx_t *hashcat_ctx);
 
-int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
+int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv, const char *install_folder, const char *shared_folder);
 
 void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 

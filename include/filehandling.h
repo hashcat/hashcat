@@ -55,6 +55,12 @@ HC_PLUGIN_API size_t superchop_with_length (char *buf, const size_t len);
 
 HC_PLUGIN_API bool hc_path_is_compressed (const char *path);
 
+// The same question for a file hashcat is about to append to, answered with the name of the
+// container as hc_container_name () gives it, and exactly as hc_fopen () would decide it. A fifo, a
+// terminal or a device is not looked at.
+
+HC_PLUGIN_API const char *hc_path_container_name (const char *path);
+
 // Which compressed container an open file holds, as a name fit to put in a message: "gzip", "xz" or
 // "zstd", and an empty string for a file that is not compressed at all.
 

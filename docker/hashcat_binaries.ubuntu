@@ -347,7 +347,7 @@ RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
     echo "USE_CLANG: ${USE_CLANG}" >> /root/toolchain-info.log && \
     echo "USE_GCC: ${USE_GCC}" >> /root/toolchain-info.log && \
     echo "WITH_CODE_ANALYSIS: ${WITH_CODE_ANALYSIS}" >> /root/toolchain-info.log && \
-    echo -n "GLIBC_VERSION: " >> tee -a /root/toolchain-info.log && \
+    echo -n "GLIBC_VERSION: " >> /root/toolchain-info.log && \
     strings /root/xy/hashcat-*/hashcat.bin | grep -o 'GLIBC_[0-9]\+\.[0-9]\+' | sort -V | tail -1 >> /root/toolchain-info.log && \
     ldd /root/xy/hashcat-*/hashcat.bin | tee -a /root/linux_libs_dump.log && \
     x86_64-w64-mingw32-objdump -p /root/xy/hashcat-*/hashcat.exe | grep 'DLL Name' | tee -a /root/win_libs_dump.log

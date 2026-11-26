@@ -16,6 +16,7 @@
 int  potfile_init             (hashcat_ctx_t *hashcat_ctx);
 int  potfile_read_open        (hashcat_ctx_t *hashcat_ctx);
 void potfile_read_close       (hashcat_ctx_t *hashcat_ctx);
+int  potfile_write_check      (hashcat_ctx_t *hashcat_ctx);
 int  potfile_write_open       (hashcat_ctx_t *hashcat_ctx);
 void potfile_write_close      (hashcat_ctx_t *hashcat_ctx);
 void potfile_batch_begin      (hashcat_ctx_t *hashcat_ctx);

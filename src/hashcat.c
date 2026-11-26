@@ -1546,6 +1546,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
 
   /**
+   * a potfile that cannot take a crack stops the run before the kernels are built
+   */
+
+  if (potfile_write_check (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
+  /**
    * load hashes, stage 4, automatic Optimizers
    */
 
@@ -2538,7 +2549,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * restore
    */
 
-  if (restore_ctx_init (hashcat_ctx, argc, argv) == -1) return -1;
+  if (restore_ctx_init (hashcat_ctx, argc, argv, install_folder, shared_folder) == -1) return -1;
 
   // --restore has printed the command line the restore file holds and nothing else may run. Stopping
   // here rather than further down is the point: user_options_preprocess has not run, so nothing has

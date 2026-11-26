@@ -29,9 +29,9 @@ Installed builds no longer write to `$HOME/.hashcat`. Potfiles and sessions go t
 
 ### Installing on Windows ###
 
-The Windows release is a portable archive that runs from wherever it is unpacked, and an unpacked copy keeps its potfile, sessions and kernel cache beside `hashcat.exe`. A copy under Program Files, the per user Programs folder (`%LOCALAPPDATA%\Programs`) or winget's packages folder (`%LOCALAPPDATA%\Microsoft\WinGet\Packages`) counts as installed. It keeps that data in `%LOCALAPPDATA%\hashcat` instead, with the sessions and the cache below it, because an upgrade or an uninstall would remove it together with the program folder. A potfile found beside `hashcat.exe` of an installed copy is reported and left where it is.
+The Windows release is a portable archive that runs from wherever it is unpacked, and an unpacked copy keeps its potfile, sessions and kernel cache beside `hashcat.exe`. A copy under Program Files, the per user Programs folder (`%LOCALAPPDATA%\Programs`) or winget's packages folder (`%LOCALAPPDATA%\Microsoft\WinGet\Packages`) counts as installed. It keeps that data in `%LOCALAPPDATA%\hashcat` instead, with the sessions and the cache below it, because an upgrade or an uninstall would remove it together with the program folder. A potfile, a restore file or a kernel cache found beside `hashcat.exe` of an installed copy is reported and left where it is.
 
-`--profile-dir` names a folder of your own to use in place of `%LOCALAPPDATA%\hashcat`, for an installed or an unpacked copy. On Linux and macOS it replaces the XDG profile directory, and the cache stays in the XDG cache directory. `--potfile-path`, `--restore-file-path` and `--cache-path` still take precedence for what they name.
+`--profile-dir` names a folder of your own to use in place of `%LOCALAPPDATA%\hashcat`, for an installed or an unpacked copy. On Linux and macOS it replaces the XDG profile directory, and the cache goes to the XDG cache directory. That holds for an unpacked copy too, which without the option keeps its cache beside the binary. `--potfile-path`, `--restore-file-path` and `--cache-path` still take precedence for what they name.
 
 ### Packaging guidance ###
 

@@ -56,6 +56,15 @@ int hc_unlockfile (HCFILE *fp)
 
 #else
 
+// Windows enforces a byte range lock against every other handle, a second handle of the same process
+// included. A gzip file is written through a handle that zlib opened itself, so a lock over the bytes
+// being written refused every one of those writes. The lock is therefore one byte far past the end
+// of any real file. Hashcat processes still exclude each other there, as with the advisory lock on
+// Linux. The byte lies inside the whole range that 8.0.0 locks, so 8.0.0 is kept out as well.
+
+#define HC_LOCK_OFFSET_HIGH 0x7fffffff
+#define HC_LOCK_OFFSET_LOW  0x00000000
+
 int hc_lockfile (HCFILE *fp)
 {
   if (fp == NULL) return -1;
@@ -68,7 +77,10 @@ int hc_lockfile (HCFILE *fp)
 
   memset (&ov, 0, sizeof (OVERLAPPED));
 
-  if (LockFileEx (hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &ov) == 0) return -1;
+  ov.Offset     = HC_LOCK_OFFSET_LOW;
+  ov.OffsetHigh = HC_LOCK_OFFSET_HIGH;
+
+  if (LockFileEx (hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &ov) == 0) return -1;
 
   return 0;
 }
@@ -85,7 +97,10 @@ int hc_unlockfile (HCFILE *fp)
 
   memset (&ov, 0, sizeof (OVERLAPPED));
 
-  if (UnlockFileEx (hFile, 0, MAXDWORD, MAXDWORD, &ov) == 0) return -1;
+  ov.Offset     = HC_LOCK_OFFSET_LOW;
+  ov.OffsetHigh = HC_LOCK_OFFSET_HIGH;
+
+  if (UnlockFileEx (hFile, 0, 1, 0, &ov) == 0) return -1;
 
   return 0;
 }

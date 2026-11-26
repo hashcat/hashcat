@@ -8,8 +8,6 @@
 
 #include "dynloader.h"
 
-#include <stdarg.h>
-
 // What hashcat asks zlib for on behalf of a hash line, next to what it asks liblzma for in
 // ext_lzma.h. A plugin calls this instead of zlib, so zlib's own interface stays inside the core.
 //
@@ -57,6 +55,7 @@ typedef struct hc_z_stream
 
 #define HC_Z_NO_FLUSH       0
 #define HC_Z_SYNC_FLUSH     2
+#define HC_Z_FINISH         4
 
 #define HC_Z_MAX_WBITS     15
 
@@ -78,7 +77,6 @@ typedef struct hc_zlib_lib
   int         (*gzputc)    (hc_gzfile_t file, int c);
   int         (*gzgetc)    (hc_gzfile_t file);
   char       *(*gzgets)    (hc_gzfile_t file, char *buf, int len);
-  int         (*gzvprintf) (hc_gzfile_t file, const char *format, va_list ap);
   int         (*gzeof)     (hc_gzfile_t file);
   int         (*gzflush)   (hc_gzfile_t file, int flush);
   int         (*gzclose)   (hc_gzfile_t file);

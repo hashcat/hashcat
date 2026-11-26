@@ -3058,6 +3058,17 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
         return -1;
       }
+
+      // The log is opened for every line it gets, and an xz or zstd one would refuse each of them.
+
+      const char *container = hc_path_container_name (logfile_ctx->logfile);
+
+      if ((strcmp (container, "xz") == 0) || (strcmp (container, "zstd") == 0))
+      {
+        event_log_error (hashcat_ctx, "%s: Cannot append to an existing %s file. Decompress it or choose another file.", logfile_ctx->logfile, container);
+
+        return -1;
+      }
     }
     else
     {
@@ -3105,6 +3116,22 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_write (outfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+
+        return -1;
+      }
+
+      // A crack goes only to an outfile that is a plain file, so a compressed one would lose every
+      // crack. --stdout can append to a gzip file. Nothing can append to xz or zstd.
+
+      const char *container = hc_path_container_name (outfile_ctx->filename);
+
+      const bool stdout_gzip = (user_options->stdout_flag == true) && (strcmp (container, "gzip") == 0);
+
+      if ((container[0] != 0) && (stdout_gzip == false))
+      {
+        event_log_error (hashcat_ctx, "%s: Cannot append to an existing %s file. Decompress it or choose another file.", outfile_ctx->filename, container);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }

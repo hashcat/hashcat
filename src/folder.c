@@ -296,35 +296,92 @@ static bool win_profile_dir (char *profile_dir, const size_t profile_dir_sz)
   return found;
 }
 
+// What a copy that kept everything beside hashcat.exe leaves there: its potfile, the restore files of
+// its sessions, and its kernel cache, in cache\ since 8.0.0 and in kernels\ before. Any one of them is
+// enough, because a copy that ran with --potfile-disable or --potfile-path has no potfile there.
+//
+// Nothing is copied or deleted, the same as for ~/.hashcat on Linux: say where things are now and let
+// the user move what they want.
+
+static void win_legacy_notice (hashcat_ctx_t *hashcat_ctx, const char *install_dir, const char *profile_dir)
+{
+  static const char *const legacy_names[] = { "hashcat.potfile", "*.restore", CACHE_FOLDER, "kernels" };
+
+  const u32 legacy_cnt = sizeof (legacy_names) / sizeof (legacy_names[0]);
+
+  bool found_any = false;
+
+  for (u32 i = 0; i < legacy_cnt; i++)
+  {
+    char pattern[HCBUFSIZ_TINY];
+
+    snprintf (pattern, sizeof (pattern), "%s\\%s", install_dir, legacy_names[i]);
+
+    WIN32_FIND_DATAA find_data;
+
+    const HANDLE find = FindFirstFileA (pattern, &find_data);
+
+    if (find == INVALID_HANDLE_VALUE) continue;
+
+    FindClose (find);
+
+    if (found_any == false) event_log_warning (hashcat_ctx, "Found these beside hashcat.exe, which an installed hashcat no longer uses:");
+
+    found_any = true;
+
+    event_log_warning (hashcat_ctx, "  %s\\%s", install_dir, find_data.cFileName);
+  }
+
+  if (found_any == false) return;
+
+  event_log_warning (hashcat_ctx, "They are left untouched. Everything hashcat keeps per user is now in");
+  event_log_warning (hashcat_ctx, "  %s", profile_dir);
+  event_log_warning (hashcat_ctx, "with sessions and the files it rebuilds by itself, the compiled kernels among them, below it.");
+  event_log_warning (hashcat_ctx, "Move what you still want across, then delete them.");
+  event_log_warning (hashcat_ctx, NULL);
+}
+
 #endif // _WIN
 
 #if defined (_POSIX)
-static void get_profile_dir (char *profile_dir, const char *home_dir)
+
+// Both answer false when the XDG variable is unset and there is no home directory to build the
+// default from. home_dir can be NULL. An empty variable counts as unset, as the XDG spec has it.
+
+static bool get_profile_dir (char *profile_dir, const char *home_dir)
 {
   char *xdg_data_home = getenv ("XDG_DATA_HOME");
 
-  if (xdg_data_home)
+  if ((xdg_data_home != NULL) && (xdg_data_home[0] != 0))
   {
     snprintf (profile_dir, HCBUFSIZ_TINY, "%s/hashcat", xdg_data_home);
   }
   else
   {
+    if (home_dir == NULL) return false;
+
     snprintf (profile_dir, HCBUFSIZ_TINY, "%s/.local/share/hashcat", home_dir);
   }
+
+  return true;
 }
 
-static void get_cache_dir (char *cache_dir, const char *home_dir)
+static bool get_cache_dir (char *cache_dir, const char *home_dir)
 {
   char *xdg_cache_home = getenv ("XDG_CACHE_HOME");
 
-  if (xdg_cache_home)
+  if ((xdg_cache_home != NULL) && (xdg_cache_home[0] != 0))
   {
     snprintf (cache_dir, HCBUFSIZ_TINY, "%s/hashcat", xdg_cache_home);
   }
   else
   {
+    if (home_dir == NULL) return false;
+
     snprintf (cache_dir, HCBUFSIZ_TINY, "%s/.cache/hashcat", home_dir);
   }
+
+  return true;
 }
 
 static void get_session_dir (char *session_dir, const char *profile_dir)
@@ -333,8 +390,9 @@ static void get_session_dir (char *session_dir, const char *profile_dir)
 }
 
 // A user id with no entry in the user database, as under "docker run -u" with an id the image does
-// not know, has no pw_dir. HOME is asked then, which is also what the XDG directories are defined
-// against. The answer is a copy for the caller to free, or NULL when neither names a directory.
+// not know, has no pw_dir. An entry can also leave its home field empty. HOME is asked then, which is
+// also what the XDG directories are defined against. The answer is a copy for the caller to free, or
+// NULL when neither names a directory.
 
 static char *get_home_dir (void)
 {
@@ -348,7 +406,11 @@ static char *get_home_dir (void)
 
   getpwuid_r (getuid (), &pw, buf, HCBUFSIZ_TINY, &pwp);
 
-  const char *dir = (pwp != NULL) ? pwp->pw_dir : getenv ("HOME");
+  const char *dir = NULL;
+
+  if (pwp != NULL) dir = pwp->pw_dir;
+
+  if ((dir == NULL) || (dir[0] == 0)) dir = getenv ("HOME");
 
   if (dir == NULL) return NULL;
   if (dir[0] == 0) return NULL;
@@ -566,7 +628,7 @@ int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED cons
   {
     *shared_dir = ((installed == true) && (shared_folder != NULL)) ? hcstrdup (shared_folder) : hcstrdup (install_dir);
 
-    // an installed hashcat caches per user, and without a home there is no cache directory
+    // an installed hashcat caches per user, which needs a home or XDG_CACHE_HOME
 
     if (cache_path != NULL)
     {
@@ -576,16 +638,11 @@ int folder_early_dirs (const folder_request_t *folder_request, MAYBE_UNUSED cons
     {
       char *home_dir = get_home_dir ();
 
-      if (home_dir != NULL)
-      {
-        char user_cache_dir[HCBUFSIZ_TINY];
+      char user_cache_dir[HCBUFSIZ_TINY];
 
-        get_cache_dir (user_cache_dir, home_dir);
+      if (get_cache_dir (user_cache_dir, home_dir) == true) hc_asprintf (cache_dir, "%s/%s", user_cache_dir, CACHE_FOLDER);
 
-        hc_asprintf (cache_dir, "%s/%s", user_cache_dir, CACHE_FOLDER);
-
-        hcfree (home_dir);
-      }
+      hcfree (home_dir);
     }
 
     hcfree (install_dir);
@@ -755,11 +812,45 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if ((installed == true) || (profile_path != NULL))
   {
+    profile_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
+    cache_dir   = (char *) hcmalloc (HCBUFSIZ_TINY);
+    session_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    // Only a folder that nothing else names is built from the home directory, so a run that names
+    // them all needs none. --cache-path takes the place of the cache folder further down.
+
     char *home_dir = get_home_dir ();
 
-    if (home_dir == NULL)
+    bool have_profile = true;
+
+    if (profile_path != NULL)
     {
-      event_log_error (hashcat_ctx, "User id %u has no home directory: no entry in the user database, and HOME is not set.", (u32) getuid ());
+      snprintf (profile_dir, HCBUFSIZ_TINY, "%s", profile_path);
+    }
+    else if (folder_request->profile_folder != NULL)
+    {
+      snprintf (profile_dir, HCBUFSIZ_TINY, "%s", folder_request->profile_folder);
+    }
+    else
+    {
+      have_profile = get_profile_dir (profile_dir, home_dir);
+    }
+
+    const bool have_cache = get_cache_dir (cache_dir, home_dir);
+
+    const bool need_cache = (have_cache == false) && (user_options->cache_path == NULL);
+
+    if ((have_profile == false) || (need_cache == true))
+    {
+      event_log_error (hashcat_ctx, "User id %u has no home directory: the user database names none, and HOME is not set.", (u32) getuid ());
+      event_log_warning (hashcat_ctx, "Set HOME, or name both folders: --profile-dir or XDG_DATA_HOME, and --cache-path or XDG_CACHE_HOME.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      hcfree (home_dir);
+
+      hcfree (profile_dir);
+      hcfree (cache_dir);
+      hcfree (session_dir);
 
       hcfree (cwd);
 
@@ -773,24 +864,6 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
       return -1;
     }
 
-    profile_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
-    cache_dir   = (char *) hcmalloc (HCBUFSIZ_TINY);
-    session_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-    if (profile_path != NULL)
-    {
-      snprintf (profile_dir, HCBUFSIZ_TINY, "%s", profile_path);
-    }
-    else if (folder_request->profile_folder != NULL)
-    {
-      snprintf (profile_dir, HCBUFSIZ_TINY, "%s", folder_request->profile_folder);
-    }
-    else
-    {
-      get_profile_dir (profile_dir, home_dir);
-    }
-
-    get_cache_dir   (cache_dir,   home_dir);
     get_session_dir (session_dir, profile_dir);
 
     // $HOME/.hashcat predates XDG support and used to win over it whenever it existed. It no longer
@@ -803,9 +876,9 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     char legacy_dir[HCBUFSIZ_TINY];
 
-    snprintf (legacy_dir, sizeof (legacy_dir), "%s/%s", home_dir, DOT_HASHCAT);
+    snprintf (legacy_dir, sizeof (legacy_dir), "%s/%s", (home_dir != NULL) ? home_dir : "", DOT_HASHCAT);
 
-    if ((folder_request->profile_folder == NULL) && (profile_path == NULL) && (hc_path_is_directory (legacy_dir) == true))
+    if ((home_dir != NULL) && (folder_request->profile_folder == NULL) && (profile_path == NULL) && (hc_path_is_directory (legacy_dir) == true))
     {
       event_log_warning (hashcat_ctx, "Found %s, which hashcat no longer uses.", legacy_dir);
       event_log_warning (hashcat_ctx, "It is left untouched. Everything hashcat keeps per user is now in");
@@ -822,8 +895,9 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     shared_dir = (installed == true) ? hcstrdup (shared_folder) : hcstrdup (install_dir);
 
     hc_mkdir_rec (profile_dir, 0700);
-    hc_mkdir_rec (cache_dir,   0700);
     hc_mkdir     (session_dir, 0700);
+
+    if (have_cache == true) hc_mkdir_rec (cache_dir, 0700);
   }
   else
   {
@@ -890,23 +964,9 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     hc_asprintf (&session_dir, "%s\\%s", profile_dir, SESSIONS_FOLDER);
 
-    // A potfile beside hashcat.exe is from a run before this copy kept its data per user, or from a
-    // copy that was unpacked there. Nothing is copied or deleted, the same as for ~/.hashcat on
-    // Linux: say where things are now and let the user move what they want.
+    // from a run before this copy kept its data per user, or from a copy that was unpacked there
 
-    char legacy_potfile[HCBUFSIZ_TINY];
-
-    snprintf (legacy_potfile, sizeof (legacy_potfile), "%s\\hashcat.potfile", install_dir);
-
-    if (hc_path_exist (legacy_potfile) == true)
-    {
-      event_log_warning (hashcat_ctx, "Found %s, which an installed hashcat no longer uses.", legacy_potfile);
-      event_log_warning (hashcat_ctx, "It is left untouched. Everything hashcat keeps per user is now in");
-      event_log_warning (hashcat_ctx, "  %s", profile_dir);
-      event_log_warning (hashcat_ctx, "with sessions and the files it rebuilds by itself, the compiled kernels among them, below it.");
-      event_log_warning (hashcat_ctx, "Move what you still want across.");
-      event_log_warning (hashcat_ctx, NULL);
-    }
+    win_legacy_notice (hashcat_ctx, install_dir, profile_dir);
 
     hc_mkdir_rec (profile_dir, 0700);
     hc_mkdir     (session_dir, 0700);
