@@ -283,8 +283,12 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
 #define GET_P1(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 16) & 0xff)
 #define GET_P2(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 24) & 0xff)
 
-#define SET_P0_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) <<  8
-#define SET_P1_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) << 16
+// _old_apply_rule () decodes \xHH before it reads a rule, so a position written as \xHH is decoded
+// here too. A byte that names no position fails the conversion, so a compiled position is always
+// one the host engine reads the same way.
+
+#define SET_P0_CONV(rule,val)  do { INCR_POS; u8 pos_c = (val); if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { pos_c = hex_to_u8 ((const u8 *) &rule_buf[rule_pos + 2]); rule_pos += 3; } const int pos_n = conv_ctoi (pos_c); if (pos_n == -1) return -1; (rule)->cmds[rule_cnt] |= ((u32) pos_n) <<  8; } while(0)
+#define SET_P1_CONV(rule,val)  do { INCR_POS; u8 pos_c = (val); if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { pos_c = hex_to_u8 ((const u8 *) &rule_buf[rule_pos + 2]); rule_pos += 3; } const int pos_n = conv_ctoi (pos_c); if (pos_n == -1) return -1; (rule)->cmds[rule_cnt] |= ((u32) pos_n) << 16; } while(0)
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = (char) conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = (char) conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
@@ -355,6 +359,18 @@ static u32 rule_text_byte (const char *rule_buf, const u32 rule_len, const u32 r
   const u32 next = rule_pos + 1;
 
   return next;
+}
+
+// The device engines know the classes l, u, d, h, H and s. The host engine reads the class ?? as the
+// byte '?', so its class command becomes the plain one: ~s??Y is s?Y, ~@?? is @? and ~e?? is e?.
+
+static u32 rule_class_plain (const u32 cmd, const u8 name)
+{
+  if (((cmd >> 8) & 0xff) != '?') return cmd;
+
+  const u32 out = (cmd & 0xffffff00) | name;
+
+  return out;
 }
 
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
@@ -818,7 +834,9 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 
       case RULE_OP_CLASS_BASED: // ~
         // the class operation is the only one that reads its selector before INCR_POS has moved
-        // onto it, so it needs the length test the macro would otherwise have made
+        // onto it, so it needs the length test the macro would otherwise have made. The ? after the
+        // selector has to be the byte itself, because a \x3f there would be read as the class and its
+        // operands.
 
         if ((rule_pos + 1) >= rule_len) return -1;
 
@@ -828,22 +846,28 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
             SET_NAME  (rule, RULE_OP_MANGLE_REPLACE_CLASS);
             INCR_POS;
             INCR_POS;
+            if (rule_buf[rule_pos] != '?') return -1;
             SET_P0    (rule, rule_buf[rule_pos]);
             SET_P1    (rule, rule_buf[rule_pos]);
+            rule->cmds[rule_cnt] = rule_class_plain (rule->cmds[rule_cnt], RULE_OP_MANGLE_REPLACE);
             break;
 
           case RULE_OP_MANGLE_PURGECHAR: // ~@?C
             SET_NAME  (rule, RULE_OP_MANGLE_PURGECHAR_CLASS);
             INCR_POS;
             INCR_POS;
+            if (rule_buf[rule_pos] != '?') return -1;
             SET_P0    (rule, rule_buf[rule_pos]);
+            rule->cmds[rule_cnt] = rule_class_plain (rule->cmds[rule_cnt], RULE_OP_MANGLE_PURGECHAR);
             break;
 
           case RULE_OP_MANGLE_TITLE_SEP: // ~e?C
             SET_NAME  (rule, RULE_OP_MANGLE_TITLE_SEP_CLASS);
             INCR_POS;
             INCR_POS;
+            if (rule_buf[rule_pos] != '?') return -1;
             SET_P0    (rule, rule_buf[rule_pos]);
+            rule->cmds[rule_cnt] = rule_class_plain (rule->cmds[rule_cnt], RULE_OP_MANGLE_TITLE_SEP);
             break;
 
           /*

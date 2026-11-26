@@ -274,8 +274,6 @@ DECLSPEC int mangle_toggle_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 
 DECLSPEC int mangle_toggle_at_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u8 occurence = 0;
 
   u32 rem = 0;
@@ -1047,8 +1045,6 @@ DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 
 DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
@@ -1072,8 +1068,6 @@ DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 
 DECLSPEC int mangle_title_sep_class_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
@@ -1097,8 +1091,6 @@ DECLSPEC int mangle_title_sep_class_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
 
 DECLSPEC int mangle_title_sep_class_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
@@ -1122,8 +1114,6 @@ DECLSPEC int mangle_title_sep_class_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
 
 DECLSPEC int mangle_title_sep_class_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
@@ -1147,8 +1137,6 @@ DECLSPEC int mangle_title_sep_class_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
 
 DECLSPEC int mangle_title_sep_class_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
@@ -1172,8 +1160,6 @@ DECLSPEC int mangle_title_sep_class_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED c
 
 DECLSPEC int mangle_title_sep_class_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
@@ -1197,8 +1183,6 @@ DECLSPEC int mangle_title_sep_class_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED c
 
 DECLSPEC int mangle_title_sep_class_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
-  if (len >= RP_PASSWORD_SIZE) return len;
-
   u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)

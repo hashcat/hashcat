@@ -10,7 +10,9 @@
 #include "rp.h"
 #include "rp_cpu.h"
 
-#define NEXT_RULEPOS(rp)      if (++(rp) == rule_len) return (RULE_RC_SYNTAX_ERROR)
+// _old_apply_rule () reads the rule after its \xHH escapes are decoded, so it ends at rule_len_new
+
+#define NEXT_RULEPOS(rp)      if (++(rp) == rule_len_new) return (RULE_RC_SYNTAX_ERROR)
 #define NEXT_RPTOI(r,rp,up)   if (((up) = conv_pos ((r)[(rp)], pos_mem)) == -1) return (RULE_RC_SYNTAX_ERROR)
 
 static int conv_pos (const u8 c, const int pos_mem)
@@ -63,31 +65,22 @@ static void MANGLE_SHIFT_CASE (char *arr, const int pos)
 
 static int mangle_toggle_at_sep (char arr[RP_PASSWORD_SIZE], int arr_len, char c, int upos)
 {
-  int toggle_next = 0;
-  int occurrence  = 0;
+  int occurrence = 0;
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (arr[pos] == c)
-    {
-      if (occurrence == upos)
-      {
-        toggle_next = 1;
-      }
-      else
-      {
-        occurrence++;
-      }
+    if (arr[pos] != c) continue;
 
-      continue;
-    }
-
-    if (toggle_next == 1)
+    if (occurrence == upos)
     {
-      MANGLE_TOGGLE_AT (arr, pos);
+      // the byte right after occurrence N, also where that byte is X again, as on the device
+
+      if ((pos + 1) < arr_len) MANGLE_TOGGLE_AT (arr, pos + 1);
 
       break;
     }
+
+    occurrence++;
   }
 
   return arr_len;
@@ -1344,7 +1337,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
           // the same expansion cpu_rule_to_kernel_rule () compiles, so this reference and the
           // device run the identical sequence of byte operations
 
-          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+          const u32 mb = rule_utf8_len (rule_new, rule_len_new, rule_pos);
 
           for (u32 i = 0; i < mb; i++)
           {
@@ -1358,7 +1351,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
       case RULE_OP_MANGLE_PREPEND:
         NEXT_RULEPOS (rule_pos);
         {
-          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+          const u32 mb = rule_utf8_len (rule_new, rule_len_new, rule_pos);
 
           // backwards, so the character comes out forwards
 
@@ -1457,7 +1450,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         {
-          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+          const u32 mb = rule_utf8_len (rule_new, rule_len_new, rule_pos);
 
           for (u32 i = 0; i < mb; i++)
           {
@@ -1473,7 +1466,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         {
-          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+          const u32 mb = rule_utf8_len (rule_new, rule_len_new, rule_pos);
 
           for (u32 i = 0; i < mb; i++)
           {
@@ -1489,7 +1482,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         {
-          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+          const u32 mb = rule_utf8_len (rule_new, rule_len_new, rule_pos);
 
           for (u32 i = 0; i < mb; i++)
           {

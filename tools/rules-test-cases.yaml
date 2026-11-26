@@ -111,6 +111,54 @@ T5:
     abcdeF
     ABCDEfg
 
+'30-':
+  input: |
+    a-b
+    a--b
+    a-1b
+    a-b-c
+
+  expected_cpu: |
+    a-B
+    a--b
+    a-1b
+    a-B-c
+
+  expected_opencl: |
+    a-B
+    a--b
+    a-1b
+    a-B-c
+
+'31-':
+  input: |
+    a-b
+    a--b
+    a-b-c
+
+  expected_cpu: |
+    a-b
+    a--B
+    a-b-C
+
+  expected_opencl: |
+    a-b
+    a--B
+    a-b-C
+
+'30a':
+  input: |
+    banana
+    baab
+
+  expected_cpu: |
+    baNana
+    baAb
+
+  expected_opencl: |
+    baNana
+    baAb
+
 r:
   input: |
     AbCd
@@ -271,6 +319,16 @@ D3:
     abce
     12356790abcdefghijklmnopqrstuvw
 
+'D\x35':
+  input: |
+    password1
+
+  expected_cpu: |
+    passwrd1
+
+  expected_opencl: |
+    passwrd1
+
 x14:
   input: |
     a
@@ -429,6 +487,19 @@ saa:
     123b
     a123ba
 
+'~s??!':
+  input: |
+    what?
+    ??a
+
+  expected_cpu: |
+    what!
+    !!a
+
+  expected_opencl: |
+    what!
+    !!a
+
 N0a@:
   input: |
     banana
@@ -529,6 +600,19 @@ NAa@:
 
     123b
     123456790bcdefghijklmnopqrstuvw
+
+'~@??':
+  input: |
+    what?
+    ??a?
+
+  expected_cpu: |
+    what
+    a
+
+  expected_opencl: |
+    what
+    a
 
 z0:
   input: |
@@ -1035,3 +1119,16 @@ e-:
 
   expected_opencl: |
     AbCDEfghij
+
+'~e??':
+  input: |
+    a?b?c
+    ab??cd
+
+  expected_cpu: |
+    A?B?C
+    Ab??Cd
+
+  expected_opencl: |
+    A?B?C
+    Ab??Cd
