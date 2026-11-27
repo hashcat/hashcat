@@ -39,6 +39,8 @@ typedef struct ikepsk
   u32 msg_buf[128];
   u32 msg_len[6];
 
+  u32 ni_len;
+
 } ikepsk_t;
 
 static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -131,6 +133,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   ikepsk->msg_len[4] = ikepsk->msg_len[3] + token.len[4] / 2;
   ikepsk->msg_len[5] = ikepsk->msg_len[4] + token.len[5] / 2;
   ikepsk->nr_len  = (token.len[6] + token.len[7]) / 2;
+  ikepsk->ni_len  =  token.len[6] / 2;
 
   if (ikepsk->msg_len[5] >= 512) return (PARSER_SALT_LENGTH);
   if (ikepsk->nr_len  >= 64)  return (PARSER_SALT_LENGTH);
@@ -195,32 +198,38 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int line_len = 0;
 
-  // msg_buf
+  const u8 *msg_buf = (const u8 *) ikepsk->msg_buf;
 
-  const u32 ikepsk_msg_len = ikepsk->msg_len[5] / 4;
+  u32 msg_start = 0;
 
-  for (u32 i = 0; i < ikepsk_msg_len; i++)
+  for (u32 i = 0; i < 6; i++)
   {
-    if ((i == ikepsk->msg_len[0] / 4) || (i == ikepsk->msg_len[1] / 4) || (i == ikepsk->msg_len[2] / 4) || (i == ikepsk->msg_len[3] / 4) || (i == ikepsk->msg_len[4] / 4))
+    if (i > 0) line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
+
+    const u32 msg_end = ikepsk->msg_len[i];
+
+    for (u32 j = msg_start; j < msg_end; j++)
     {
-      line_len += snprintf (line_buf + line_len, line_size - line_len, ":");
+      line_len += snprintf (&line_buf[line_len], line_size - line_len, "%02x", msg_buf[j]);
     }
 
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%08x", byte_swap_32 (ikepsk->msg_buf[i]));
+    msg_start = msg_end;
   }
 
-  // nr_buf
+  const u8 *nr_buf = (const u8 *) ikepsk->nr_buf;
 
-  const u32 ikepsk_nr_len = ikepsk->nr_len / 4;
+  line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
 
-  for (u32 i = 0; i < ikepsk_nr_len; i++)
+  for (u32 i = 0; i < ikepsk->ni_len; i++)
   {
-    if ((i == 0) || (i == 5))
-    {
-      line_len += snprintf (line_buf + line_len, line_size - line_len, ":");
-    }
+    line_len += snprintf (&line_buf[line_len], line_size - line_len, "%02x", nr_buf[i]);
+  }
 
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%08x", byte_swap_32 (ikepsk->nr_buf[i]));
+  line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
+
+  for (u32 i = ikepsk->ni_len; i < ikepsk->nr_len; i++)
+  {
+    line_len += snprintf (&line_buf[line_len], line_size - line_len, "%02x", nr_buf[i]);
   }
 
   // digest_buf

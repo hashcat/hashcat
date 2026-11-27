@@ -22,6 +22,8 @@ typedef struct ikepsk
   u32 msg_buf[128];
   u32 msg_len[6];
 
+  u32 ni_len;
+
 } ikepsk_t;
 
 KERNEL_FQ KERNEL_FA void m05300_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))

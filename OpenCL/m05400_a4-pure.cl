@@ -22,6 +22,8 @@ typedef struct ikepsk
   u32 msg_buf[128];
   u32 msg_len[6];
 
+  u32 ni_len;
+
 } ikepsk_t;
 
 #define PCFG_KERN_ATTR      KERN_ATTR_PCFG_ESALT (ikepsk_t)
