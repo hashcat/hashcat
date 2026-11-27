@@ -2495,6 +2495,52 @@ int brain_server_get_client_idx (brain_server_dbs_t *brain_server_dbs)
   return -1;
 }
 
+// Shuts down the receiving side of every client socket, so a client thread that waits in recv () or
+// select () returns at once rather than at its own timeout. The sending side stays open. A reply a
+// thread still sends must not fail, because where neither MSG_NOSIGNAL nor SO_NOSIGPIPE exists, the
+// failed send raises SIGPIPE and ends the server.
+
+static void brain_server_wake_clients (const brain_server_dbs_t *brain_server_dbs, const brain_server_client_options_t *brain_server_client_options)
+{
+  for (int client_idx = 1; client_idx < BRAIN_SERVER_CLIENTS_MAX; client_idx++)
+  {
+    if (brain_server_dbs->client_slots[client_idx] == 0) continue;
+
+    #if defined (_WIN)
+    shutdown (brain_server_client_options[client_idx].client_fd, SD_RECEIVE);
+    #else
+    shutdown (brain_server_client_options[client_idx].client_fd, SHUT_RD);
+    #endif
+  }
+}
+
+// Waits until every client thread has given its slot back, the last thing a client thread does with
+// the server's tables. Returns false if one is still running after BRAIN_SERVER_STOP_TIMEOUT. The
+// wait counts its steps instead of reading a clock, which can step back on old macOS builds.
+
+static bool brain_server_wait_clients (const brain_server_dbs_t *brain_server_dbs)
+{
+  for (int step = 0; step < (BRAIN_SERVER_STOP_TIMEOUT * 10); step++)
+  {
+    bool busy = false;
+
+    for (int client_idx = 1; client_idx < BRAIN_SERVER_CLIENTS_MAX; client_idx++)
+    {
+      if (brain_server_dbs->client_slots[client_idx] == 0) continue;
+
+      busy = true;
+
+      break;
+    }
+
+    if (busy == false) return true;
+
+    usleep (100000);
+  }
+
+  return false;
+}
+
 i64 brain_server_find_hash_long (const u32 *search, const brain_server_hash_long_t *buf, const i64 cnt)
 {
   for (i64 l = 0, r = cnt; r; r >>= 1)
@@ -2564,28 +2610,71 @@ HC_THREAD_FUNC brain_server_handle_dumps (void *p)
   return 0;
 }
 
-// A receive deadline on one client socket. Seconds of 0 removes it, which is what both platforms
-// read as "block until something arrives".
+// A receive deadline on one client socket, in milliseconds. 0 removes it, which is what both
+// platforms read as "block until something arrives".
 //
-// brain_recv_all () treats any recv () that does not return bytes as a failed read, so a socket that
-// times out takes the client's error path, and that path already frees the slot and closes the fd.
+// A recv () that times out returns no bytes, and the handshake reads below take that as a failed
+// read. The client's error path then frees the slot and closes the fd.
 
-static bool brain_server_set_recv_timeout (int client_fd, const int seconds)
+static bool brain_server_set_recv_timeout (const int client_fd, const u32 msec)
 {
   #if defined (_WIN)
 
-  DWORD timeout = (DWORD) seconds * 1000;
+  const DWORD timeout = (DWORD) msec;
 
   #else
 
   struct timeval timeout;
 
-  timeout.tv_sec  = seconds;
-  timeout.tv_usec = 0;
+  timeout.tv_sec  = msec / 1000;
+  timeout.tv_usec = (msec % 1000) * 1000;
 
   #endif
 
   if (setsockopt (client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &timeout, sizeof (timeout)) == -1) return false;
+
+  return true;
+}
+
+// A read during the handshake. SO_RCVTIMEO limits a single recv () and starts over with the next
+// one. A read takes one recv () for every piece the peer sends, so a peer that sends one byte at a
+// time would get a full timeout for every byte. Each recv () here waits only for what is left of
+// BRAIN_SERVER_HANDSHAKE_TIMEOUT since the handshake began, however the peer splits its bytes.
+
+static bool brain_server_recv_handshake (const int client_fd, void *buf, const size_t len, const hc_timer_t handshake_start)
+{
+  char *ptr = (char *) buf;
+
+  size_t pos = 0;
+
+  while (pos < len)
+  {
+    // hc_timer_get () falls back to the wall clock on old macOS builds, and that can step back. A
+    // negative elapsed time counts as none, so no wait is longer than the whole deadline.
+
+    const double elapsed = hc_timer_get (handshake_start);
+
+    const double left = (BRAIN_SERVER_HANDSHAKE_TIMEOUT * 1000.0) - MAX (elapsed, 0.0);
+
+    // A timeout of 0 would mean none at all. The deadline has no errno of its own, so it borrows
+    // EAGAIN, which is what recv () reports when SO_RCVTIMEO runs out. The log then gives the same
+    // reason however the deadline was missed.
+
+    if (left < 1)
+    {
+      errno = EAGAIN;
+
+      return false;
+    }
+
+    if (brain_server_set_recv_timeout (client_fd, (u32) left) == false) return false;
+
+    const ssize_t nrecv = recv (client_fd, &ptr[pos], len - pos, 0);
+
+    if (nrecv <= 0) return false;
+
+    pos += (size_t) nrecv;
+  }
 
   return true;
 }
@@ -2627,20 +2716,13 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
   // it ran, so a peer that never finishes authenticating used to keep the slot indefinitely, and 255
   // such peers filled the server without ever supplying a password.
 
-  if (brain_server_set_recv_timeout (client_fd, BRAIN_SERVER_HANDSHAKE_TIMEOUT) == false)
-  {
-    brain_logging (stderr, client_idx, "setsockopt: %s\n", strerror (errno));
+  hc_timer_t handshake_start;
 
-    brain_server_dbs->client_slots[client_idx] = 0;
-
-    close (client_fd);
-
-    return 0;
-  }
+  hc_timer_set (&handshake_start);
 
   u32 brain_link_version = 0;
 
-  if (brain_recv (client_fd, &brain_link_version, sizeof (brain_link_version), 0, NULL, NULL) == false)
+  if (brain_server_recv_handshake (client_fd, &brain_link_version, sizeof (brain_link_version), handshake_start) == false)
   {
     brain_logging (stderr, client_idx, "brain_recv: %s\n", strerror (errno));
 
@@ -2690,7 +2772,7 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   u64 response = 0;
 
-  if (brain_recv (client_fd, &response, sizeof (response), 0, NULL, NULL) == false)
+  if (brain_server_recv_handshake (client_fd, &response, sizeof (response), handshake_start) == false)
   {
     brain_logging (stderr, client_idx, "brain_recv: %s\n", strerror (errno));
 
@@ -2847,9 +2929,9 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
     {
       brain_logging (stderr, 0, "too many sessions\n");
 
-      brain_server_dbs->client_slots[client_idx] = 0;
-
       hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
+
+      brain_server_dbs->client_slots[client_idx] = 0;
 
       close (client_fd);
 
@@ -2883,9 +2965,9 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
     {
       brain_logging (stderr, 0, "too many attacks\n");
 
-      brain_server_dbs->client_slots[client_idx] = 0;
-
       hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
+
+      brain_server_dbs->client_slots[client_idx] = 0;
 
       close (client_fd);
 
@@ -4121,6 +4203,10 @@ int brain_server_dump_folder (const char *listen_host, const int listen_port, co
     {
       brain_logging (stderr, 0, "pthread_create: %s\n", strerror (errno));
 
+      // the client thread frees its slot when it ends, and this one never started
+
+      brain_server_dbs->client_slots[client_idx] = 0;
+
       close (client_fd);
 
       continue;
@@ -4131,44 +4217,48 @@ int brain_server_dump_folder (const char *listen_host, const int listen_port, co
 
   brain_logging (stdout, 0, "Brain server stopping\n");
 
+  brain_server_wake_clients (brain_server_dbs, brain_server_client_options);
+
   hc_thread_wait (1, &dump_thr);
 
-  if (brain_server_write_hash_dumps (brain_server_dbs, dump_dir) == false)
+  // A client thread may still be running here, and it uses the tables and the password, so a failed
+  // dump leaves them allocated.
+
+  if (brain_server_write_hash_dumps (brain_server_dbs, dump_dir) == false) return -1;
+
+  if (brain_server_write_attack_dumps (brain_server_dbs, dump_dir) == false) return -1;
+
+  // The client threads are detached. Each one uses the tables until it gives its slot back.
+
+  const bool clients_stopped = brain_server_wait_clients (brain_server_dbs);
+
+  if (clients_stopped == false) brain_logging (stderr, 0, "Client threads still running, the server tables stay allocated\n");
+
+  if (clients_stopped == true)
   {
+    for (i64 idx = 0; idx < brain_server_dbs->hash_cnt; idx++)
+    {
+      brain_server_db_hash_t *brain_server_db_hash = &brain_server_dbs->hash_buf[idx];
+
+      brain_server_db_hash_free (brain_server_db_hash);
+    }
+
+    for (i64 idx = 0; idx < brain_server_dbs->attack_cnt; idx++)
+    {
+      brain_server_db_attack_t *brain_server_db_attack = &brain_server_dbs->attack_buf[idx];
+
+      brain_server_db_attack_free (brain_server_db_attack);
+    }
+
+    hcfree (brain_server_dbs->hash_buf);
+    hcfree (brain_server_dbs->attack_buf);
+    hcfree (brain_server_dbs->client_slots);
+    hcfree (brain_server_dbs);
+    hcfree (brain_server_client_options);
+    hcfree (session_whitelist_buf);
+
     if (brain_password == NULL) hcfree (auth_password);
-
-    return -1;
   }
-
-  if (brain_server_write_attack_dumps (brain_server_dbs, dump_dir) == false)
-  {
-    if (brain_password == NULL) hcfree (auth_password);
-
-    return -1;
-  }
-
-  for (i64 idx = 0; idx < brain_server_dbs->hash_cnt; idx++)
-  {
-    brain_server_db_hash_t *brain_server_db_hash = &brain_server_dbs->hash_buf[idx];
-
-    brain_server_db_hash_free (brain_server_db_hash);
-  }
-
-  for (i64 idx = 0; idx < brain_server_dbs->attack_cnt; idx++)
-  {
-    brain_server_db_attack_t *brain_server_db_attack = &brain_server_dbs->attack_buf[idx];
-
-    brain_server_db_attack_free (brain_server_db_attack);
-  }
-
-  hcfree (brain_server_dbs->hash_buf);
-  hcfree (brain_server_dbs->attack_buf);
-  hcfree (brain_server_dbs->client_slots);
-  hcfree (brain_server_dbs);
-  hcfree (brain_server_client_options);
-  hcfree (session_whitelist_buf);
-
-  if (brain_password == NULL) hcfree (auth_password);
 
   close (server_fd);
 

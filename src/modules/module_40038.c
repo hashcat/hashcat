@@ -16,7 +16,7 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_5;
+static const u32   DGST_SIZE      = DGST_SIZE_4_6;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "Juniper/NetBSD sha1crypt";
 static const char *HASH_RECIPE    = "h = hmac_sha1_bin(pass, salt); for i = 1 to iter { h = hmac_sha1_bin(pass, h) }; hex(h)";
@@ -236,13 +236,21 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   const u8 *hash_pos = token.buf[3];
 
-  netbsd_sha1crypt_decode ((u8 *) digest, hash_pos, (u8 *) salt->salt_sign);
+  // The 28 characters carry 21 bytes, the 20 of the digest and one the generating tool fills in.
+  // That byte stays with its own digest rather than in the salt, which hashes on the same salt and
+  // iteration count share, so every hash is printed with the byte it was given.
+
+  u8 additional_byte = 0;
+
+  netbsd_sha1crypt_decode ((u8 *) digest, hash_pos, &additional_byte);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
+
+  digest[5] = additional_byte;
 
   // the first HMAC takes the salt, "$sha1$" and the iteration count as its message
 
@@ -271,7 +279,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   char ptr_plain[32] = { 0 };
 
-  netbsd_sha1crypt_encode ((unsigned char *) tmp, salt->salt_sign[0], (unsigned char *) ptr_plain);
+  netbsd_sha1crypt_encode ((u8 *) tmp, (u8) digest[5], (u8 *) ptr_plain);
 
   // salt
 

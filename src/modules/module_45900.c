@@ -182,9 +182,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   salt->salt_iter = argon2_options->iterations * ARGON2_SYNC_POINTS;
   salt->salt_dimy = argon2_options->parallelism;
 
-  // sort_by_salt () compares only the salt string, salt_iter and salt_buf_pc, so m and p go into
-  // salt_buf_pc, same as the other Argon2 modes. The SPRW1 parameters are fixed, but this keeps the
-  // salt layout uniform and feeds module_benchmark_cost ().
+  // sort_by_salt () never reads the esalt, so m and p go into salt_buf_pc, same as the other Argon2
+  // modes. The SPRW1 parameters are fixed, but this keeps the salt layout uniform and feeds
+  // module_benchmark_cost ().
 
   salt->salt_buf_pc[0] = argon2_options->memory_usage_in_kib;
   salt->salt_buf_pc[1] = argon2_options->parallelism;

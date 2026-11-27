@@ -104,6 +104,38 @@ int sort_by_salt (const void *v1, const void *v2)
     if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return -1;
   }
 
+  // Hashes that compare equal here become one salt, and the kernel runs all of them with the salt_t
+  // of the first. So every salt_t field that a kernel or its launch reads is compared. salt_sign is
+  // left out, because only the encoders read it. bcrypt keeps the first six characters of the line
+  // there, such as $2a$05 or $2y$05, and a potfile line has to match the hash in either spelling.
+  //
+  // The fields below come last. hc_radix_sort_by_salt () builds its keys from the fields above, and
+  // its order has to agree with this function.
+
+  if (s1->salt_len_pc > s2->salt_len_pc) return  1;
+  if (s1->salt_len_pc < s2->salt_len_pc) return -1;
+
+  if (s1->salt_iter2 > s2->salt_iter2) return  1;
+  if (s1->salt_iter2 < s2->salt_iter2) return -1;
+
+  if (s1->salt_iter3 > s2->salt_iter3) return  1;
+  if (s1->salt_iter3 < s2->salt_iter3) return -1;
+
+  if (s1->salt_dimy > s2->salt_dimy) return  1;
+  if (s1->salt_dimy < s2->salt_dimy) return -1;
+
+  if (s1->salt_repeats > s2->salt_repeats) return  1;
+  if (s1->salt_repeats < s2->salt_repeats) return -1;
+
+  if (s1->scrypt_N > s2->scrypt_N) return  1;
+  if (s1->scrypt_N < s2->scrypt_N) return -1;
+
+  if (s1->scrypt_r > s2->scrypt_r) return  1;
+  if (s1->scrypt_r < s2->scrypt_r) return -1;
+
+  if (s1->scrypt_p > s2->scrypt_p) return  1;
+  if (s1->scrypt_p < s2->scrypt_p) return -1;
+
   return 0;
 }
 
@@ -1598,9 +1630,13 @@ int hash_encode (const user_options_t *user_options, const hashconfig_t *hashcon
   char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
   hashinfo_t *hash_info_ptr      = NULL;
 
+  // hashes_group_thread () keeps one hook salt per salt, unless the module asks for one per digest
+
+  const u32 hook_salt_cur = (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT_PER_DIGEST) ? digest_cur : salt_pos;
+
   digests_buf_ptr    += (u64) digest_cur * hashconfig->dgst_size;
   esalts_buf_ptr     += (u64) digest_cur * hashconfig->esalt_size;
-  hook_salts_buf_ptr += (u64) digest_cur * hashconfig->hook_salt_size;
+  hook_salts_buf_ptr += (u64) hook_salt_cur * hashconfig->hook_salt_size;
 
   if (hash_info) hash_info_ptr = hash_info[digest_cur];
 
@@ -2042,9 +2078,13 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
     hashinfo_t *hash_info_ptr      = NULL;
 
+    // the same hook salt hash_encode () picks
+
+    const u32 hook_salt_cur = (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT_PER_DIGEST) ? digest_cur : salt_pos;
+
     digests_buf_ptr    += (u64) digest_cur * hashconfig->dgst_size;
     esalts_buf_ptr     += (u64) digest_cur * hashconfig->esalt_size;
-    hook_salts_buf_ptr += (u64) digest_cur * hashconfig->hook_salt_size;
+    hook_salts_buf_ptr += (u64) hook_salt_cur * hashconfig->hook_salt_size;
 
     if (hash_info) hash_info_ptr = hash_info[digest_cur];
 

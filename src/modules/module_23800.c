@@ -33,7 +33,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_REGISTER_LIMIT;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_POST_AMP_UTF16LE;
+                                  | OPTS_TYPE_POST_AMP_UTF16LE
+                                  | OPTS_TYPE_HOOK_SALT_PER_DIGEST;
 static const u64   KERN_BITS      = KERN_BIT_HOOK23;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -351,6 +352,10 @@ static void module_hook23 (hc_device_param_t *device_param, const void *hook_ext
 {
   rar3_hook_t *hook_items = (rar3_hook_t *) device_param->hooks_buf;
   rar3_hook_t *hook_item  = &hook_items[pw_pos];
+
+  // Every member keeps its own hook salt (OPTS_TYPE_HOOK_SALT_PER_DIGEST), which --show and --left
+  // need. Indexing by salt_pos still finds the right one. hashes_init_stage4 () refuses to crack this
+  // mode when two members share a salt, so every salt holds exactly one member here.
 
   const rar3_hook_salt_t *rar3s = (const rar3_hook_salt_t *) hook_salts_buf;
   const rar3_hook_salt_t *rar3  = &rar3s[salt_pos];

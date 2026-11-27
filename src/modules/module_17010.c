@@ -278,8 +278,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (salt->salt_len != 8) return (PARSER_SALT_LENGTH);
 
-  // make salt sorter happy: the sort ignores salt_repeats, so an AES-128 and an AES-256 key on one
-  // S2K salt must not share it. The kernel reads the first two words only.
+  // salt_buf[2] copies salt_repeats, which tells an AES-128 from an AES-256 key on one S2K salt.
+  // sort_by_salt () compares salt_repeats as well, so the copy is only a second guard. The kernel
+  // reads the first two words only.
 
   salt->salt_buf[2] = salt->salt_repeats;
 

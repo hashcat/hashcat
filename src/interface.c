@@ -808,11 +808,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP2;
   }
 
-  // selftest bridge update
+  // selftest bridge update. Both hooks are optional. One the bridge left alone is NULL until the
+  // bridge is loaded and BRIDGE_DEFAULT after that, see bridge_ctx_defaults ().
   if (hashconfig->bridge_type & BRIDGE_TYPE_UPDATE_SELFTEST)
   {
-    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (hashcat_ctx, bridge_ctx->platform_context);
-    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (hashcat_ctx, bridge_ctx->platform_context);
+    if ((bridge_ctx->st_update_hash != NULL) && (bridge_ctx->st_update_hash != BRIDGE_DEFAULT)) hashconfig->st_hash = bridge_ctx->st_update_hash (hashcat_ctx, bridge_ctx->platform_context);
+    if ((bridge_ctx->st_update_pass != NULL) && (bridge_ctx->st_update_pass != BRIDGE_DEFAULT)) hashconfig->st_pass = bridge_ctx->st_update_pass (hashcat_ctx, bridge_ctx->platform_context);
   }
 
   return 0;

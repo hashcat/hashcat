@@ -359,6 +359,25 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     return NULL;
   }
 
+  // A plugin without ST_HASH runs without a self-test. One with ST_HASH needs the password that
+  // produces it as well, or st_update_pass () has none to give and the self-test reads NULL. Only the
+  // self-test reads it, so a run with --self-test-disable still takes such a plugin.
+
+  const char **st_hash = (const char **) hc_dlsym (bridge_context->lib, "ST_HASH");
+  const char **st_pass = (const char **) hc_dlsym (bridge_context->lib, "ST_PASS");
+
+  const bool has_st_hash = ((st_hash != NULL) && (*st_hash != NULL));
+  const bool has_st_pass = ((st_pass != NULL) && (*st_pass != NULL));
+
+  if ((user_options->self_test == true) && (has_st_hash == true) && (has_st_pass == false))
+  {
+    event_log_error (hashcat_ctx, "Rust plugin exports ST_HASH without ST_PASS. A plugin exports both, the self-test hash and its password, or neither. Plugin: %s", bridge_context->dynlib_filename);
+    hcfree (bridge_context->dynlib_filename);
+    hcfree (bridge_context);
+
+    return NULL;
+  }
+
   bridge_context->bridge_parameter1 = user_options->bridge_parameter1;
   bridge_context->bridge_parameter2 = user_options->bridge_parameter2;
   bridge_context->bridge_parameter3 = user_options->bridge_parameter3;

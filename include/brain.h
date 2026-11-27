@@ -55,6 +55,13 @@ static const int BRAIN_SERVER_CLIENTS_MAX         = 256;
 // takes continuous effort rather than one burst.
 
 static const int BRAIN_SERVER_HANDSHAKE_TIMEOUT   = 10;
+
+// How long a stopping server waits for its client threads to end before it frees the tables they
+// use. It is longer than the handshake deadline, so a thread in the handshake ends within it even
+// where shutting its socket down does not wake it. A thread that is still running after that keeps
+// the tables, and they stay allocated until exit.
+
+static const int BRAIN_SERVER_STOP_TIMEOUT        = 12;
 static const int BRAIN_SERVER_REALLOC_ATTACK_SIZE = 1024;
 static const int BRAIN_HASH_SIZE                  = 2 * sizeof (u32);
 // The wire format changed when brain_auth_hash moved from a checksum to SHA-256, so a client and
