@@ -783,20 +783,26 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
   restore_ctx->words_cur_prev = words_cur;
 
-  if (hc_path_exist (eff_restore_file) == true)
-  {
-    if (unlink (eff_restore_file) == -1)
-    {
-      event_log_warning (hashcat_ctx, "Unlink file '%s': %s", eff_restore_file, strerror (errno));
-    }
-  }
+  // The new file takes the place of the last one in a single step, so a crash leaves one of the two
+  // and never neither. Deleting the last one first would leave a moment once a second with no restore
+  // file, and a kill or a power loss in that moment would lose the session. POSIX rename () replaces
+  // an existing file. Windows rename () refuses to, and MoveFileEx () is the call that does.
 
+  #if defined (_WIN)
+  if (MoveFileExA (new_restore_file, eff_restore_file, MOVEFILE_REPLACE_EXISTING) == 0)
+  {
+    event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': error %d", new_restore_file, eff_restore_file, (int) GetLastError ());
+
+    return 0;
+  }
+  #else
   if (rename (new_restore_file, eff_restore_file) == -1)
   {
     event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
 
     return 0;
   }
+  #endif
 
   restore_ctx->written = true;
 
@@ -817,6 +823,16 @@ void unlink_restore (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (status_ctx->devices_status == STATUS_CRACKED)
+  {
+    unlink (restore_ctx->eff_restore_file);
+    unlink (restore_ctx->new_restore_file);
+  }
+
+  // A run that ends in STATUS_BYPASS was told to leave the last item of its queue, so nothing is
+  // left to continue. Its restore file would only resume the item it left. A stop asked for after
+  // the bypass clears run_main_level2 and ends the queue early, and then the file stays.
+
+  if ((status_ctx->devices_status == STATUS_BYPASS) && (status_ctx->run_main_level2 == true))
   {
     unlink (restore_ctx->eff_restore_file);
     unlink (restore_ctx->new_restore_file);

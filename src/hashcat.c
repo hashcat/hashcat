@@ -307,6 +307,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
+  // How the round before this one ended, which a mask passed over for its length hands on, see below.
+
+  const u32 devices_status_prev = status_ctx->devices_status;
+
   // A quit is kept for the check ahead of autotune, see outer_loop ().
 
   if (status_ctx->devices_status != STATUS_ABORTED) status_ctx->devices_status = STATUS_INIT;
@@ -380,7 +384,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->words_base_given = 0;
 
-  if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
+  // A mask passed over for its length, which mask_ctx_update_loop () counts in lookup.skipped, is a
+  // round that never starts, so the queue stands as the round before it left it. Left in STATUS_INIT,
+  // a queue whose last mask is passed over would end as an error, because EVENT_OUTERLOOP_FINISHED
+  // turns STATUS_INIT into STATUS_ERROR, and would keep its restore file. A queue that runs no round
+  // at all does end that way, and so does a mask that fails for any other reason. Only STATUS_INIT is
+  // replaced, because a quit, a runtime limit or a crack that another thread set meanwhile stands.
+
+  const u32 masks_skipped = mask_ctx->lookup.skipped;
+
+  if (mask_ctx_update_loop (hashcat_ctx) == -1)
+  {
+    const bool passed_over = (mask_ctx->lookup.skipped > masks_skipped);
+
+    if ((passed_over == true) && (status_ctx->devices_status == STATUS_INIT)) status_ctx->devices_status = devices_status_prev;
+
+    return 0;
+  }
 
   // A mask that failed only skips its round, so its error code must not outlive the next round that
   // does run. It is still set at the end when no round ran after it. A bridge unit that failed before
@@ -902,6 +922,22 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     myabort_finish (hashcat_ctx);
   }
 
+  // A bypass ends the round and not the queue, and bypass () clears both requests, so a checkpoint or
+  // a finish seen here was asked for after it. It stops the queue all the same, and the run has to
+  // end as stopped by it rather than as bypassed, which would read as having run out.
+
+  if (status_ctx->devices_status == STATUS_BYPASS)
+  {
+    if ((status_ctx->checkpoint_shutdown == true) || (status_ctx->checkpoint_taken == true))
+    {
+      myabort_checkpoint (hashcat_ctx);
+    }
+    else if (status_ctx->finish_shutdown == true)
+    {
+      myabort_finish (hashcat_ctx);
+    }
+  }
+
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ERROR)
    && (status_ctx->devices_status != STATUS_ABORTED)
@@ -920,7 +956,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     // therefore, they will end up (if no other error occurred) as STATUS_EXHAUSTED.
     // however, that can create confusion in hashcats RC, because exhausted translates to RC = 1.
     // but then having RC = 1 does not match our exception if we use for speed-only and progress-only.
-    // to get hashcat to return RC = 0 we have to set it to CRACKED or BYPASS
+    // to get hashcat to return RC = 0 we set it to BYPASS, which hashcat_session_execute () maps to 0
+    // for these two options only
     // note: other options like --show, --left, --benchmark, --keyspace, --backend-info, etc.
     // do not reach this section of the code, they've returned already with rc 0.
 
@@ -3587,12 +3624,19 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_final == 0)
   {
+    // A run that ends bypassed has gone as far as its queue goes without cracking every hash, which
+    // is what exhausted says. --speed-only and --progress-only end bypassed once their measurement is
+    // done, see inner2_loop (), and for them that is success.
+
+    const bool measure_only = (user_options->speed_only == true) || (user_options->progress_only == true);
+
     if (status_ctx->devices_status == STATUS_ABORTED_FINISH)      rc_final = RC_FINAL_ABORT_FINISH;
     if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final = RC_FINAL_ABORT_RUNTIME;
     if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final = RC_FINAL_ABORT_CHECKPOINT;
     if (status_ctx->devices_status == STATUS_ABORTED)             rc_final = RC_FINAL_ABORT;
     if (status_ctx->devices_status == STATUS_QUIT)                rc_final = RC_FINAL_ABORT;
     if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final = RC_FINAL_EXHAUSTED;
+    if (status_ctx->devices_status == STATUS_BYPASS)              rc_final = (measure_only == true) ? RC_FINAL_OK : RC_FINAL_EXHAUSTED;
     if (status_ctx->devices_status == STATUS_CRACKED)             rc_final = RC_FINAL_OK;
     if (status_ctx->devices_status == STATUS_ERROR)               rc_final = RC_FINAL_ERROR;
   }
@@ -3609,11 +3653,12 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (backend_ctx->self_test_warnings    == true)               rc_final = -11;
   }
 
-  // special case for --stdout
+  // special case for --stdout, whose candidates are done when they run out or when a library caller
+  // bypasses the last item
 
   if (user_options->stdout_flag == true)
   {
-    if (status_ctx->devices_status == STATUS_EXHAUSTED)
+    if ((status_ctx->devices_status == STATUS_EXHAUSTED) || (status_ctx->devices_status == STATUS_BYPASS))
     {
       rc_final = 0;
     }

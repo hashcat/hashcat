@@ -706,6 +706,10 @@ int bypass (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
+  // a session that has cracked every hash is already ending, and the bypass would overwrite that
+
+  if (status_ctx->devices_status == STATUS_CRACKED) return -1;
+
   if (bypass_to_next_source (hashcat_ctx) == true) return 0;
 
   status_ctx->devices_status = STATUS_BYPASS;
