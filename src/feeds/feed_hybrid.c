@@ -296,6 +296,11 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   if (hybrid_global->has_q == true)
   {
     if (wordlist_init (global_ctx, &hybrid_global->amp, hashcat_ctx, base_to, global_ctx->workc) == false) return false;
+
+    // Each wordlist_init () names the status line after its own first source. The base is what names
+    // this attack, the way it does without a ?q, so its name goes back over the ?q wordlist's.
+
+    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s", hybrid_global->base.sources[0].path);
   }
 
   // What the status line calls this attack. The mask says more than the feed's name does, and the
@@ -357,6 +362,14 @@ u128 global_keyspace_u128 (generic_global_ctx_t *global_ctx, generic_thread_ctx_
       return GENERIC_KEYSPACE_ERROR_U128;
     }
   }
+
+  // Each count above published where its own sources begin, in lines, and the ?q count replaced the
+  // base's table with its own. The table to keep is the base's, because the base is what a position
+  // names a source of, and in this keyspace one base line is worth a position per ?q word. The round's
+  // mask is not in these units: it is the factor straight_ctx_update_loop () multiplies in, and
+  // status_get_base_word () divides it back out of a run position.
+
+  wordlist_segments_publish (global_ctx, &hybrid_global->base, hybrid_global->amp_cnt);
 
   // Two u64 counts always multiply into a u128 on a 64-bit host, below both of the values that mean
   // unknown and error. On a 32-bit host a u128 is a u64, and a product that saturates or lands on one

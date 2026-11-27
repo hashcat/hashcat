@@ -60,8 +60,12 @@ static const double ETA_SEC_BIG_BANG = 432339120000000000.0;
 // What a run reports for a keyspace too large to state, and for a time left at or past the age of
 // the universe. It is that threshold, so both formatters show the Next Big Bang markers. It is also
 // small enough that adding it to the current time cannot leave a 64-bit time_t.
+//
+// A 32-bit time_t ends at 68 years and holds neither threshold. There this is the largest value one
+// holds instead, every estimate of 68 years or more is held at it, and both formatters show it as the
+// century markers.
 
-static const time_t ETA_SEC_UNMEASURABLE = 432339120000000000;
+static const time_t ETA_SEC_UNMEASURABLE = (sizeof (time_t) >= 8) ? (time_t) 432339120000000000 : (time_t) INT32_MAX;
 
 static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -1372,30 +1376,51 @@ u64 status_get_amplifier_cnt (const hashcat_ctx_t *hashcat_ctx)
   return 1;
 }
 
-// A run position as a base word, for everything that compares it with the lines of the feed's
-// sources. --slow-candidates expands the amplifier on the host, so there a position counts the
-// candidates of every base word.
+// A run position as a position in the feed's own keyspace, for everything that compares it with where
+// the feed's sources begin. --slow-candidates expands the amplifier on the host, so there a position
+// counts the candidates of every base word. The hybrid feed counts its words and not its mask, which
+// each round multiplies in, so there a position counts every mask value of each word.
 
 u128 status_get_base_word (const hashcat_ctx_t *hashcat_ctx, const u128 pos)
 {
-  if (hashcat_ctx->user_options->slow_candidates == false) return pos;
+  u128 word = pos;
 
-  const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+  if (hashcat_ctx->user_options->slow_candidates == true)
+  {
+    const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
 
-  const u128 word = (amplifier > 1) ? (pos / amplifier) : pos;
+    if (amplifier > 1) word /= amplifier;
+  }
+
+  if (mask_feed_kind (hashcat_ctx->user_options) == MASK_FEED_HYBRID)
+  {
+    const u128 mask_cnt = hashcat_ctx->mask_ctx->feed_keyspace;
+
+    if (mask_cnt > 1) word /= mask_cnt;
+  }
 
   return word;
 }
 
-// and back, the run position of the first candidate of a base word
+// and back, the run position of the first candidate at a position of the feed's own keyspace
 
 u128 status_get_base_pos (const hashcat_ctx_t *hashcat_ctx, const u128 word)
 {
-  if (hashcat_ctx->user_options->slow_candidates == false) return word;
+  u128 pos = word;
 
-  const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+  if (mask_feed_kind (hashcat_ctx->user_options) == MASK_FEED_HYBRID)
+  {
+    const u128 mask_cnt = hashcat_ctx->mask_ctx->feed_keyspace;
 
-  const u128 pos = (amplifier > 1) ? (word * amplifier) : word;
+    if (mask_cnt > 1) pos *= mask_cnt;
+  }
+
+  if (hashcat_ctx->user_options->slow_candidates == true)
+  {
+    const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+    if (amplifier > 1) pos *= amplifier;
+  }
 
   return pos;
 }
@@ -1792,14 +1817,17 @@ static u128 status_end_relative_skip (const hashcat_ctx_t *hashcat_ctx, bool *ov
 }
 
 // An estimate at or past the age of the universe is shown as the Next Big Bang and needs no figure of
-// its own. Every value below that fits a u64, and a 64-bit time_t through it. The seconds are worked
-// out as a double, because a u64 of milliseconds runs out at about 585 million years.
+// its own. Every value below that fits a u64, and a 64-bit time_t through it. A 32-bit time_t holds 68
+// years, and a longer estimate there is held at ETA_SEC_UNMEASURABLE rather than wrapped. The seconds
+// are worked out as a double, because a u64 of milliseconds runs out at about 585 million years.
 
 static time_t status_msec_to_sec (const double msec)
 {
   const double sec_f = msec / 1000;
 
   if (sec_f >= ETA_SEC_BIG_BANG) return ETA_SEC_UNMEASURABLE;
+
+  if ((sizeof (time_t) < 8) && (sec_f >= (double) INT32_MAX)) return ETA_SEC_UNMEASURABLE;
 
   const u64 sec_u64 = (u64) sec_f;
 
@@ -2016,6 +2044,13 @@ static char *status_format_time_estimated_absolute (const time_t sec_etc)
   {
     etc = (char *) ETA_ABSOLUTE_CENTURY;
   }
+  else if ((sizeof (time_t) < 8) && (sec_etc > (INT32_MAX - now)))
+  {
+    // A 32-bit time_t ends in January 2038, so a later date takes the century marker early, the
+    // estimates held at ETA_SEC_UNMEASURABLE among them.
+
+    etc = (char *) ETA_ABSOLUTE_CENTURY;
+  }
   else if (overflow_check_u64_add (now, sec_etc) == true)
   {
     etc = (char *) ETA_ABSOLUTE_CENTURY;
@@ -2061,11 +2096,14 @@ static char *status_format_time_estimated_relative (const hashcat_ctx_t *hashcat
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
+  // On a 64-bit time_t ETA_SEC_UNMEASURABLE is the Big Bang marker. On a 32-bit one it is every
+  // estimate of 68 years or more, and the century marker is the one it takes early.
+
   if ((double) sec_etc >= ETA_SEC_BIG_BANG)
   {
     snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_MAX_EXCEEDED);
   }
-  else if ((double) sec_etc >= ETA_SEC_CENTURY)
+  else if (((double) sec_etc >= ETA_SEC_CENTURY) || (sec_etc >= ETA_SEC_UNMEASURABLE))
   {
     snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_CENTURY);
   }

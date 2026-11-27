@@ -631,6 +631,47 @@ static void wordlist_term (generic_global_ctx_t *global_ctx, feed_global_t *feed
   feed_global->sources_cnt = 0;
 }
 
+// Where each source begins in the feed's keyspace, published as the two flat arrays the interface
+// hands over rather than as this plugin's own struct. One line is worth scale positions there, which
+// is 1 for a feed whose keyspace counts lines.
+//
+// A table published before is given back first. A feed that counts two wordlists with this reader has
+// each count replace the table of the one before it, and the one it keeps is the one it publishes
+// last. Offsets are u64, so a table whose last offset would pass 2^64 is not published at all rather
+// than published with wrapped offsets.
+
+static void wordlist_segments_publish (generic_global_ctx_t *global_ctx, const feed_global_t *feed_global, const u64 scale)
+{
+  hcfree ((void *) global_ctx->segment_names);
+  hcfree ((void *) global_ctx->segment_first);
+
+  global_ctx->segments_cnt  = 0;
+  global_ctx->segment_names = NULL;
+  global_ctx->segment_first = NULL;
+
+  if (feed_global->sources_cnt == 0) return;
+
+  // first_line ascends, so the last source holds the largest offset and checking it covers them all
+
+  const u64 last_line = feed_global->sources[feed_global->sources_cnt - 1].first_line;
+
+  if (overflow_check_u64_mul (last_line, scale) == true) return;
+
+  const char **segment_names = hcmalloc (feed_global->sources_cnt * sizeof (char *));
+
+  u64 *segment_first = hcmalloc (feed_global->sources_cnt * sizeof (u64));
+
+  for (u64 i = 0; i < feed_global->sources_cnt; i++)
+  {
+    segment_names[i] = feed_global->sources[i].path;
+    segment_first[i] = feed_global->sources[i].first_line * scale;
+  }
+
+  global_ctx->segments_cnt  = feed_global->sources_cnt;
+  global_ctx->segment_names = segment_names;
+  global_ctx->segment_first = segment_first;
+}
+
 static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, hashcat_ctx_t *hashcat_ctx, feed_global_t *feed_global)
 {
   // The seek database is built by reading a file once, and this is the reader that does it. It is its
@@ -764,22 +805,9 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
 
   // Publish where each source begins so the status line can say which one the run has reached. It has
   // to be here rather than in global_init (), because first_line is only known once every source has
-  // been counted. Two flat arrays because that is what the interface hands over, rather than this
-  // plugin's own struct.
+  // been counted.
 
-  const char **segment_names = hcmalloc (feed_global->sources_cnt * sizeof (char *));
-
-  u64 *segment_first = hcmalloc (feed_global->sources_cnt * sizeof (u64));
-
-  for (u64 i = 0; i < feed_global->sources_cnt; i++)
-  {
-    segment_names[i] = feed_global->sources[i].path;
-    segment_first[i] = feed_global->sources[i].first_line;
-  }
-
-  global_ctx->segments_cnt  = feed_global->sources_cnt;
-  global_ctx->segment_names = segment_names;
-  global_ctx->segment_first = segment_first;
+  wordlist_segments_publish (global_ctx, feed_global, 1);
 
   return feed_global->line_count;
 }

@@ -3575,9 +3575,12 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   time (&time_now);
 
-  time_t end;
+  // The sum is a u64 rather than a time_t, because a 32-bit time_t ends in January 2038 and the field
+  // is a number, not a date the C library has to format.
 
-  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+  u64 end;
+
+  const time_t sec_etc = status_get_sec_etc (hashcat_ctx);
 
   if (overflow_check_u64_add (time_now, sec_etc) == true)
   {
@@ -3585,7 +3588,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    end = time_now + sec_etc;
+    end = (u64) time_now + (u64) sec_etc;
   }
 
   // A few fields are inline fixed-shape tokens the emitter does not model: a percentage printed to
@@ -3733,7 +3736,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   json_kv_uint (&js, "time_start", (u64) status_ctx->runtime_start);
   json_kv_uint (&js, "time_running", (u64) (hashcat_status->msec_real / 1000));
-  json_kv_uint (&js, "estimated_stop", (u64) end);
+  json_kv_uint (&js, "estimated_stop", end);
 
   json_object_end (&js);
 

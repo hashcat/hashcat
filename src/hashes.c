@@ -2096,10 +2096,10 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
       u128 word_pos = gidvid_to_word_pos (device_param, plain->gidvid);
 
-      // --slow-candidates expands the amplifier on the host, so a position in that keyspace counts
-      // candidates where the feed's segment table counts lines. Without the conversion a candidate
-      // index past the first wordlist's line count names the second wordlist for words that came out
-      // of the first.
+      // A run position can count more than the feed's own positions, which are what its segment table
+      // counts: every candidate under --slow-candidates, every mask value under the hybrid feed.
+      // Without the conversion a position past where the second wordlist begins names it for words
+      // that came out of the first.
 
       word_pos = status_get_base_word (hashcat_ctx, word_pos);
 

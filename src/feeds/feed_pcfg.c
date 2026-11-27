@@ -1031,6 +1031,17 @@ static pcfg_arc_t *arc_load (const char *path)
   {
     if (len == cap)
     {
+      // Doubling cap past half of size_t would wrap it to 0, which a 32-bit build reaches at 2 GiB. A
+      // realloc to 0 bytes frees the buffer, and the failure below would then free it a second time.
+
+      if (cap > (SIZE_MAX / 2))
+      {
+        hcfree (buf);
+        hc_fclose (&fp);
+
+        return NULL;
+      }
+
       cap *= 2;
 
       u8 *nb = (u8 *) hcrealloc (buf, len, cap - len);
