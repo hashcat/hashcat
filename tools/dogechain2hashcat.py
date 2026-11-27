@@ -5,29 +5,31 @@
 ## License.....: MIT
 ##
 
-# Write the hash line of a dogechain.info wallet backup for hash-mode 32500.
+# Write the hash line of a dogechain.info wallet backup for hash-mode 32500 (AES-CBC)
+# or 32501 (AES-GCM).
 #
 # The backup is a JSON object with the fields "payload", "salt" and "pbkdf2_iterations".
 # The "cipher" field was added later, so an old backup may not carry it, and a missing
 # field means AES-CBC, which is the cipher mode 32500 cracks.
 #
-# Two kinds of wallet cannot be cracked and are refused with a message. A "cipher" of
-# AES-GCM is the newer wallet format, which has no hashcat mode yet, see
-# https://github.com/hashcat/hashcat/issues/3868. And a payload that splits on ";" into
-# equal blocks is RSA-wrapped transport data whose wrapping key existed only in the
-# browser session, so it cannot be unwrapped offline.
+# A payload that splits on ";" into equal blocks is RSA-wrapped transport data whose
+# wrapping key existed only in the browser session, so it cannot be unwrapped offline
+# and is refused with a message.
 #
 # Mode 32500 reads exactly 240 payload bytes (320 base64 chars). A longer payload is cut
 # down to that, which loses nothing: in AES-CBC the decryption of a block depends only on
 # the blocks before it, and the mode checks the head of the decrypted plaintext.
+# Mode 32501 needs the complete payload: the GCM tag authenticates the whole ciphertext,
+# so nothing may be cut.
 
 import json
 
 from argparse import ArgumentParser
 from base64 import b64decode, b64encode
 
-PAYLOAD_LEN = 240
-SALT_LEN    = 16
+PAYLOAD_LEN     = 240    # mode 32500 (AES-CBC): head only
+PAYLOAD_MAX_GCM = 1052   # mode 32501 (AES-GCM): iv 12 + tag 16 + ct up to 1024
+SALT_LEN        = 16
 
 
 def b64_field (parser, name, value):
@@ -77,8 +79,10 @@ if __name__ == "__main__":
   if isinstance (cipher, str) == False:
     parser.error ("Unsupported wallet format: invalid cipher type")
 
-  if cipher.upper () != "AES-CBC":
-    parser.error ("Unsupported wallet cipher: %s (only AES-CBC is crackable, see hashcat issue #3868)" % cipher)
+  cipher = cipher.upper ()
+
+  if cipher not in ("AES-CBC", "AES-GCM"):
+    parser.error ("Unsupported wallet cipher: %s (only AES-CBC and AES-GCM are crackable)" % cipher)
 
   # iterations
 
@@ -109,9 +113,21 @@ if __name__ == "__main__":
 
   payload_raw = b64_field (parser, "payload", payload_str)
 
-  if len (payload_raw) < PAYLOAD_LEN:
-    parser.error ("Unsupported wallet payload: too short (%d decoded bytes, mode 32500 reads %d)" % (len (payload_raw), PAYLOAD_LEN))
+  if cipher == "AES-CBC":
 
-  payload = b64encode (payload_raw[:PAYLOAD_LEN]).decode ()
+    if len (payload_raw) < PAYLOAD_LEN:
+      parser.error ("Unsupported wallet payload: too short (%d decoded bytes, mode 32500 reads %d)" % (len (payload_raw), PAYLOAD_LEN))
 
-  print ("$dogechain$0*%s*%s*%s" % (iterations_str, payload, wallet["salt"]))
+    payload = b64encode (payload_raw[:PAYLOAD_LEN]).decode ()
+
+    print ("$dogechain$0*%s*%s*%s" % (iterations_str, payload, wallet["salt"]))
+
+  else:
+
+    if len (payload_raw) < 12 + 16 + 16:
+      parser.error ("Unsupported wallet payload: too short (%d decoded bytes, mode 32501 needs at least %d)" % (len (payload_raw), 12 + 16 + 16))
+
+    if len (payload_raw) > PAYLOAD_MAX_GCM:
+      parser.error ("Unsupported wallet payload: too long (%d decoded bytes, mode 32501 reads at most %d)" % (len (payload_raw), PAYLOAD_MAX_GCM))
+
+    print ("$dogechain$1*%s*%s*%s" % (iterations_str, payload_str, wallet["salt"]))
