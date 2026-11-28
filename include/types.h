@@ -241,6 +241,7 @@ typedef enum mem_source
   MEM_SOURCE_EXTENSION = 3,   // CL_DEVICE_GLOBAL_FREE_MEMORY_AMD
   MEM_SOURCE_HWMON     = 4,   // the hardware monitor's used-memory reading
   MEM_SOURCE_PROBE     = 5,   // measured by allocating until it fails
+  MEM_SOURCE_DRM       = 6,   // DRM_XE_DEVICE_QUERY_MEM_REGIONS, the xe kernel driver's own VRAM accounting
 
 } mem_source_t;
 

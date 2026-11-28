@@ -41,6 +41,8 @@
 #include "status_rc.h"
 
 #if defined (__linux__)
+#include <sys/ioctl.h>
+
 static const char *const  dri_card0_path = "/dev/dri/card0";
 
 static const char *const  drm_card0_vendor_path = "/sys/class/drm/card0/device/vendor";
@@ -1082,6 +1084,167 @@ static bool amd_free_mem_disabled (void)
 
   return hc_env_flag ("HASHCAT_NO_AMD_FREE_MEM", &cache);
 }
+
+#if defined (__linux__)
+
+// DRM_XE_DEVICE_QUERY_MEM_REGIONS reports the size of each memory region of an xe card and the
+// bytes every process together holds there. The layouts are those of the kernel's drm/xe_drm.h,
+// which older distributions do not ship.
+
+typedef struct xe_device_query
+{
+  u64 extensions;
+  u32 query;
+  u32 size;
+  u64 data;
+  u64 reserved[2];
+
+} xe_device_query_t;
+
+typedef struct xe_mem_region
+{
+  u16 mem_class;
+  u16 instance;
+  u32 min_page_size;
+  u64 total_size;
+  u64 used;
+  u64 cpu_visible_size;
+  u64 cpu_visible_used;
+  u64 reserved[6];
+
+} xe_mem_region_t;
+
+typedef struct xe_query_mem_regions
+{
+  u32 num_mem_regions;
+  u32 pad;
+
+  xe_mem_region_t mem_regions[];
+
+} xe_query_mem_regions_t;
+
+#define XE_IOCTL_DEVICE_QUERY       _IOWR ('d', 0x40 + 0x00, xe_device_query_t)
+#define XE_DEVICE_QUERY_MEM_REGIONS 1
+#define XE_MEM_REGION_CLASS_VRAM    1
+
+// Returns false when the driver gives no figure. Linux 6.18, 6.17.4 and 6.12.54 report the used
+// figure to every process. Earlier kernels report it only to a process with CAP_PERFMON or
+// CAP_SYS_ADMIN, and 0 to everyone else. A real reading is never 0, because the driver keeps some
+// VRAM for itself. A full card is an answer, 0 bytes free, and not a missing one.
+
+static bool xe_vram_free_fd (const int fd, u64 *vram_free)
+{
+  xe_device_query_t query;
+
+  memset (&query, 0, sizeof (query));
+
+  query.query = XE_DEVICE_QUERY_MEM_REGIONS;
+
+  if (ioctl (fd, XE_IOCTL_DEVICE_QUERY, &query) == -1) return false;
+
+  if (query.size < sizeof (xe_query_mem_regions_t)) return false;
+
+  xe_query_mem_regions_t *regions = (xe_query_mem_regions_t *) hccalloc (1, query.size);
+
+  if (regions == NULL) return false;
+
+  query.data = (u64) (uintptr_t) regions;
+
+  u64 total = 0;
+  u64 used  = 0;
+
+  if (ioctl (fd, XE_IOCTL_DEVICE_QUERY, &query) == 0)
+  {
+    const u32 regions_max = (query.size - sizeof (xe_query_mem_regions_t)) / sizeof (xe_mem_region_t);
+
+    const u32 regions_cnt = MIN (regions->num_mem_regions, regions_max);
+
+    for (u32 i = 0; i < regions_cnt; i++)
+    {
+      const xe_mem_region_t *region = &regions->mem_regions[i];
+
+      if (region->mem_class != XE_MEM_REGION_CLASS_VRAM) continue;
+
+      total += region->total_size;
+      used  += region->used;
+    }
+  }
+
+  hcfree (regions);
+
+  if (used == 0) return false;
+
+  *vram_free = (used >= total) ? 0 : total - used;
+
+  return true;
+}
+
+// The OpenCL device is found by its PCI address. It counts only if the driver bound to it is xe,
+// and its render node is the one listed in the device's drm folder in sysfs.
+
+static bool xe_vram_free (const hc_device_param_t *device_param, u64 *vram_free)
+{
+  char syspath[64];
+
+  snprintf (syspath, sizeof (syspath), "/sys/bus/pci/devices/%04x:%02x:%02x.%x", device_param->pcie_domain, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
+
+  char link_path[HCBUFSIZ_TINY];
+
+  snprintf (link_path, sizeof (link_path), "%s/driver", syspath);
+
+  char driver[HCBUFSIZ_TINY];
+
+  const ssize_t driver_len = readlink (link_path, driver, sizeof (driver) - 1);
+
+  if (driver_len == -1) return false;
+
+  driver[driver_len] = 0;
+
+  const char *driver_name = strrchr (driver, '/');
+
+  if (driver_name == NULL) return false;
+
+  if (strcmp (driver_name, "/xe") != 0) return false;
+
+  char drm_path[HCBUFSIZ_TINY];
+
+  snprintf (drm_path, sizeof (drm_path), "%s/drm", syspath);
+
+  DIR *dir = opendir (drm_path);
+
+  if (dir == NULL) return false;
+
+  char node_path[HCBUFSIZ_TINY];
+
+  node_path[0] = 0;
+
+  struct dirent *entry = NULL;
+
+  while ((entry = readdir (dir)) != NULL)
+  {
+    if (strncmp (entry->d_name, "renderD", 7) != 0) continue;
+
+    snprintf (node_path, sizeof (node_path), "/dev/dri/%s", entry->d_name);
+
+    break;
+  }
+
+  closedir (dir);
+
+  if (node_path[0] == 0) return false;
+
+  const int fd = open (node_path, O_RDWR | O_CLOEXEC);
+
+  if (fd == -1) return false;
+
+  const bool answered = xe_vram_free_fd (fd, vram_free);
+
+  close (fd);
+
+  return answered;
+}
+
+#endif
 
 // Drop a device, and say what for.
 //
@@ -12241,6 +12404,27 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
       }
 
+      // Still nothing? On Linux the xe kernel driver answers for an Intel card itself, counting
+      // what other processes hold. The walk below is no substitute there: xe never refuses an
+      // allocation, it moves other processes' buffers to system memory to make room. The walk then
+      // reports the whole card as free, and the buffers it displaced stay in system memory until
+      // their owner runs again.
+
+      #if defined (__linux__)
+      if ((updated_device_available_mem == false) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
+      {
+        u64 vram_free = 0;
+
+        if (xe_vram_free (device_param, &vram_free) == true)
+        {
+          device_param->device_available_mem        = MIN (vram_free, device_param->device_global_mem);
+          device_param->device_available_mem_source = MEM_SOURCE_DRM;
+
+          updated_device_available_mem = true;
+        }
+      }
+      #endif
+
       // if not found ... use old strategy
 
       if (updated_device_available_mem == false)
@@ -12256,9 +12440,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-          // Reached only when neither a CUDA/HIP twin nor the AMD extension could answer, so the
-          // runtime genuinely does not report free memory. Walking allocations until one fails is a
-          // measurement; the physical size minus a percentage is not.
+          // Reached only when neither a CUDA/HIP twin, the AMD extension nor the xe driver could
+          // answer, so the runtime genuinely does not report free memory. Walking allocations until
+          // one fails is a measurement; the physical size minus a percentage is not.
 
           if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
           {
@@ -18431,7 +18615,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         event_log_info (hashcat_ctx, "* Device #%u: memory budget, %u device(s) share this physical device", device_id + 1, device_sharers);
         event_log_info (hashcat_ctx, "  accel %u, threads %u, kernel_power %" PRIu64, kernel_accel_max, (u32) kernel_threads, kernel_power_max);
-        const char *mem_source_name[] = { "unknown/guessed", "runtime", "alias", "amd-extension", "hwmon", "probe" };
+        const char *mem_source_name[] = { "unknown/guessed", "runtime", "alias", "amd-extension", "hwmon", "probe", "drm-query" };
 
         event_log_info (hashcat_ctx, "  device_available_mem %" PRIu64 " MiB, share %" PRIu64 " MiB, source %s", device_param->device_available_mem / MiB, device_available_mem_share / MiB, mem_source_name[device_param->device_available_mem_source]);
         event_log_info (hashcat_ctx, "  size_total           %" PRIu64 " MiB", size_total / MiB);
