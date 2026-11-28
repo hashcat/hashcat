@@ -66,7 +66,7 @@ done
 # that was renamed in the tree left an archive missing it and said nothing that stopped the build.
 # layouts became tables/layouts and that is exactly what happened.
 
-for folder in docs charsets tables masks bridges feeds modules rules extra tunings pcfg OpenCL; do
+for folder in docs charsets tables masks bridges feeds modules rules extra tunings pcfg tokensets OpenCL; do
 
   if [ -d "$IN/$folder" ]; then
     continue
@@ -136,6 +136,7 @@ cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
 cp -r $IN/tunings                       $OUT/
+cp -r $IN/tokensets                     $OUT/
 
 # The PCFG rulesets, which are what -a 4 runs with no ruleset named. Not in the line ending passes
 # below: a ruleset is one .tar.xz and converting it is corrupting it.
@@ -239,6 +240,8 @@ chmod 755 $OUT/tunings
 chmod 644 $OUT/tunings/*
 chmod 755 $OUT/pcfg
 chmod 644 $OUT/pcfg/*
+chmod 755 $OUT/tokensets
+chmod 644 $OUT/tokensets/*
 chmod 644 $OUT/*.exe
 chmod 644 $OUT/*.dll
 chmod 755 $OUT/*.bin

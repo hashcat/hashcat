@@ -106,6 +106,13 @@ def main() -> int:
       print("%s: %s" % (path, e), file = sys.stderr)
 
       rc = 1
+    except Exception as e:
+      # A vault is a folder somebody downloaded, so whatever its profile raises has to stay with that
+      # path: an iteration count of 1e400 raises OverflowError, and deeply nested JSON RecursionError.
+
+      print("%s: cannot be read as a profile: %s" % (path, type(e).__name__), file = sys.stderr)
+
+      rc = 1
 
   return rc
 

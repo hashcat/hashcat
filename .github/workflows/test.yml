@@ -303,7 +303,9 @@ jobs:
           # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
           # the family's own fixed attack, so the container kind passes neither. A pull request is
           # optimized only and a single hash, to keep its latency. Edge tests cover both kernel
-          # families and every vector width in one pass.
+          # families and every vector width in one pass. Each mode is a test.py run of its own here,
+          # so --edge-all-scope keeps a slow mode to the whole word attacks, as a --edge run over
+          # every mode does.
           if [ "$EVENT" = "pull_request" ]; then
             OPTS="-a all -t single"
           elif [ "$KIND" = "pure" ]; then
@@ -313,7 +315,7 @@ jobs:
           elif [ "$KIND" = "container" ]; then
             OPTS=""
           elif [ "$KIND" = "edge" ]; then
-            OPTS="--edge"
+            OPTS="--edge --edge-all-scope"
           else
             OPTS="-a all -t all"
           fi
@@ -336,23 +338,51 @@ jobs:
           from pathlib import Path
           import subprocess
           import sys
+          import threading
           import time
 
           sys.path.insert(0, "tools")
           from test_iterations import iteration_reduction_enabled
 
-          # Measure this mode's test duration for the timing records used to balance CI shards.
-          started = time.monotonic()
-          result = subprocess.run([sys.executable, "tools/test.py", "-m", *sys.argv[1:], "-D", "1"])
-          seconds = max(1, math.ceil(time.monotonic() - started))
+          # Measure this mode's test duration for the timing records used to balance CI shards. The
+          # record is rewritten every minute while test.py runs, so a mode that fails or that the job
+          # limit cuts off still leaves the time it ran. Only a pass is complete, the rest are lower
+          # bounds. A record is renamed into place, so a job killed mid write cannot leave half of one.
           kind = os.environ["KIND"]
-          if result.returncode == 0 and os.environ["EVENT"] != "pull_request" and kind != "container":
+          timed = (os.environ["EVENT"] != "pull_request") and (kind != "container")
+
+          if timed == True:
             mode = int(sys.argv[1])
             section = "reduced" if iteration_reduction_enabled(mode) else "normal"
-            record = dict(mode=mode, kind=kind, section=section, seconds=seconds)
             directory = Path("ci-timing-records")
+
             directory.mkdir(exist_ok=True)
-            (directory / f"{mode}-{kind}.json").write_text(json.dumps(record) + "\n")
+
+          started = time.monotonic()
+
+          def save(complete):
+            if timed == False:
+              return
+
+            seconds = max(1, math.ceil(time.monotonic() - started))
+            record = dict(mode=mode, kind=kind, section=section, seconds=seconds, complete=complete)
+            part = directory / f"{mode}-{kind}.part"
+
+            part.write_text(json.dumps(record) + "\n")
+            part.replace(directory / f"{mode}-{kind}.json")
+
+          def refresh():
+            while stop.wait(60) == False:
+              save(False)
+
+          stop = threading.Event()
+          refresher = threading.Thread(target=refresh, daemon=True)
+
+          refresher.start()
+          result = subprocess.run([sys.executable, "tools/test.py", "-m", *sys.argv[1:], "-D", "1"])
+          stop.set()
+          refresher.join()
+          save(result.returncode == 0)
           sys.exit(result.returncode if result.returncode >= 0 else 128 - result.returncode)
           PYTHON
             then
@@ -446,15 +476,32 @@ jobs:
 
           path = Path(".github/workflows/ci_timings.json")
           data = json.loads(path.read_text()) if path.exists() else {"normal": {}, "reduced": {}}
+
+          # A run that failed or was cut off only shows that the mode takes at least that long. Its
+          # time is kept apart as a lower bound, which ci_matrix.py never plans the mode below, and
+          # the next pass measures the mode again and drops it.
+          lower = data.setdefault("lower", {"normal": {}, "reduced": {}})
           measurements = {}
+          bounds = {}
+
           for record in Path("ci-timing-records").glob("*.json"):
             row = json.loads(record.read_text())
             key = (row["section"], str(row["mode"]), row["kind"])
-            measurements[key] = max(measurements.get(key, 0), row["seconds"])
+            found = measurements if row.get("complete", True) == True else bounds
+
+            found[key] = max(found.get(key, 0), row["seconds"])
+
           for (section, mode, kind), seconds in measurements.items():
             data[section].setdefault(mode, {})[kind] = seconds
+            lower[section].get(mode, {}).pop(kind, None)
+
+          for (section, mode, kind), seconds in bounds.items():
+            saved = lower[section].get(mode, {}).get(kind, 0)
+
+            lower[section].setdefault(mode, {})[kind] = max(saved, seconds)
+
           path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
-          print("Updated %d mode/kind measurements" % len(measurements))
+          print("Updated %d mode/kind measurements and %d lower bounds" % (len(measurements), len(bounds)))
           PYTHON
 
       - name: Save updated timings

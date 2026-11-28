@@ -108,7 +108,7 @@ Runtime `limit` values count kernel loop iterations. A limit of 2 corresponds to
 
 #### CI timing estimates ####
 
-Weekly and manual `test.yml` runs measure each hash mode and test kind, separately for normal and reduced iterations, to target roughly one hour per shard. Runs on `master` save successful [measurements in the Actions cache](https://github.com/hashcat/hashcat/actions/caches). Failed or unfinished tests retain their previous estimates. If the cache is missing, planning falls back to weight-based sharding.
+Weekly and manual `test.yml` runs measure each hash mode and test kind, separately for normal and reduced iterations, to target roughly one hour per shard. Runs on `master` save the [measurements in the Actions cache](https://github.com/hashcat/hashcat/actions/caches). A test that fails, or that the job limit cuts off, saves the time it ran as a lower bound instead. The planner never plans the mode below it, and the next pass of the mode replaces it. If the cache is missing, planning falls back to weight-based sharding.
 
 #### Generated container costs ####
 

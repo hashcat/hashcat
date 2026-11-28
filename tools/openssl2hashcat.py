@@ -74,8 +74,12 @@ def ascii_pct_min(ct_len):
 
 
 def process(path, cipher, md, plaintext, min_ascii):
-  with open(path, "rb") as f:
-    data = f.read()
+  try:
+    with open(path, "rb") as f:
+      data = f.read()
+  except OSError as e:
+    sys.stderr.write("%s: %s\n" % (path, e.strerror))
+    return False
 
   if data.startswith(b"Salted__") is False:
     try:

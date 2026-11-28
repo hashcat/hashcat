@@ -26,6 +26,12 @@ EXAMPLE_HASH_REPLACEMENTS = {
     "29542": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_serpent_xts-plain64_256.txt",
     "29543": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_twofish_cbc-plain64_128.txt",
     "34100": "https://hashcat.net/misc/example_hashes/hashcat_luks2_argon2id_sha256_aes_xts-plain64_512.txt",
+
+    # The Blowfish modes have no example hash file of their own, so they link the container archive, as 14600 does.
+    "29514": "https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z",
+    "29524": "https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z",
+    "29534": "https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z",
+    "29544": "https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z",
 }
 
 OPENCL_DIR = "../../OpenCL"
@@ -139,10 +145,10 @@ def find_test(zfilled_key):
     # List of LUKS modes which have test containers
     LUKS_MODES = [
         "14600",
-        "29511", "29512", "29513",
-        "29521", "29522", "29523",
-        "29531", "29532", "29533",
-        "29541", "29542", "29543"
+        "29511", "29512", "29513", "29514",
+        "29521", "29522", "29523", "29524",
+        "29531", "29532", "29533", "29534",
+        "29541", "29542", "29543", "29544"
     ]
 
     # Cryptoloop mode which have test containers

@@ -7,13 +7,13 @@ Contributions written with an AI coding agent are welcome. This file is the part
 ## Build and test
 
     make                        # builds ./hashcat and libhashcat.so
-    ./tools/test.py -S -m 0     # crack the mode's own self-test vector
+    ./tools/test.py -S -m 0     # crack one test vector for the mode
     ./tools/test.py --edge -m 0 # edge test for one mode
     ./tools/test.py -h          # all options
 
 With only `-m`, the edge test covers every attack type, kernel type, target type and vector width for that mode. A run without `--edge` tests only attack mode 0 and only the optimized kernels. Add `-a all` for every attack mode, and run it again with `-P` for the pure kernels. A mode without optimized kernels is skipped unless you pass `-P`. Add `-D 1 -f` on a machine with no GPU, where hashcat runs on the CPU backend and needs `--force`.
 
-`-S` is the check to repeat while you iterate. It cracks each mode's own self-test vector, which finishes much faster than the full suite but skips most attack types and kernel paths. Run the full suite and `--edge` once the change is done, before you report it, rather than after every edit.
+`-S` is the check to repeat while you iterate. It cracks one test vector per mode, which finishes much faster than the full suite but skips most attack types and kernel paths. It ignores `-a` and runs attack mode 0, or 3 for a mode that ships only an -a 3 kernel. A mode whose test module reduces the iteration count gets a vector generated at that count, not its own self-test vector, unless you add `--full-iteration-count`. Run the full suite and `--edge` once the change is done, before you report it, rather than after every edit.
 
 Hashcat caches compiled kernels. `test.py` does not touch `cache/kernels/`: it builds its kernels in a private cache path for each run (setup_isolation in tools/test.py), so it neither uses that cache nor clears it. When you run hashcat directly after a change under `OpenCL/`, run `rm -rf cache/kernels/` first, or you will measure the old binary and conclude the change did nothing.
 

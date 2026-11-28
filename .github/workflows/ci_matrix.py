@@ -145,16 +145,18 @@ def test_matrix(groups, kinds):
             for i, group in enumerate(groups)]
 
 
-def timed_test_groups(modes, timings, limit):
+def timed_test_groups(modes, timings, limit, lower=None):
     # Balance measured costs and conservative estimates for untimed modes within the job budget.
+    # lower holds the time a failed or cut off run took, which a mode is never planned below.
     if not modes:
         return []
     if not timings:
         return balance_shards(modes, limit)
 
+    lower = lower or {}
     unit_seconds = max(60, math.ceil(median(seconds / mode_weight(mode)
                                            for mode, seconds in timings.items())))
-    costs = {mode: math.ceil(timings.get(mode, unit_seconds * mode_weight(mode)) * 1.2)
+    costs = {mode: math.ceil(max(timings.get(mode, unit_seconds * mode_weight(mode)), lower.get(mode, 0)) * 1.2)
              for mode in modes}
     budget = TEST_SHARD_SECONDS - TEST_SETUP_SECONDS
     count = min(limit, len(modes), max(1, math.ceil(sum(costs.values()) / budget)))
@@ -169,18 +171,21 @@ def timed_test_groups(modes, timings, limit):
     return [sorted(group) for group in groups if group]
 
 
-def ci_timings(modes, reduced=False):
-    # Missing reduced measurements retain the saved normal cost.
+def ci_timings(modes, reduced=False, lower=False):
+    # Missing reduced measurements retain the saved normal cost. With lower, the same is read from
+    # the lower bounds that failed or cut off runs saved.
     path = os.path.join(os.path.dirname(__file__), "ci_timings.json")
     if not os.path.isfile(path):
         return {}
     with open(path) as source:
         data = json.load(source)
+    if lower:
+        data = data.get("lower", {})
     timings = {}
     for mode in modes:
-        seconds = dict(data["normal"].get(str(mode), {}))
+        seconds = dict(data.get("normal", {}).get(str(mode), {}))
         if reduced:
-            seconds.update(data["reduced"].get(str(mode), {}))
+            seconds.update(data.get("reduced", {}).get(str(mode), {}))
         for kind, value in seconds.items():
             timings.setdefault(kind, {})[mode] = value
     return timings
@@ -189,10 +194,11 @@ def ci_timings(modes, reduced=False):
 def kernel_test_matrix(modes, kinds, reduced=False):
     # Balance each test kind independently using its normal or reduced mode timings.
     timings = ci_timings(modes, reduced)
+    lower = ci_timings(modes, reduced, lower=True)
     matrix = []
     for kind in kinds:
         limit = SHARDS["edge" if kind == "edge" else "test"]
-        groups = timed_test_groups(modes, timings.get(kind, {}), limit)
+        groups = timed_test_groups(modes, timings.get(kind, {}), limit, lower.get(kind, {}))
         matrix += test_matrix(groups, [kind])
     return matrix
 

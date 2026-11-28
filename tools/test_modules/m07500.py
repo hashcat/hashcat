@@ -16,6 +16,11 @@ from lib.test_helpers import random_bytes, random_numeric_string
 
 MSG_TYPE = b"\x01\x00\x00\x00"
 
+# the bytes after the 14 digits: the closing Z alone, or with a cusec of one, two or three bytes and
+# its headers, which makes the encrypted timestamp 29, 34, 35 or 36 bytes long
+
+TAIL_LENS = [1, 6, 7, 8]
+
 
 def get_random_kerberos5_salt(custom_salt):
     # the kernels check the timestamp only for the "20" it starts with and the twelve digits after it
@@ -34,7 +39,7 @@ def get_random_kerberos5_salt(custom_salt):
         random_bytes(14)
         + b"20"
         + random_numeric_string(12).encode("ascii")
-        + random_bytes(8)
+        + random_bytes(random.choice(TAIL_LENS))
     )
 
     return "%s$%s$%s$%s$%s$%d" % (

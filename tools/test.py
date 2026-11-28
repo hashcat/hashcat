@@ -210,6 +210,27 @@ def alloc_failed(out):
   return False
 
 
+def note_capped_memskip(rc, out):
+  # A worker squeezed by the -j split rather than a mode that is broken, in either of the two ways
+  # that happens. Hashcat sizes itself against the share, decides the mode does not fit and exits
+  # 252. Or its sizing fits the share and the driver refuses the allocation all the same, which
+  # exits 255, because the share is advisory and read once at startup and cannot describe a card
+  # whose free memory moves while four workers start. Both go to the re-run on the whole card.
+  #
+  # Called where hashcat runs rather than from classify (), which the self-test and edge paths do not
+  # reach.
+  global CAPPED_MEM_SKIP
+
+  if capped_run() == False:
+    return
+
+  if rc == 252:
+    CAPPED_MEM_SKIP = True
+
+  if (rc == 255) and (alloc_failed(out) == True):
+    CAPPED_MEM_SKIP = True
+
+
 def reason_for(ret):
   # The English reason for a non-zero hashcat result, for logfull.txt. A code outside the known set is
   # an error rather than a result: a negative return is a process killed by a signal (subprocess
@@ -548,22 +569,24 @@ def backend_ids_for(device, devices=None):
           if not want or d["type"] in want]
 
 
-def export_worker_mem_shares(args):
+def export_worker_mem_shares(args, workers):
   # Under -j each worker reads the whole card and host as free and sizes itself to it,
   # so N of them together ask for N times what exists and the later ones die on out of memory. Hand
   # each worker its own share through HASHCAT_DEVICE_MEM_LIMIT and HASHCAT_HOST_MEM_LIMIT, in MiB; the
   # child inherits the two from this process. A hashcat that predates them ignores the env, so on an
-  # older build this is a no-op rather than a break.
-  if args.jobs <= 1:
+  # older build this is a no-op rather than a break. workers is how many run at once, the smaller of
+  # -j and the number of modes, so a run of fewer modes than -j hands each a larger share, and a single
+  # worker runs uncapped.
+  if workers <= 1:
     return
 
   dev = min_device_free_mib(args.device, ids=args.backend_devices)
   if dev:
-    os.environ["HASHCAT_DEVICE_MEM_LIMIT"] = str(max(1, dev // args.jobs))
+    os.environ["HASHCAT_DEVICE_MEM_LIMIT"] = str(max(1, dev // workers))
 
   host = host_avail_mib()
   if host:
-    os.environ["HASHCAT_HOST_MEM_LIMIT"] = str(max(1, host // args.jobs))
+    os.environ["HASHCAT_HOST_MEM_LIMIT"] = str(max(1, host // workers))
 
 
 def setup_outdir(args):
@@ -746,8 +769,9 @@ SELFTEST_RUNTIME = 60
 
 # Modes with no meaningful self-test crack: 2000 and 99999 are Plaintext passthrough modes (STDOUT),
 # and 14600 is LUKS, whose example hash is N/A and lives in external container files. The sweep still
-# runs them and prints their line, but does not count them as cracked or as a failure. test.sh keeps
-# the same set (selftest_vector_sweep), so the two stay comparable.
+# runs them and prints their line, but counts them as neither cracked nor missed. Only a fault on one
+# of them fails the sweep. test.sh keeps the same set (selftest_vector_sweep), so the two stay
+# comparable.
 NO_SELFTEST = {2000, 14600, 99999}
 
 # test.sh's attack order for -a all (test.sh). A slow mode only runs the attacks that
@@ -1389,7 +1413,7 @@ def iteration_kernel_opts(mode, opts, generated=True):
 
 
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_hash=True):
-  global LAST_CMD, LAST_STDIN, LAST_ENV, CAPPED_MEM_SKIP
+  global LAST_CMD, LAST_STDIN, LAST_ENV
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   tuning_opts = list(opts) + module_opts(mode) + list(extra)
@@ -1415,20 +1439,7 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_h
   out = proc.stdout + proc.stderr
   log_output(cmd, out, env)
 
-  if capped_run() == True:
-    # A worker squeezed by the -j split rather than a mode that is broken, in either of the two ways
-    # that happens. hashcat sizes itself against the share, decides the mode does not fit and exits
-    # 252. Or its sizing fits the share and the driver refuses the allocation all the same, which
-    # exits 255, because the share is advisory and read once at startup and cannot describe a card
-    # whose free memory moves while four workers start. Both go to the re-run on the whole card.
-    #
-    # Decided here rather than in classify (), which the self-test path does not reach.
-
-    if proc.returncode == 252:
-      CAPPED_MEM_SKIP = True
-
-    if (proc.returncode == 255) and (alloc_failed(out) == True):
-      CAPPED_MEM_SKIP = True
+  note_capped_memskip(proc.returncode, out)
 
   return proc.returncode, out
 
@@ -5141,13 +5152,17 @@ def selftest_vector_sweep(args):
       for line in out_lines:
         print(line)
 
+      text = "\n".join(out_lines)
+
       if sweep_mode in NO_SELFTEST:
-        sweep_na += "%d " % sweep_mode
+        if "> Fault :" in text:
+          sweep_fault += "%d " % sweep_mode
+        else:
+          sweep_na += "%d " % sweep_mode
+
         continue
 
       sweep_total += 1
-
-      text = "\n".join(out_lines)
 
       # test.sh buckets on the captured output. Its SKIPPED_LIST check for a skipped mode always
       # falls through to "did not crack", because selftest_vector_test runs in a $(...) subshell and
@@ -5168,7 +5183,23 @@ def selftest_vector_sweep(args):
   if not args.selftest_child:
     selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
-  return 1 if (sweep_bad or sweep_fault or sweep_slow or sweep_na or sweep_ok == 0) else 0
+  rc = selftest_sweep_rc(sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
+
+  return rc
+
+
+def selftest_sweep_rc(sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault):
+  # A mode that did not crack, failed or hit --runtime fails the sweep. A NO_SELFTEST mode that ran
+  # without a fault has nothing to check, so it fails nothing, as a kernel skip fails nothing in
+  # tests_status. A sweep that reached no mode at all fails.
+
+  if (sweep_bad != "") or (sweep_fault != "") or (sweep_slow != ""):
+    return 1
+
+  if (sweep_total == 0) and (sweep_na == ""):
+    return 1
+
+  return 0
 
 
 def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault):
@@ -5205,6 +5236,8 @@ def run_parallel_selftest(args):
   lo, hi, all_modes = sweep_range(args.mode)
   selected = [m for m in sweep_modes if all_modes or (lo <= m <= hi)]
 
+  export_worker_mem_shares(args, min(args.jobs, len(selected)))
+
   base = [sys.executable, os.path.abspath(__file__), "-S", "--selftest-child",
           "-D", args.device]
 
@@ -5240,30 +5273,41 @@ def run_parallel_selftest(args):
     sys.stdout.buffer.write(out)
     sys.stdout.buffer.flush()
 
+    text = out.decode("utf-8", "replace")
+
+    # A NO_SELFTEST worker exits 0 unless hashcat or the worker itself failed.
+
     if mode in NO_SELFTEST:
-      sweep_na += "%d " % mode
+      if (rc != 0) or ("> Fault :" in text):
+        sweep_fault += "%d " % mode
+        record("Fault")
+      else:
+        sweep_na += "%d " % mode
+
       return
 
     sweep_total += 1
     record("modes")
 
-    text = out.decode("utf-8", "replace")
+    # The verdict line decides, as in the serial sweep, so a vector that did not crack is listed as
+    # one even though its worker exits 1 for it. A worker that printed no verdict, or an OK and then
+    # failed, is a fault of its own.
 
     if "> Warning :" in text:
       sweep_slow += "%d " % mode
       record("Warning")
-    elif rc != 0:
-      sweep_fault += "%d " % mode
-      record("Fault")
-    elif "> OK :" in text:
-      sweep_ok += 1
-      record("OK")
     elif "> Fault :" in text:
       sweep_fault += "%d " % mode
       record("Fault")
-    else:
+    elif ("> OK :" in text) and (rc == 0):
+      sweep_ok += 1
+      record("OK")
+    elif re.search(r"> (Error|Compare Error|Skip) :", text) is not None:
       sweep_bad += "%d " % mode
       record("not-OK")
+    else:
+      sweep_fault += "%d " % mode
+      record("Fault")
 
   retry = []
 
@@ -5297,7 +5341,9 @@ def run_parallel_selftest(args):
 
   selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
-  return 1 if (sweep_bad or sweep_fault or sweep_slow or sweep_na or sweep_ok == 0) else 0
+  rc = selftest_sweep_rc(sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
+
+  return rc
 
 
 def widths_for(spec):
@@ -5483,6 +5529,8 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   out = proc.stdout + proc.stderr
 
   log_output(argv, out, env)
+
+  note_capped_memskip(proc.returncode, out)
 
   return proc.returncode, out
 
@@ -6360,6 +6408,12 @@ def edge_process_mode(args, mode, cfg, tmp):
                     pt_hex, pt_base58, hexify_plain, no_salt, keep_guess)
 
       for width in cfg["widths"]:
+        # A -j worker that ran out of its memory share is re-run whole without the cap, so the rest of
+        # this attempt would only be thrown away.
+
+        if (args.edge_child == True) and (CAPPED_MEM_SKIP == True):
+          return errors, cells
+
         outfile = os.path.join(tmp, "edge_%d_%s_%d_%d.outfile" % (mode, ktype, attack, width))
         opts    = edge_opts(args, optimized, width, pt_hex, outfile)
 
@@ -6528,6 +6582,8 @@ def run_parallel_edge(args, modes, all_scope):
   # Each child is a plain single-mode --edge run, so setup_isolation() gives it a private cache and
   # session. The child prints only its per-mode line; the total is summed and printed here.
 
+  export_worker_mem_shares(args, min(args.jobs, len(modes)))
+
   base = [sys.executable, os.path.abspath(__file__), "--edge", "--edge-child",
           "-a", args.attack, "-t", args.target, "-D", args.device,
           "-V", args.vector, "-K", args.kernel, "-A", args.attack_exec]
@@ -6551,23 +6607,57 @@ def run_parallel_edge(args, modes, all_scope):
 
   total = 0
 
+  # One mode's output printed and counted. A deferred mode goes through this after its re-run, so
+  # the counting is written once and the capped attempt is not counted at all.
+
+  def tally(prc, out):
+    nonlocal total
+
+    sys.stdout.buffer.write(out)
+    sys.stdout.buffer.flush()
+
+    record("modes")
+
+    summaries = list(re.finditer(rb"> (\d+) errors,", out))
+    worker_errors = sum(int(m.group(1)) for m in summaries)
+
+    if ((prc != 0) or (len(summaries) == 0)) and (worker_errors == 0):
+      worker_errors = 1
+      print("[ test.py edge ] !> worker failed or returned no summary (rc=%d)" % prc)
+
+    total += worker_errors
+
+    PROGRESS["errors"] = total
+
+  retry = []
+
   with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for prc, out in pool.map(run_one, modes):
-      sys.stdout.buffer.write(out)
-      sys.stdout.buffer.flush()
+    for mode, (prc, out) in zip(modes, pool.map(run_one, modes)):
+      if prc == MEMSKIP_RC:
+        # Squeezed by its share of the card. Its output is left out and the mode is re-run below,
+        # once the workers that squeezed it have finished.
+        retry.append(mode)
 
-      record("modes")
+        continue
 
-      summaries = list(re.finditer(rb"> (\d+) errors,", out))
-      worker_errors = sum(int(m.group(1)) for m in summaries)
+      tally(prc, out)
 
-      if (prc != 0 or not summaries) and worker_errors == 0:
-        worker_errors = 1
-        print("[ test.py edge ] !> worker failed or returned no summary (rc=%d)" % prc)
+  if retry:
+    # One at a time with both shares removed, the same answer run_parallel gives. A mode that needs
+    # more than the whole card runs out again, now with nothing capping it.
 
-      total += worker_errors
+    nocap = {k: v for k, v in os.environ.items()
+             if k not in ("HASHCAT_DEVICE_MEM_LIMIT", "HASHCAT_HOST_MEM_LIMIT")}
 
-      PROGRESS["errors"] = total
+    print("[ test.py edge ] > re-running %d memory-capped skip(s) without the cap: %s"
+          % (len(retry), " ".join(str(m) for m in retry)))
+    sys.stdout.flush()
+
+    for mode in retry:
+      proc = subprocess.run(base + ["-m", str(mode)], env=nocap,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+      tally(proc.returncode, proc.stdout)
 
   print("[ test.py edge ] > Errors detected: %d" % total)
 
@@ -6631,12 +6721,14 @@ def run_edge(args):
 def run_parallel(args):
   # The breadth -j split: fan the selected modes across args.jobs workers, so as many modes as
   # possible are in flight and the whole run finishes in the least time. More workers than devices is
-  # normal, so the workers share each card and export_worker_mem_shares has capped each to its slice of
-  # the memory. Each worker is a plain single-mode test.py run (no -j) in its own process, so
+  # normal, so the workers share each card and export_worker_mem_shares caps each to its slice of the
+  # memory. Each worker is a plain single-mode test.py run (no -j) in its own process, so
   # setup_isolation() gives it a private hashcat cache/session and no two runs share mutable state.
   # One mode per child means a kernel is still built only once. Output is gathered and printed in mode
   # order, so a -j run reads the same as the serial run.
   modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
+
+  export_worker_mem_shares(args, min(args.jobs, len(modes)))
 
   base = [sys.executable, os.path.abspath(__file__),
           "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
@@ -6723,7 +6815,7 @@ def run_parallel_depth(args):
   # The depth -j split: one mode at a time per device, each pinned to a single card at its whole
   # memory, rather than many modes sharing every card on a fraction of it (run_parallel). The point is
   # to give each mode a full device, so concurrency is the number of devices of the -D type, not the
-  # -j number, and no memory cap is set (main() skips export_worker_mem_shares for this split). A
+  # -j number, and no memory cap is set (this split never calls export_worker_mem_shares). A
   # device pulls the next mode when it finishes its last, and output is printed in mode order, as the
   # breadth split and the serial run do.
   modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
@@ -6985,7 +7077,8 @@ def main():
   iterations.add_argument("--full-iteration-count", dest="artificially_low_iteration_count", action="store_false",
                           help="use original iteration counts instead of reduced counts")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
-                  help="crack selftest hash of each mode")
+                  help="crack one test vector per mode: its self-test hash, or one generated at the "
+                       "reduced iteration count where its test module declares one. -a is ignored")
   ap.add_argument("-M", dest="minimal", action="store_true",
                   help="minimal mode: full-test the 24 hash types covering all distinct code paths")
   ap.add_argument("-g", dest="generate", action="store_true",
@@ -7044,6 +7137,17 @@ def main():
   if args.list_hardware_modes:
     print(" ".join(str(m) for m in sorted(HARDWARE_MODES)))
     sys.exit(0)
+
+  # -g builds its archives and containers for the default test run, in the process that runs the
+  # modes. --edge, -S and --bridge never read it, and a -j worker is started without it, so either
+  # run would pass having built nothing.
+
+  if args.generate == True:
+    if (args.edge == True) or (args.selftest_all == True) or (args.bridge == True):
+      die("! -g only works for the default test run, not with --edge, -S or --bridge.")
+
+    if args.jobs > 1:
+      die("! -g cannot be combined with -j. Run it without -j.")
 
   # --compute-sanitizer points hashcat at the sweep shim, which wraps every run in
   # tools/compute_sanitizer/run.py under NVIDIA Compute Sanitizer and routes findings into a results
@@ -7116,14 +7220,19 @@ def main():
       clean_apple_caches()
 
   # The breadth split shares each card between workers, so each needs its capped slice of the memory;
-  # the depth split gives each mode a whole device, so it runs uncapped. Edge and -S use breadth.
+  # the depth split gives each mode a whole device, so it runs uncapped. Edge and -S use breadth. Each
+  # breadth runner hands out the shares itself, once it knows how many modes it runs.
   depth = args.jobs > 1 and args.split == "depth" and not args.edge and not args.selftest_all
 
-  if not depth:
-    export_worker_mem_shares(args)
-
   if args.edge:
-    sys.exit(run_edge(args))
+    rc = run_edge(args)
+
+    # Only a -j worker hands a capped run back to be re-run. A serial run has no parent to do it.
+
+    if args.edge_child == True:
+      rc = memskip_rc(rc)
+
+    sys.exit(rc)
 
   # --bridge runs on its own: it ignores -a and -t and cracks each selected mode's oracle through
   # the Python bridge (mode 73000), so it checks hashcat's parser and candidate handling against the
@@ -7146,7 +7255,7 @@ def main():
     sys.exit(run_parallel_depth(args) if depth else run_parallel(args))
 
   if args.attack != "all" and (not args.attack.isdigit() or int(args.attack) not in ATTACK_ORDER):
-    die("! invalid attack mode: %s" % args.attack)
+    refuse_run("! invalid attack mode: %s" % args.attack)
 
   if args.attack != "all" and int(args.attack) not in ATTACKS:
     die("! -a %s is not implemented in test.py" % args.attack)
@@ -7156,7 +7265,7 @@ def main():
   # be misread as every mode being not applicable.
 
   if not os.path.isfile(RUNNER):
-    die("! no oracle engine at %s" % RUNNER)
+    refuse_run("! no oracle engine at %s" % RUNNER)
 
   modes    = discover_modes()
   py_modes = set(modes)
@@ -7175,8 +7284,8 @@ def main():
     selected = [m for m in selected if m in GEN_MODES]
 
     if not selected:
-      die("! -g has no generator for -m %s\n! -g can build: %s"
-          % (args.mode, " ".join(str(m) for m in sorted(GEN_MODES))))
+      refuse_run("! -g has no generator for -m %s\n! -g can build: %s"
+                 % (args.mode, " ".join(str(m) for m in sorted(GEN_MODES))))
 
     # The generated containers get a password of their own, so a pass cannot come from 'hashcat' being
     # baked into both the volume and the mask (test.sh). The masks follow from it.
@@ -7192,7 +7301,7 @@ def main():
         print("> Some selected modes build their container as root, so this run needs sudo. Asking now.")
 
         if subprocess.run(["sudo", "-v"]).returncode != 0:
-          die("! No root, so those modes cannot be generated. Deselect them, or run without -g.")
+          refuse_run("! No root, so those modes cannot be generated. Deselect them, or run without -g.")
 
       import threading
 
