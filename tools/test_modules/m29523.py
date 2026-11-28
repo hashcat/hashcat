@@ -29,12 +29,18 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": (1000, 10000)}],
     },
   }
 
 
 def module_generate_hash(word, salt=None, iterations=None):
-  out = subprocess.run([_SCRIPT, _MODULE_ID, word], capture_output=True).stdout
+  # iterations is the PBKDF2 count of the key slot. An association group passes one for all of its
+  # hashes, because hashcat refuses an -a 9 run whose hashes differ in it.
+
+  args = [_SCRIPT, _MODULE_ID, word] if iterations is None else [_SCRIPT, _MODULE_ID, word, str(iterations)]
+
+  out = subprocess.run(args, capture_output=True).stdout
 
   return out.decode("latin-1").replace("\r", "").replace("\n", "")
 

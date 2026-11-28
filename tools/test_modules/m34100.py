@@ -9,8 +9,8 @@ import os
 import re
 import subprocess
 
-# LUKS container mode. The oracle builds a real container by running m34100.sh with this mode's id and
-# the password, and returns the hash the script prints. Each run makes a fresh container with its own
+# LUKS container mode. The oracle builds a real container by running m34100.sh with the password, and
+# returns the hash the script prints. Each run makes a fresh container with its own
 # random salt, so the oracle cannot round trip its own output; these modes are exercised through
 # test.sh -g (build a container, then crack it), not the oracle compare. The id comes from this
 # file's name, as the perl oracle takes it from its own.
@@ -29,12 +29,18 @@ def module_test_properties():
       },
       'optimized': None,
       'combined_length': None,
+      'association_parameters': [{"iterations": (4, 6)}],
     },
   }
 
 
 def module_generate_hash(word, salt=None, iterations=None):
-  out = subprocess.run([_SCRIPT, word], capture_output=True).stdout
+  # iterations is the Argon2 time cost. An association group passes one for all of its hashes,
+  # because hashcat refuses an -a 9 run whose hashes differ in it.
+
+  args = [_SCRIPT, word] if iterations is None else [_SCRIPT, word, str(iterations)]
+
+  out = subprocess.run(args, capture_output=True).stdout
 
   return out.decode("latin-1").replace("\r", "").replace("\n", "")
 

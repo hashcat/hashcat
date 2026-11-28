@@ -15,6 +15,16 @@ else
   password=$2
 fi
 
+# The test modules hand every container of an association group the same PBKDF2 iteration count,
+# because hashcat refuses an -a 9 run whose hashes differ in it. Without one, cryptsetup times its
+# own count as before.
+
+extra_format_opts=()
+
+if [[ -n "${3:-}" ]]; then
+  extra_format_opts=(--pbkdf-force-iterations "$3")
+fi
+
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
 
 
@@ -110,70 +120,23 @@ EOF
 
   echo  "ext4: $filename" >> ${LOG_FILE}
 
-  sudo losetup -D
+  # only the device this call attached, other loop devices on the box are not ours to detach
+
+  sudo losetup -d "$loopdev"
 }
 
-# These options don't generate for me on Ubuntu 24.04; cbc-essiv_128, cbc-essiv_256, cbc-essiv_512, xts-plain64_128, cbc-plain64_512
-# while true; do ./luks1.sh "14600" 'aaaaaaaa'; done 2>&1 | tee -a luks1.log
-# less luks1.log | grep -i failed -B1 | grep img | cut -d'/' -f4- | cut -d'_' -f2-4 | rev | cut -d'-' -f2- | rev | sort -u
-# ripemd160_aes-cbc-essiv_512
-# ripemd160_aes-cbc-plain64_512
-# ripemd160_serpent-cbc-essiv_512
-# ripemd160_serpent-cbc-plain64_512
-# ripemd160_twofish-cbc-essiv_128
-# ripemd160_twofish-cbc-essiv_256
-# ripemd160_twofish-cbc-essiv_512
-# ripemd160_twofish-cbc-plain64_512
-# ripemd160_twofish-xts-plain64_128
-# sha1_aes-cbc-essiv_128
-# sha1_aes-cbc-essiv_512
-# sha1_aes-cbc-plain64_512
-# sha1_aes-xts-plain64_128
-# sha1_serpent-cbc-essiv_256
-# sha1_serpent-cbc-essiv_512
-# sha1_serpent-cbc-plain64_512
-# sha1_twofish-cbc-essiv_128
-# sha1_twofish-cbc-essiv_256
-# sha1_twofish-cbc-essiv_512
-# sha1_twofish-xts-plain64_128
-# sha256_aes-cbc-essiv_128
-# sha256_aes-cbc-essiv_256
-# sha256_aes-cbc-essiv_512
-# sha256_aes-cbc-plain64_512
-# sha256_aes-xts-plain64_128
-# sha256_serpent-cbc-essiv_128
-# sha256_serpent-cbc-essiv_256
-# sha256_serpent-cbc-essiv_512
-# sha256_twofish-cbc-essiv_256
-# sha256_twofish-cbc-essiv_512
-# sha256_twofish-cbc-plain64_512
-# sha256_twofish-xts-plain64_128
-# sha512_aes-cbc-essiv_128
-# sha512_aes-cbc-plain64_512
-# sha512_aes-xts-plain64_128
-# sha512_serpent-cbc-essiv_128
-# sha512_serpent-cbc-essiv_256
-# sha512_serpent-cbc-essiv_512
-# sha512_twofish-cbc-essiv_128
-# sha512_twofish-cbc-essiv_256
-# sha512_twofish-cbc-plain64_512
-# sha512_twofish-xts-plain64_128
-# whirlpool_aes-cbc-plain64_512
-# whirlpool_aes-xts-plain64_128
-# whirlpool_serpent-cbc-essiv_128
-# whirlpool_serpent-cbc-essiv_256
-# whirlpool_serpent-cbc-essiv_512
-# whirlpool_serpent-cbc-plain64_512
-# whirlpool_twofish-cbc-essiv_128
-# whirlpool_twofish-cbc-essiv_256
-# whirlpool_twofish-cbc-essiv_512
-# whirlpool_twofish-cbc-plain64_512
+# A 128 bit key takes the CBC modes only, because XTS splits its key into two halves. A 512 bit key
+# takes XTS only, because none of the ciphers has a 512 bit key of its own. The key size filter
+# below skips the other picks. ESSIV is spelled with its hash, or dm-crypt refuses the mapping.
 
 LUKS_TYPES=("luks1")
 HASHES=("sha1" "sha256" "sha512" "ripemd160" "whirlpool")
 CIPHERS=("aes" "serpent" "twofish")
-CIPHER_MODES=("cbc-essiv" "cbc-plain64" "xts-plain64")
+CIPHER_MODES=("cbc-essiv:sha256" "cbc-plain64" "xts-plain64")
 KEYSIZES=("128" "256" "512")
+
+# Blowfish has an eight byte block, so XTS does not apply to it.
+BLOWFISH_MODES=("cbc-plain64" "cbc-essiv:sha256")
 
 # --- random picks ---
 while true; do
@@ -241,39 +204,34 @@ while true; do
     29514) # LUKS v1 SHA-1 + Blowfish
       cipher="blowfish"
       hash="sha1"
-      cipher_mode="cbc-plain64"   # Blowfish has an eight byte block, so XTS does not apply
+      cipher_mode=${BLOWFISH_MODES[$RANDOM % ${#BLOWFISH_MODES[@]}]}
       ;;
     29524) # LUKS v1 SHA-256 + Blowfish
       cipher="blowfish"
       hash="sha256"
-      cipher_mode="cbc-plain64"
+      cipher_mode=${BLOWFISH_MODES[$RANDOM % ${#BLOWFISH_MODES[@]}]}
       ;;
     29534) # LUKS v1 SHA-512 + Blowfish
       cipher="blowfish"
       hash="sha512"
-      cipher_mode="cbc-plain64"
+      cipher_mode=${BLOWFISH_MODES[$RANDOM % ${#BLOWFISH_MODES[@]}]}
       ;;
     29544) # LUKS v1 RIPEMD-160 + Blowfish
       cipher="blowfish"
       hash="ripemd160"
-      cipher_mode="cbc-plain64"
+      cipher_mode=${BLOWFISH_MODES[$RANDOM % ${#BLOWFISH_MODES[@]}]}
       ;;
   esac
 
   case "$keysize" in
     128)
       case "$cipher_mode" in
-        cbc-essiv|xts-plain64) continue ;;   # skip this pick, try again
-      esac
-      ;;
-    256)
-      case "$cipher_mode" in
-        cbc-essiv) continue ;;   # skip this pick, try again
+        xts-plain64) continue ;;   # skip this pick, try again
       esac
       ;;
     512)
       case "$cipher_mode" in
-        cbc-essiv|cbc-plain64) continue ;;   # skip this pick, try again
+        cbc-essiv:sha256|cbc-plain64) continue ;;   # skip this pick, try again
       esac
       ;;
   esac
@@ -286,7 +244,7 @@ file="${OUTPUT_DIR}/${luks_type}_${hash}_${cipher}_${cipher_mode}_${keysize}-siz
 
 # echo "Creating $file"
 cipher_cipher_mode=${cipher}-${cipher_mode}
-create_luks_container "$password" "$file" "$luks_type" "$cipher_cipher_mode" "$hash" "$keysize" "$size"
+create_luks_container "$password" "$file" "$luks_type" "$cipher_cipher_mode" "$hash" "$keysize" "$size" "${extra_format_opts[@]}"
 
 
 ${TDIR}/luks2hashcat.py $file | grep -vE '^[0-9]+$' > $file.hash

@@ -112,7 +112,9 @@ EOF
 
   echo  "ext4: $filename" >> ${LOG_FILE}
 
-  sudo losetup -D
+  # only the device this call attached, other loop devices on the box are not ours to detach
+
+  sudo losetup -d "$loopdev"
 }
 
 # --- random picks ---
@@ -122,6 +124,13 @@ memory=${ARGON_MEMORY[$RANDOM % ${#ARGON_MEMORY[@]}]}
 threads=${ARGON_THREADS[$RANDOM % ${#ARGON_THREADS[@]}]}
 cipher_name=$(printf "%s\n" "${!CIPHERS[@]}" | shuf -n1)
 cipher=${CIPHERS[$cipher_name]}
+
+# m34100.py hands every container of an association group the same time cost, because hashcat
+# refuses an -a 9 run whose hashes differ in it.
+
+if [[ -n "${2:-}" ]]; then
+  time="$2"
+fi
 
 file="${OUTPUT_DIR}/luks2-${cipher_name}-${kdf}-t${time}-m${memory}-p${threads}-size${size}MiB_$(date +%Y%m%d%H%M%S%6N).img"
 
