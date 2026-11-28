@@ -668,6 +668,24 @@ If the device remains absent, confirm that openFPGALoader reported `done 1`, ind
 
 When scripting this check, note that `lspci -d 10ee:` **returns success even with no matches**. Count its output lines instead of relying on the exit status.
 
+### Switching designs without a reboot
+
+**The reboot can be skipped when `lspci` already lists the card.** That is the case when a design was running before the host started, such as the factory image a YPCB-00338-1P1 loads from its BPI flash, or an earlier hashcat bitstream. The root port is then visible, so the kernel only has to drop the old endpoint and find the new one.
+
+Remove the device, program the FPGA with the command above, then rescan:
+
+```
+echo 1 | sudo tee /sys/bus/pci/devices/0000:09:00.0/remove
+# program the FPGA here
+echo 1 | sudo tee /sys/bus/pci/rescan
+```
+
+Replace `0000:09:00.0` with the address that `lspci -d 10ee:` prints for the card.
+
+**Programming alone is not enough.** The kernel does not notice that the design changed. `lspci` keeps showing the old device, and the driver keeps its stale mapping. The driver also binds the YPCB factory image, which enumerates as `10ee:7028`, so hashcat finds a device node and reports `device responds, but is not running a hashcat FPGA design`. After the remove and rescan the card enumerates as `10ee:7021` and hashcat lists the board.
+
+This was confirmed on a YPCB-00338-1P1 in a Thunderbolt 3 PCIe enclosure, with the factory image running before the switch. If the card is absent after the rescan, reboot as described above.
+
 ### Making it survive a power cycle
 
 A JTAG-loaded design is lost at power-off. After validating the bitstream, use the board-specific non-volatile method below when available.
